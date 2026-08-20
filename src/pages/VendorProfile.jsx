@@ -4,6 +4,8 @@ import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle } from 'lu
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
 import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
+import BidangUsahaTab from '../components/profile/BidangUsahaTab';
+import RekeningKoranTab from '../components/profile/RekeningKoranTab';
 
 function IdentityTab({ vendor }) {
   if (!vendor) return null;
@@ -397,6 +399,18 @@ export default function VendorProfile() {
             >
               Neraca
             </button>
+            <button
+              onClick={() => setActiveTab('bidang_usaha')}
+              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bidang_usaha' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            >
+              Bidang Usaha
+            </button>
+            <button
+              onClick={() => setActiveTab('rekening_koran')}
+              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'rekening_koran' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            >
+              Rekening Koran
+            </button>
           </div>
 
         <div className="p-6">
@@ -409,6 +423,8 @@ export default function VendorProfile() {
           {activeTab === 'alat' && <PeralatanTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
           {activeTab === 'bank' && <BankTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
           {activeTab === 'neraca' && <NeracaTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
+          {activeTab === 'bidang_usaha' && <BidangUsahaTab vendorId={user.id} getAuthHeaders={getAuthHeaders} />}
+          {activeTab === 'rekening_koran' && <RekeningKoranTab vendorId={user.id} getAuthHeaders={getAuthHeaders} />}
         </div>
       </div>
     </div>

@@ -169,10 +169,16 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [useRincian, setUseRincian] = useState(false);
+  const [items, setItems] = useState([{ item_name: '', quantity: '', unit_price: '' }]);
+  const [savingRincian, setSavingRincian] = useState(false);
+
+  const rincianTotal = items.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!bidPrice || !file) return alert('Lengkapi harga penawaran dan dokumen!');
-    
+
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append('vendor_id', user.id);
@@ -182,7 +188,7 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/bids`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('eproc_token')}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` },
         body: formData
       });
       const json = await res.json();
@@ -200,6 +206,29 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
     }
   };
 
+  const handleSubmitRincian = async () => {
+    const valid = items.filter(it => it.item_name.trim() && it.quantity && it.unit_price);
+    if (!valid.length) return alert('Isi minimal satu item rincian penawaran.');
+    setSavingRincian(true);
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/participants/${user.id}/bid-items`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ items: valid }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert(`Rincian penawaran berhasil disimpan. Total: Rp ${json.data.total.toLocaleString('id-ID')}`);
+        refreshData();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSavingRincian(false);
+    }
+  };
+
   return (
     <div className="bg-surface border border-border p-5 rounded-xl mt-4">
       <h3 className="font-bold text-dpbj-navy text-sm mb-4 flex items-center gap-2">
@@ -210,9 +239,9 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
           <label className="block text-xs font-semibold text-muted mb-1">Nilai Penawaran (Rp)</label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
-            <input 
-              type="text" 
-              className="form-input w-full pl-9 font-semibold text-dpbj-navy" 
+            <input
+              type="text"
+              className="form-input w-full pl-9 font-semibold text-dpbj-navy"
               placeholder="0"
               value={bidPrice}
               onChange={(e) => {
@@ -224,10 +253,10 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
         </div>
         <div>
           <label className="block text-xs font-semibold text-muted mb-1">Dokumen Penawaran Teknis & Harga (PDF/ZIP)</label>
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={fileInputRef}
-            className="form-input w-full text-sm text-dpbj-navy p-2 bg-white" 
+            className="form-input w-full text-sm text-dpbj-navy p-2 bg-white"
             accept=".pdf,.zip,.rar"
             onChange={(e) => setFile(e.target.files[0])}
           />
@@ -237,6 +266,31 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
           {isSubmitting ? 'Mengirim...' : 'Kirim Penawaran Sekarang'}
         </button>
       </form>
+
+      <div className="mt-5 pt-4 border-t border-border">
+        <button type="button" onClick={() => setUseRincian(!useRincian)} className="text-xs font-semibold text-dpbj-navy hover:underline">
+          {useRincian ? '- Sembunyikan' : '+ Tambahkan'} Rincian Penawaran per Item (opsional)
+        </button>
+        {useRincian && (
+          <div className="mt-3 space-y-2">
+            <p className="text-[10px] text-muted">Kirim penawaran dulu di atas sebelum menyimpan rincian ini (rincian akan otomatis menggantikan nilai penawaran total).</p>
+            {items.map((it, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input placeholder="Nama item" value={it.item_name} onChange={e => setItems(items.map((x, xi) => xi === i ? { ...x, item_name: e.target.value } : x))} className="flex-1 text-xs p-1.5 border border-gray-300 rounded-lg" />
+                <input type="number" placeholder="Qty" value={it.quantity} onChange={e => setItems(items.map((x, xi) => xi === i ? { ...x, quantity: e.target.value } : x))} className="w-16 text-xs p-1.5 border border-gray-300 rounded-lg" />
+                <input type="number" placeholder="Harga satuan" value={it.unit_price} onChange={e => setItems(items.map((x, xi) => xi === i ? { ...x, unit_price: e.target.value } : x))} className="w-28 text-xs p-1.5 border border-gray-300 rounded-lg" />
+              </div>
+            ))}
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={() => setItems([...items, { item_name: '', quantity: '', unit_price: '' }])} className="text-[10px] text-dpbj-navy font-semibold">+ Tambah baris</button>
+              <span className="text-xs font-bold text-dpbj-navy">Total: Rp {rincianTotal.toLocaleString('id-ID')}</span>
+            </div>
+            <button type="button" onClick={handleSubmitRincian} disabled={savingRincian} className="btn-secondary text-xs w-full justify-center disabled:opacity-50">
+              {savingRincian ? 'Menyimpan...' : 'Simpan Rincian Penawaran'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

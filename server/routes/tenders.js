@@ -1416,4 +1416,113 @@ router.delete('/:id/peringkat-pemenang/:rankId', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════
+// KELOMPOK B - Vendor/Rekanan Detail (bagian yang bersinggungan dengan tender)
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── BIDANG USAHA YANG DISYARATKAN TENDER ──
+router.get('/:id/bidang-usaha', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT tb.id, tb.bidang_usaha_id, b.kode, b.nama
+      FROM tender_bidang_usaha tb
+      JOIN bidang_usaha b ON tb.bidang_usaha_id = b.id
+      WHERE tb.tender_id = $1
+      ORDER BY b.nama ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/bidang-usaha', async (req, res) => {
+  try {
+    const { bidang_usaha_id } = req.body;
+    if (!bidang_usaha_id) return res.status(400).json({ success: false, message: 'bidang_usaha_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_bidang_usaha (tender_id, bidang_usaha_id) VALUES ($1, $2)
+      ON CONFLICT (tender_id, bidang_usaha_id) DO NOTHING RETURNING *
+    `, [req.params.id, bidang_usaha_id]);
+    res.status(201).json({ success: true, data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/bidang-usaha/:linkId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_bidang_usaha WHERE id = $1 AND tender_id = $2', [req.params.linkId, req.params.id]);
+    res.json({ success: true, message: 'Syarat bidang usaha berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── RINCIAN PENAWARAN / BOQ (item per baris pada penawaran vendor) ──
+router.get('/:id/participants/:vendorId/bid-items', async (req, res) => {
+  try {
+    const participant = await pool.query(
+      'SELECT id FROM tender_participants WHERE tender_id = $1 AND vendor_id = $2',
+      [req.params.id, req.params.vendorId]
+    );
+    if (!participant.rows.length) return res.json({ success: true, data: [] });
+    const result = await pool.query(
+      'SELECT * FROM tender_bid_items WHERE tender_participant_id = $1 ORDER BY created_at ASC',
+      [participant.rows[0].id]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Vendor kirim rincian item penawaran sekaligus (replace semua item lama), lalu bid_price
+// di tender_participants otomatis dihitung ulang dari jumlah semua item supaya tetap konsisten.
+router.post('/:id/participants/:vendorId/bid-items', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Daftar item diperlukan.' });
+    }
+    const participant = await client.query(
+      'SELECT id FROM tender_participants WHERE tender_id = $1 AND vendor_id = $2',
+      [req.params.id, req.params.vendorId]
+    );
+    if (!participant.rows.length) {
+      return res.status(404).json({ success: false, message: 'Vendor belum terdaftar di tender ini.' });
+    }
+    const participantId = participant.rows[0].id;
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM tender_bid_items WHERE tender_participant_id = $1', [participantId]);
+
+    let total = 0;
+    for (const item of items) {
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const subtotal = quantity * unitPrice;
+      total += subtotal;
+      await client.query(`
+        INSERT INTO tender_bid_items (tender_participant_id, item_name, quantity, unit_price, subtotal, delivery_date, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [participantId, item.item_name, quantity, unitPrice, subtotal, item.delivery_date || null, item.notes || null]);
+    }
+
+    await client.query(
+      `UPDATE tender_participants SET bid_price = $1, status = 'bidded' WHERE id = $2`,
+      [total, participantId]
+    );
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Rincian penawaran berhasil disimpan.', data: { total } });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

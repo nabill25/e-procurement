@@ -23,6 +23,76 @@ const upload = multer({ storage: storage });
 // eProc: status_validasi 1=pending, 2=terverifikasi, 3=ditangguhkan, 4=diblokir
 const VALID_STATUSES = ['pending', 'terverifikasi', 'ditangguhkan', 'diblokir'];
 
+// ── BIDANG USAHA (klasifikasi berjenjang, ditaruh sebelum /:id supaya tidak ketiban rute vendor) ──
+router.get('/bidang-usaha/tree', async (req, res) => {
+  try {
+    const { search } = req.query;
+    let sql = 'SELECT * FROM bidang_usaha';
+    const params = [];
+    if (search) {
+      sql += ' WHERE nama ILIKE $1 OR kode ILIKE $1';
+      params.push(`%${search}%`);
+    }
+    sql += ' ORDER BY nama ASC';
+    const result = await pool.query(sql, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── VENDOR RETAIL (kategori vendor retail/katalog, terpisah dari vendor pengadaan biasa) ──
+router.get('/retail', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM vendor_retail ORDER BY nama ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/retail', async (req, res) => {
+  try {
+    const { tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar, kota, region, kontak_person, kontak_person_hp, alamat, created_by } = req.body;
+    if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
+    const result = await pool.query(`
+      INSERT INTO vendor_retail (tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar, kota, region, kontak_person, kontak_person_hp, alamat, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *
+    `, [tipe || null, nama, npwp || null, telepon_kode || null, telepon || null, whatsapp || null, tanggal_daftar || null, kota || null, region || null, kontak_person || null, kontak_person_hp || null, alamat || null, created_by || null]);
+    res.status(201).json({ success: true, message: 'Vendor retail berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.put('/retail/:retailId', async (req, res) => {
+  try {
+    const { tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar, kota, region, kontak_person, kontak_person_hp, alamat } = req.body;
+    const result = await pool.query(`
+      UPDATE vendor_retail SET
+        tipe = COALESCE($1, tipe), nama = COALESCE($2, nama), npwp = COALESCE($3, npwp),
+        telepon_kode = COALESCE($4, telepon_kode), telepon = COALESCE($5, telepon), whatsapp = COALESCE($6, whatsapp),
+        tanggal_daftar = COALESCE($7, tanggal_daftar), kota = COALESCE($8, kota), region = COALESCE($9, region),
+        kontak_person = COALESCE($10, kontak_person), kontak_person_hp = COALESCE($11, kontak_person_hp), alamat = COALESCE($12, alamat)
+      WHERE id = $13 RETURNING *
+    `, [tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar || null, kota, region, kontak_person, kontak_person_hp, alamat, req.params.retailId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
+    res.json({ success: true, message: 'Vendor retail berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/retail/:retailId', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM vendor_retail WHERE id = $1 RETURNING id', [req.params.retailId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
+    res.json({ success: true, message: 'Vendor retail berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/vendors ──
 router.get('/', async (req, res) => {
   try {
@@ -379,6 +449,81 @@ router.post('/:id/rating', async (req, res) => {
     `, [newAvg, newCount, req.params.id]);
 
     res.json({ success: true, message: 'Rating berhasil disimpan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── BIDANG USAHA PER VENDOR ──
+router.get('/:id/bidang-usaha', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT vb.id, vb.bidang_usaha_id, b.kode, b.nama, b.parent_id
+      FROM vendor_bidang_usaha vb
+      JOIN bidang_usaha b ON vb.bidang_usaha_id = b.id
+      WHERE vb.vendor_id = $1
+      ORDER BY b.nama ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/bidang-usaha', async (req, res) => {
+  try {
+    const { bidang_usaha_id } = req.body;
+    if (!bidang_usaha_id) return res.status(400).json({ success: false, message: 'bidang_usaha_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO vendor_bidang_usaha (vendor_id, bidang_usaha_id) VALUES ($1, $2)
+      ON CONFLICT (vendor_id, bidang_usaha_id) DO NOTHING RETURNING *
+    `, [req.params.id, bidang_usaha_id]);
+    res.status(201).json({ success: true, message: 'Bidang usaha berhasil ditambahkan.', data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/bidang-usaha/:linkId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM vendor_bidang_usaha WHERE id = $1 AND vendor_id = $2', [req.params.linkId, req.params.id]);
+    res.json({ success: true, message: 'Bidang usaha berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── REKENING KORAN (bukti mutasi bank per bulan, syarat kualifikasi keuangan) ──
+router.get('/:id/rekening-koran', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM vendor_rekening_koran WHERE vendor_id = $1 ORDER BY tahun DESC, bulan DESC', [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/rekening-koran', upload.single('file'), async (req, res) => {
+  try {
+    const { nomor_rekening, nama_bank, bulan, tahun, nilai, mata_uang } = req.body;
+    if (!nomor_rekening || !bulan || !tahun) {
+      return res.status(400).json({ success: false, message: 'nomor_rekening, bulan, dan tahun wajib diisi.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO vendor_rekening_koran (vendor_id, nomor_rekening, nama_bank, bulan, tahun, nilai, mata_uang, file_path, file_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+    `, [req.params.id, nomor_rekening, nama_bank || null, Number(bulan), Number(tahun), nilai ? Number(nilai) : null, mata_uang || 'IDR', req.file ? req.file.filename : null, req.file ? req.file.size : null]);
+    res.status(201).json({ success: true, message: 'Rekening koran berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/rekening-koran/:rkId', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM vendor_rekening_koran WHERE id = $1 AND vendor_id = $2 RETURNING id', [req.params.rkId, req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
+    res.json({ success: true, message: 'Rekening koran berhasil dihapus.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

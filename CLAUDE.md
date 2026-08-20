@@ -328,18 +328,18 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ⬜ Template penilaian (`paket_penilaian_template`) - beda dari `vendor_ratings` yang sudah ada - **belum dikerjakan, lanjut nanti**
 - 🟡 Bidang usaha per paket (`paket_bidang_usaha`) - butuh master `bidang_usaha` dulu - **belum dikerjakan, lanjut nanti**
 
-**B. Vendor/Rekanan (41 tabel, prefix `rekanan_*` + `rekanan` sendiri)**
-🟡 Inti sudah ada (`vendors` + kolom jsonb pajak/pengurus/tenaga_ahli/peralatan/bank/neraca + `vendor_documents` + `vendor_experiences` + `vendor_ratings`). Yang BELUM ada sebagai fitur/tabel tersendiri:
-- ⬜ Rekening koran (`rekanan_rekening_koran`) - bukti mutasi bank, beda dari sekadar nomor rekening
-- ⬜ Sertifikat dengan jenis terstruktur (`rekanan_sertifikat_jenis`) - sekarang cuma `doc_type='sertifikat'` generik
-- ⬜ Bidang usaha per vendor (`rekanan_bidang_usaha`) - butuh master `bidang_usaha`
-- ⬜ Tipe vendor master (`rekanan_tipe`) - Penyedia Barang/Jasa Konsultansi/Konstruksi/dst sebagai master data terstruktur
-- ⬜ Retail (`rekanan_retail`) - kategori vendor retail/katalog
-- ⬜ Checklist kualifikasi (`rekanan_checklist`) - butuh `master_checklist` dulu
-- ⬜ Pakta integritas vendor (`rekanan_pakta_integritas`)
-- ⬜ Validasi URL/whitelist (`rekanan_url_validasi`, `rekanan_url_validasi_allow`) - prioritas rendah, teknis lama (kemungkinan terkait pembatasan IP/domain akses)
+**B. Vendor/Rekanan (41 tabel, prefix `rekanan_*` + `rekanan` sendiri) - selesai 2026-08-21**
+🟡 Inti sudah ada (`vendors` + kolom jsonb pajak/pengurus/tenaga_ahli/peralatan/bank/neraca + `vendor_documents` + `vendor_experiences` + `vendor_ratings`). Sudah dikerjakan (lihat tulisan lengkap "Kelompok B" di bawah):
+- ✅ Bidang usaha berjenjang (`bidang_usaha`) - data KBLI+SBU ASLI diimpor dari `eproc_migrasi.sql` (2794 baris), bukan data buatan
+- ✅ Bidang usaha per vendor (`vendor_bidang_usaha`) dan per tender (`tender_bidang_usaha`)
+- ✅ Rekening koran (`vendor_rekening_koran`) - bukti mutasi bank per bulan, beda dari sekadar nomor rekening
+- ✅ Tipe vendor & Jenis sertifikat master - ditambahkan sebagai 2 kategori baru di Data Master yang sudah ada (`rekanan_tipe`, `sertifikat_jenis`, reuse `master_data`)
+- ✅ Vendor Retail (`vendor_retail`) - kategori vendor retail/katalog, alur & kontak terpisah dari vendor pengadaan biasa
+- ✅ Rincian Penawaran / BOQ (`tender_bid_items`) - item per baris pada penawaran vendor, opsional, otomatis menghitung ulang total penawaran
+
+**Koreksi penting dari daftar awal**: setelah dicek controllernya, `rekanan_sertifikat_jenis` (versi lama daftar ini), `rekanan_checklist`, `rekanan_pakta_integritas`, dan `rekanan_url_validasi` ternyata **TIDAK PERNAH ADA controllernya sama sekali** di sistem lama - itu cuma tebakan salah dari nama tabel yang mirip. Sebaliknya ditemukan 2 fitur nyata yang sebelumnya tidak masuk daftar: `sertifikat_json.php` (master jenis sertifikat) dan `vendor_retail_json.php` (vendor retail).
+
 - ❌ Oracle ERP integration (`rekanan_oracle`) - **tidak akan dibuat**, ini integrasi ke sistem finansial lama yang sudah tidak dipakai/di luar cakupan
-- 🟡 Password per paket (`rekanan_paket_penawaran`, `paket_rekanan_password`) - mekanisme keamanan submisi penawaran lama, perlu dicek relevansinya di sistem modern (biasanya sudah digantikan HTTPS + auth token)
 
 **C. Contracting/Kontrak (23 tabel, prefix `contracting_*`)**
 🟡 Sudah ada `contracts`, `contract_payment_terms`, `contract_penalties`, `contract_deliverables`. Yang BELUM:
@@ -461,4 +461,25 @@ Frontend: `src/components/modals/FormulaCategorySection.jsx` (baru), disambungka
 
 Sudah dicek compile bersih lewat curl ke Vite dev server (HTTP 200, tidak ada "Failed to parse"/"Unexpected token"), dan dicek log HMR menunjukkan update berhasil tanpa error.
 
-**Belum dikerjakan dari kelompok A**: fitur pembukaan penawaran (`tender_pembukaan_validasi`) dan undangan klarifikasi (`tender_undangan_klarifikasi`) sudah ada backend-nya tapi BELUM disambungkan ke frontend - menyusul. Juga 4 sub-fitur yang sengaja ditunda (lihat daftar di atas): reschedule tahapan dengan riwayat, tabel master jenis/metode (paket_jenis dst), template penilaian, dan bidang usaha per paket (butuh master bidang_usaha lebih dulu, direncanakan dikerjakan bareng kelompok B karena bidang_usaha juga dipakai vendor).
+**Belum dikerjakan dari kelompok A**: fitur pembukaan penawaran (`tender_pembukaan_validasi`) dan undangan klarifikasi (`tender_undangan_klarifikasi`) sudah ada backend-nya tapi BELUM disambungkan ke frontend - menyusul. Juga 3 sub-fitur yang sengaja ditunda (lihat daftar di atas): reschedule tahapan dengan riwayat, tabel master jenis/metode (paket_jenis dst), template penilaian.
+
+### Kelompok B: Vendor/Rekanan Detail - selesai (2026-08-21)
+
+**Metodologi**: sama seperti kelompok A, semua controller PHP terkait dibaca dulu sebelum bikin skema (`bidang_usaha_json.php`, `rekanan_rekening_koran_json.php`, `rekanan_tipe_json.php`, `sertifikat_json.php`, `vendor_retail_json.php`, `paket_bidang_usaha_json.php`, `rekanan_paket_penawaran_json.php`), lalu dicek aktif dipanggil dari `views/main/*.php`. Ketemu koreksi penting: 4 item di daftar awal roadmap (`rekanan_sertifikat_jenis`, `rekanan_checklist`, `rekanan_pakta_integritas`, `rekanan_url_validasi`) ternyata **tidak punya controller sama sekali** - itu tebakan salah dari nama tabel. Sebaliknya ditemukan `sertifikat_json.php` dan `vendor_retail_json.php` yang sebelumnya tidak masuk daftar.
+
+**Data bidang usaha (KBLI+SBU) diimpor ASLI, bukan dibuat manual**: tabel `bidang_usaha` di sistem lama ternyata berisi 2794 baris data resmi (klasifikasi KBLI - Klasifikasi Baku Lapangan Usaha Indonesia - plus kode SBU konstruksi), bukan data buatan. Karena ini data resmi pemerintah yang sudah ada di `eproc_migrasi.sql`, saya import langsung lewat script sekali-pakai (bukan tebak-tebak bikin sendiri, sesuai aturan 0% asumsi). Strukturnya pohon 2 level: root (huruf A-U untuk kategori KBLI, atau kode SBU seperti "SBU UBG") dengan `parent_id` bernilai "0" (bukan NULL), lalu kode detail (5 digit KBLI atau kode SBU spesifik) sebagai anak.
+
+**Bug yang ditemukan dan diperbaiki sendiri selama proses import** (2 bug terpisah, keduanya di script sekali-pakai, bukan di kode aplikasi):
+1. Deteksi baris akhir data COPY di file dump salah (`content.indexOf('\n\\.\n', ...)` gagal karena masalah escaping saat menulis lewat heredoc bash, menyebabkan pencarian file berhenti di lokasi salah dan mengambil >96 ribu baris alih-alih 2794 baris yang benar). Diperbaiki dengan membandingkan per baris pakai `String.fromCharCode(92)` supaya tidak bergantung pada escaping backslash yang rawan salah.
+2. Deteksi "baris akar" (root) pohon bidang usaha salah: kode kategori huruf (misal "A") punya `bidang_usaha_parent_id` bernilai string `"0"` di data asli, bukan `NULL` atau merujuk ke dirinya sendiri seperti yang saya kira di awal. Akibatnya 2749 dari 2794 baris gagal masuk (parent tidak pernah "ketemu") dan salah dimasukkan sebagai root semua. Setelah ketahuan, diperbaiki jadi mengenali `"0"` sebagai penanda root juga, hasil re-import: 2794 baris masuk sempurna (28 root: 21 kategori KBLI + 7 root SBU).
+3. Bug tambahan: field `nama` (bukan cuma `keterangan`) di data asli juga mengandung teks `\r\n` literal (bukan baris baru sungguhan) yang perlu dibersihkan, sebelumnya cuma `keterangan` yang dibersihkan. Sudah diperbaiki dan re-import ulang, diverifikasi bersih dengan mengecek langsung tiap baris di JavaScript (bukan cuma pakai `LIKE` SQL yang ternyata memberi hasil salah/false-positive karena cara Postgres menangani backslash di pola pencarian LIKE).
+
+**Tabel baru** (migrasi `migrations/017_kelompok_b_vendor_detail.sql`): `bidang_usaha` (pohon KBLI/SBU), `vendor_bidang_usaha` (bidang usaha milik vendor), `tender_bidang_usaha` (bidang usaha yang disyaratkan tender), `vendor_rekening_koran` (bukti mutasi bank per bulan), `vendor_retail` (vendor retail/katalog, alur terpisah), `tender_bid_items` (rincian penawaran per item / BOQ).
+
+**Endpoint baru**: `server/routes/vendors.js` (bidang usaha tree+search, retail CRUD, vendor bidang-usaha assign/remove, rekening-koran upload/list/delete), `server/routes/tenders.js` (tender bidang-usaha requirement, bid-items get/replace dengan auto-hitung ulang `tender_participants.bid_price`), `server/routes/master.js` (2 kategori baru: `rekanan_tipe`, `sertifikat_jenis`, reuse pola `master_data` yang sudah ada).
+
+**Bug tambahan yang ditemukan & diperbaiki saat testing** (bukan bagian utama kelompok B tapi ditemukan waktu ini): endpoint `PUT /api/vendors/retail/:id` awalnya replace semua kolom sekaligus (field yang tidak dikirim jadi `NULL`), sudah diperbaiki jadi partial update pakai `COALESCE` sesuai pola yang sudah dipakai di `master.js`.
+
+**Frontend**: tab baru "Bidang Usaha" dan "Rekening Koran" di halaman Profil Vendor (`src/components/profile/BidangUsahaTab.jsx`, `RekeningKoranTab.jsx`, cari-dan-pilih dari 2794 kode via pencarian, bukan dropdown penuh). Kategori "Tipe Vendor" dan "Jenis Sertifikat" otomatis muncul di halaman Data Master (reuse komponen generik yang sudah ada). Kategori baru "Vendor Retail" juga di Data Master, komponen `VendorRetailTable` khusus karena datanya lebih detail dari sekadar nama. Section baru "Bidang Usaha yang Disyaratkan" di tab Dokumen & Klarifikasi (`DokumenPaketTab.jsx`) untuk Pokja/PPK/Admin menandai syarat bidang usaha per tender. Form penawaran vendor (`VendorBidForm` di `DetailTenderModal.jsx`) dapat opsi tambahan "Rincian Penawaran per Item" yang bisa dibuka/tutup, opsional (tidak menggantikan alur harga total yang sudah ada, cuma pelengkap). Sekalian diperbaiki bug lama yang ditemukan di file yang sama: `VendorBidForm` masih pakai key localStorage `eproc_token` yang salah (seharusnya `dpbj_token`), jadi upload dokumen penawaran vendor sebenarnya selalu gagal auth sebelum ini.
+
+Sudah dites lewat curl end-to-end (retail CRUD dengan partial update, assign bidang usaha ke vendor, upload rekening koran, submit rincian penawaran dengan verifikasi total otomatis benar 40.000.000 dari 2 item, replace rincian saat vendor kirim ulang), dan dicek compile bersih semua file frontend (HTTP 200 dari Vite, tidak ada error parse, HMR update sukses). Data uji dibersihkan dari Supabase setelah testing (data bidang usaha asli 2794 baris TIDAK dihapus, itu data permanen).

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
 
 const DOC_TYPES = [
@@ -40,25 +40,61 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
   const [peringkat, setPeringkat] = useState([]);
   const [newPeringkat, setNewPeringkat] = useState({ vendor_id: '', peringkat: '', keterangan: '' });
 
+  const [bidangUsaha, setBidangUsaha] = useState([]);
+  const [buSearch, setBuSearch] = useState('');
+  const [buResults, setBuResults] = useState([]);
+
   const canManage = ['pokja', 'admin', 'ppk'].includes(user.role);
   const isVendor = user.role === 'vendor';
 
   const fetchAll = async () => {
     try {
-      const [d, k, p, pl, pr] = await Promise.all([
+      const [d, k, p, pl, pr, bu] = await Promise.all([
         fetch(`${API_BASE}/tenders/${tenderId}/documents`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/klarifikasi-dokumen`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/pakta-integritas`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/pihak-lain`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/peringkat-pemenang`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/tenders/${tenderId}/bidang-usaha`, { headers: getAuthHeaders() }),
       ]);
-      const [dj, kj, pj, plj, prj] = await Promise.all([d.json(), k.json(), p.json(), pl.json(), pr.json()]);
+      const [dj, kj, pj, plj, prj, buj] = await Promise.all([d.json(), k.json(), p.json(), pl.json(), pr.json(), bu.json()]);
       if (dj.success) setDocuments(dj.data);
       if (kj.success) setKlarifikasi(kj.data);
       if (pj.success) setPakta(pj.data);
       if (plj.success) setPihakLain(plj.data);
       if (prj.success) setPeringkat(prj.data);
+      if (buj.success) setBidangUsaha(buj.data);
     } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (buSearch.trim().length < 3) { setBuResults([]); return; }
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/vendors/bidang-usaha/tree?search=${encodeURIComponent(buSearch)}`, { headers: getAuthHeaders() });
+        const json = await res.json();
+        if (json.success) setBuResults(json.data.filter(b => b.parent_id).slice(0, 20));
+      } catch (err) { console.error(err); }
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [buSearch]);
+
+  const handleAddBidangUsaha = async (bidangUsahaId) => {
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/bidang-usaha`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ bidang_usaha_id: bidangUsahaId }),
+      });
+      const json = await res.json();
+      if (json.success) { setBuSearch(''); setBuResults([]); fetchAll(); } else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menambah bidang usaha.'); }
+  };
+
+  const handleRemoveBidangUsaha = async (linkId) => {
+    if (!confirm('Hapus syarat bidang usaha ini?')) return;
+    const res = await fetch(`${API_BASE}/tenders/${tenderId}/bidang-usaha/${linkId}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const json = await res.json();
+    if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
   };
 
   useEffect(() => { fetchAll(); }, [tenderId]);
@@ -180,6 +216,41 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
                   <a href={`http://localhost:3001/uploads/${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={13} /></a>
                   {canManage && <button onClick={() => handleDeleteDoc(d.id)} className="text-red-400"><Trash2 size={13} /></button>}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section icon={Briefcase} title="Bidang Usaha yang Disyaratkan" desc="Klasifikasi bidang usaha (KBLI/SBU) yang wajib dimiliki vendor untuk ikut tender ini.">
+        {canManage && (
+          <div className="relative mb-3">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              value={buSearch}
+              onChange={e => setBuSearch(e.target.value)}
+              placeholder="Cari bidang usaha (minimal 3 huruf)..."
+              className="w-full text-xs pl-8 pr-3 py-2 border border-gray-300 rounded-lg"
+            />
+            {buResults.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-border rounded-lg shadow-lg">
+                {buResults.map(r => (
+                  <button key={r.id} onClick={() => handleAddBidangUsaha(r.id)} className="w-full text-left px-3 py-2 text-[11px] hover:bg-surface border-b border-border last:border-0">
+                    <span className="font-mono text-muted">{r.kode}</span> - {r.nama}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {bidangUsaha.length === 0 ? (
+          <p className="text-xs text-muted text-center py-3">Belum ada syarat bidang usaha untuk tender ini.</p>
+        ) : (
+          <div className="space-y-1">
+            {bidangUsaha.map(b => (
+              <div key={b.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
+                <span><span className="font-mono text-muted">{b.kode}</span> - {b.nama}</span>
+                {canManage && <button onClick={() => handleRemoveBidangUsaha(b.id)} className="text-red-400"><Trash2 size={13} /></button>}
               </div>
             ))}
           </div>

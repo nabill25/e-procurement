@@ -13,6 +13,9 @@ const CATEGORIES = [
   { id: 'unit_kerja',     label: 'Unit Kerja' },
   { id: 'analisa_kebutuhan', label: 'Analisa Kebutuhan' },
   { id: 'analisa_pasar',     label: 'Analisa Pasar' },
+  { id: 'rekanan_tipe',      label: 'Tipe Vendor' },
+  { id: 'sertifikat_jenis',  label: 'Jenis Sertifikat' },
+  { id: 'vendor_retail',     label: 'Vendor Retail' },
 ];
 
 function SimpleMasterTable({ category }) {
@@ -251,6 +254,141 @@ function UnitKerjaTable() {
   );
 }
 
+function VendorRetailTable() {
+  const { getAuthHeaders } = useApp();
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [form, setForm] = useState({ nama: '', npwp: '', telepon: '', kota: '', kontak_person: '', kontak_person_hp: '', alamat: '' });
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/vendors/retail`);
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) {
+      console.error('Failed to fetch vendor retail:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.nama.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/vendors/retail`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setForm({ nama: '', npwp: '', telepon: '', kota: '', kontak_person: '', kontak_person_hp: '', alamat: '' });
+        fetchData();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan data.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Hapus vendor retail ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/vendors/retail/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat menghapus data.');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-surface p-4 rounded-xl border border-border items-end">
+        <div>
+          <label className="text-xs text-muted font-medium">Nama Toko/Vendor</label>
+          <input value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })} required className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">NPWP</label>
+          <input value={form.npwp} onChange={e => setForm({ ...form, npwp: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Telepon</label>
+          <input value={form.telepon} onChange={e => setForm({ ...form, telepon: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Kota</label>
+          <input value={form.kota} onChange={e => setForm({ ...form, kota: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Kontak Person</label>
+          <input value={form.kontak_person} onChange={e => setForm({ ...form, kontak_person: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">No. HP Kontak</label>
+          <input value={form.kontak_person_hp} onChange={e => setForm({ ...form, kontak_person_hp: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs text-muted font-medium">Alamat</label>
+          <input value={form.alamat} onChange={e => setForm({ ...form, alamat: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+          <Plus size={16} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>NPWP</th>
+              <th>Telepon</th>
+              <th>Kota</th>
+              <th>Kontak Person</th>
+              <th className="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
+            ) : data.map(row => (
+              <tr key={row.id}>
+                <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
+                <td className="font-mono text-xs">{row.npwp || '-'}</td>
+                <td className="text-xs text-muted">{row.telepon || '-'}</td>
+                <td className="text-xs text-muted">{row.kota || '-'}</td>
+                <td className="text-xs text-muted">{row.kontak_person || '-'} {row.kontak_person_hp ? `(${row.kontak_person_hp})` : ''}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
 
@@ -284,6 +422,8 @@ export default function DataMaster() {
 
         {activeCategory === 'unit_kerja' ? (
           <UnitKerjaTable />
+        ) : activeCategory === 'vendor_retail' ? (
+          <VendorRetailTable />
         ) : (
           <SimpleMasterTable category={activeCategory} />
         )}
