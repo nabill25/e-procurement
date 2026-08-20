@@ -1,0 +1,145 @@
+const express = require('express');
+const router  = express.Router();
+const { pool } = require('../db');
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
+
+// ── Konfigurasi Multer (lampiran pesan) ──
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'inbox-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+// ── GET /api/inbox/categories — Daftar kategori pengaduan ──
+router.get('/categories', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM inbox_categories WHERE is_active = true ORDER BY name ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/inbox — Daftar pesan masuk (Admin) ──
+router.get('/', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let sql = `
+      SELECT m.*, c.name AS category_name
+      FROM inbox_messages m
+      LEFT JOIN inbox_categories c ON m.category_id = c.id
+      WHERE m.parent_id IS NULL
+    `;
+    const params = [];
+    if (status) {
+      sql += ` AND m.status = $1`;
+      params.push(status);
+    }
+    sql += ` ORDER BY m.created_at DESC`;
+
+    const result = await pool.query(sql, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/inbox/:id — Detail pesan + balasannya ──
+router.get('/:id', async (req, res) => {
+  try {
+    const msg = await pool.query(`
+      SELECT m.*, c.name AS category_name
+      FROM inbox_messages m
+      LEFT JOIN inbox_categories c ON m.category_id = c.id
+      WHERE m.id = $1
+    `, [req.params.id]);
+
+    if (!msg.rows.length) return res.status(404).json({ success: false, message: 'Pesan tidak ditemukan.' });
+
+    const replies = await pool.query(`
+      SELECT m.*, u.full_name AS replied_by_name
+      FROM inbox_messages m
+      LEFT JOIN users u ON m.sender_id = u.id
+      WHERE m.parent_id = $1
+      ORDER BY m.created_at ASC
+    `, [req.params.id]);
+
+    res.json({ success: true, data: { ...msg.rows[0], replies: replies.rows } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/inbox — Kirim pesan/pengaduan baru (Publik, dari form Kontak Kami) ──
+router.post('/', upload.single('attachment'), async (req, res) => {
+  try {
+    const { category_id, subject, content, sender_name, sender_email, sender_phone } = req.body;
+
+    if (!subject || !content || !sender_name || !sender_email) {
+      return res.status(400).json({ success: false, message: 'Nama, email, subyek, dan pesan wajib diisi.' });
+    }
+
+    const attachment_path = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const result = await pool.query(`
+      INSERT INTO inbox_messages (category_id, subject, content, attachment_path, sender_name, sender_email, sender_phone)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [category_id || null, subject, content, attachment_path, sender_name, sender_email, sender_phone || null]);
+
+    res.status(201).json({ success: true, message: 'Pesan berhasil dikirim. Terima kasih, kami akan merespons segera.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PATCH /api/inbox/:id/read — Tandai pesan sudah dibaca (Admin) ──
+router.patch('/:id/read', async (req, res) => {
+  try {
+    const { read_by } = req.body;
+    const result = await pool.query(`
+      UPDATE inbox_messages
+      SET status = 'dibaca', read_by = $1, read_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND status = 'belum_dibaca'
+      RETURNING *
+    `, [read_by || null, req.params.id]);
+
+    res.json({ success: true, message: 'Pesan ditandai sudah dibaca.', data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/inbox/:id/reply — Balas pesan (Admin) ──
+router.post('/:id/reply', async (req, res) => {
+  try {
+    const { content, replied_by } = req.body;
+    if (!content) return res.status(400).json({ success: false, message: 'Isi balasan wajib diisi.' });
+
+    const original = await pool.query('SELECT sender_name, sender_email FROM inbox_messages WHERE id = $1', [req.params.id]);
+    if (!original.rows.length) return res.status(404).json({ success: false, message: 'Pesan tidak ditemukan.' });
+
+    const reply = await pool.query(`
+      INSERT INTO inbox_messages (subject, content, sender_id, sender_name, sender_email, parent_id, status)
+      VALUES ('Re: Balasan', $1, $2, 'DPBJ UI', 'noreply@dpbj.ui.ac.id', $3, 'dibaca')
+      RETURNING *
+    `, [content, replied_by || null, req.params.id]);
+
+    await pool.query(`UPDATE inbox_messages SET status = 'dibalas' WHERE id = $1`, [req.params.id]);
+
+    res.status(201).json({ success: true, message: 'Balasan berhasil dikirim.', data: reply.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+module.exports = router;

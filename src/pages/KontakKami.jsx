@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Home } from 'lucide-react';
+import { API_BASE } from '../context/AppContext';
 
 function Breadcrumb({ onHome }) {
   return (
@@ -66,6 +67,7 @@ export default function KontakKami({ onNavigateHome }) {
   const [captchaOk, setCaptchaOk] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
+  const [sending, setSending] = useState(false);
 
   const validate = () => {
     const e = {};
@@ -78,10 +80,33 @@ export default function KontakKami({ onNavigateHome }) {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    setSubmitted(true);
+    setSending(true);
+    try {
+      const res = await fetch(`${API_BASE}/inbox`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_name: form.nama,
+          sender_email: form.email,
+          sender_phone: form.telpon,
+          subject: form.subyek,
+          content: form.pesan,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSubmitted(true);
+      } else {
+        alert('Gagal mengirim pesan: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menghubungi server. Coba lagi.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleReset = () => {
@@ -167,8 +192,8 @@ export default function KontakKami({ onNavigateHome }) {
             </div>
 
             <div className="flex items-center gap-3 pt-2 border-t border-border">
-              <button type="submit" className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full flex items-center gap-2 transition-colors active:scale-95">
-                ✓ Kirim
+              <button type="submit" disabled={sending} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full flex items-center gap-2 transition-colors active:scale-95 disabled:opacity-50">
+                ✓ {sending ? 'Mengirim...' : 'Kirim'}
               </button>
               <button type="button" onClick={handleReset} className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 transition-colors active:scale-95">
                 ↺ Reset

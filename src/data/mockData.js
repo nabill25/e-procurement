@@ -236,4 +236,5 @@ export const navItems = [
   { id: 'audit',     label: 'Audit & Dokumen',    icon: 'ShieldCheck' },
   { id: 'master_data', label: 'Data Master',      icon: 'Database' },
   { id: 'menu_access', label: 'Hak Akses Menu',   icon: 'Lock' },
+  { id: 'inbox',       label: 'Pusat Pesan',       icon: 'Inbox' },
 ];

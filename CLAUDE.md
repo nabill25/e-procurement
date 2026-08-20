@@ -99,12 +99,14 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 - **Data Master** (selesai 2026-08-20): halaman admin baru untuk kelola data referensi (Bank, Mata Uang, Negara, Satuan, Incoterm, Metode Pembayaran, Unit Kerja) - `server/routes/master.js`, tabel `master_data` (kategori disimpan di kolom `category`, satu tabel untuk semua kategori sederhana yang bentuknya sama) dan `unit_kerja_master` (tabel sendiri karena datanya lebih detail) di `migrations/004_data_master.sql`, halaman `src/pages/DataMaster.jsx`, menu baru "Data Master" di sidebar (khusus role admin).
 - **Manajemen Hak Akses Menu** (selesai 2026-08-20): menu sidebar sekarang diatur dari database (tabel `menu_items` + `menu_role_access`, `migrations/005_hak_akses_menu.sql`), bisa diatur admin lewat halaman baru `src/pages/MenuAccess.jsx` (menu "Hak Akses Menu" di sidebar). **Penting soal keamanan navigasi**: `src/components/layout/Sidebar.jsx` punya jaring pengaman (`getDefaultAllowedMenus`) yang berisi aturan bawaan persis seperti logika lama yang di-hardcode. Kalau server/database tidak bisa dihubungi, sidebar otomatis pakai aturan bawaan ini, jadi navigasi TIDAK PERNAH kosong/rusak. Data dari API cuma dipakai kalau berhasil didapat.
 
+- **Pengaduan / Pusat Pesan** (selesai 2026-08-20): form "Kontak Kami" yang sebelumnya cuma tampilan (pesan hilang begitu saja saat dikirim) sekarang benar-benar tersimpan - `server/routes/inbox.js`, tabel `inbox_messages` + `inbox_categories` (`migrations/006_modul_pengaduan.sql`), halaman admin baru `src/pages/Inbox.jsx` ("Pusat Pesan" di sidebar) untuk baca dan balas pesan. `src/pages/KontakKami.jsx` sudah disambungkan ke `POST /api/inbox`.
+
 Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
 1. ~~Blacklist~~ - **selesai**
 2. ~~Negosiasi~~ - **selesai**
 3. ~~Data Master~~ - **selesai**
 4. ~~Manajemen hak akses berbasis menu~~ - **selesai**
-5. **Chat/shoutbox dan sistem pengaduan (inbox complain)**
+5. ~~Chat/shoutbox dan sistem pengaduan (inbox complain)~~ - **selesai**
 6. **Konten/CMS** (berita, FAQ, kebijakan): kemungkinan besar masih statis di frontend, belum ada backend-nya
 7. **Validasi QR**
 

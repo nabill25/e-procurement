@@ -16,6 +16,7 @@ import Katalog from './pages/Katalog';
 import Purchasing from './pages/Purchasing';
 import DataMaster from './pages/DataMaster';
 import MenuAccess from './pages/MenuAccess';
+import Inbox from './pages/Inbox';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -227,6 +228,7 @@ function AppShell() {
     purchasing: <Purchasing />,
     master_data: <DataMaster />,
     menu_access: <MenuAccess />,
+    inbox: <Inbox />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;
