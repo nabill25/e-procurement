@@ -19,6 +19,8 @@ import MenuAccess from './pages/MenuAccess';
 import Inbox from './pages/Inbox';
 import ContentManagement from './pages/ContentManagement';
 import UserManagement from './pages/UserManagement';
+import LoginLogs from './pages/LoginLogs';
+import ApiKeys from './pages/ApiKeys';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -238,6 +240,8 @@ function AppShell() {
     inbox: <Inbox />,
     content_management: <ContentManagement />,
     user_management: <UserManagement />,
+    login_logs: <LoginLogs />,
+    api_keys: <ApiKeys />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;

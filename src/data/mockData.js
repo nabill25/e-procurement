@@ -239,4 +239,6 @@ export const navItems = [
   { id: 'inbox',       label: 'Pusat Pesan',       icon: 'Inbox' },
   { id: 'content_management', label: 'Kelola Konten', icon: 'Newspaper' },
   { id: 'user_management', label: 'Manajemen User', icon: 'Users2' },
+  { id: 'login_logs', label: 'Riwayat Login',    icon: 'History' },
+  { id: 'api_keys',   label: 'API Key',           icon: 'KeyRound' },
 ];

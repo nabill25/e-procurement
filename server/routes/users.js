@@ -1,3 +1,4 @@
+const crypto  = require('crypto');
 const express = require('express');
 const router  = express.Router();
 const bcrypt  = require('bcrypt');
@@ -125,6 +126,84 @@ router.delete('/:id/roles/:roleKey', async (req, res) => {
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Role tidak ditemukan pada akun ini.' });
 
     res.json({ success: true, message: 'Role berhasil dicabut dari akun ini.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/users/login-logs — Riwayat login SEMUA akun (Admin) ───────────────
+router.get('/login-logs', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT l.id, l.user_id, l.username, l.ip_address, l.user_agent, l.is_active, l.login_at, l.logout_at,
+             u.full_name, u.role_label
+      FROM user_login_logs l
+      LEFT JOIN users u ON u.id = l.user_id
+      ORDER BY l.login_at DESC LIMIT 200
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── API KEY: integrasi pihak ketiga (Admin) ─────────────────────────────────────
+// Di sistem lama pengelolaan key dilakukan manual langsung ke database (tidak ada UI).
+// Sistem baru menambahkan UI ini sebagai perbaikan, mengikuti struktur tabel KEY asli.
+router.get('/api-keys', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM api_keys ORDER BY created_at DESC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/api-keys', async (req, res) => {
+  try {
+    const { client_name } = req.body;
+    if (!client_name) return res.status(400).json({ success: false, message: 'Nama klien wajib diisi.' });
+
+    const apiKey = crypto.randomBytes(24).toString('hex');
+    const result = await pool.query(
+      `INSERT INTO api_keys (api_key, client_name, created_by) VALUES ($1, $2, $3) RETURNING *`,
+      [apiKey, client_name, req.body.created_by || null]
+    );
+    res.status(201).json({ success: true, message: 'API key berhasil dibuat.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/api-keys/:id/toggle', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `UPDATE api_keys SET is_active = NOT is_active WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Key tidak ditemukan.' });
+    res.json({ success: true, message: 'Status key berhasil diubah.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/api-keys/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM api_keys WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'API key berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/api-keys/:id/requests', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM api_key_requests WHERE api_key_id = $1 ORDER BY requested_at DESC LIMIT 100`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

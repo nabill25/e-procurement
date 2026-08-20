@@ -87,6 +87,17 @@ router.post('/login', async (req, res) => {
       );
     } catch (_) { /* audit log tidak blok login */ }
 
+    // Catat riwayat login (IP, browser, waktu) - mengikuti USER_LOGIN_LOGS di eProc lama
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+      const userAgent = req.headers['user-agent'] || '';
+      await pool.query(
+        `INSERT INTO user_login_logs (user_id, username, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4)`,
+        [user.id, user.username, ip, userAgent]
+      );
+    } catch (_) { /* tidak blok login */ }
+
     // Ambil semua role yang dimiliki akun ini (mengikuti konsep USER_LOGIN_MULTI di eProc lama:
     // satu akun bisa punya lebih dari satu role, dan bisa memilih/ganti role aktif)
     let availableRoles = [];
@@ -284,7 +295,30 @@ router.post('/logout', requireAuth, async (req, res) => {
     );
   } catch (_) { /* tidak blok logout */ }
 
+  // Tutup sesi login yang masih tercatat aktif untuk akun ini
+  try {
+    await pool.query(
+      `UPDATE user_login_logs SET is_active = false, logout_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND is_active = true`,
+      [req.user.id]
+    );
+  } catch (_) { /* tidak blok logout */ }
+
   return res.json({ success: true, message: 'Logout berhasil.' });
+});
+
+// ── GET /api/auth/login-logs — Riwayat login akun sendiri ──────────────────────
+router.get('/login-logs', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, ip_address, user_agent, is_active, login_at, logout_at
+       FROM user_login_logs WHERE user_id = $1 ORDER BY login_at DESC LIMIT 50`,
+      [req.user.id]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = { router, requireAuth };

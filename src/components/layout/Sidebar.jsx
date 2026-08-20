@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound
 } from 'lucide-react';
 import { useApp, API_BASE } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2 };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound };
 
 // Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi

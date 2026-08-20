@@ -390,12 +390,12 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ❌ `komoditas`, `kurs` - **tidak dibuat**, tidak ada controllernya sama sekali di sistem lama (kemungkinan tabel yang tidak pernah benar-benar dipakai)
 - ❌ `direktorat`, `metode_tahap`, `metode_tahap_panel` - **belum dibuat**, fungsinya (`metode_json.php`) ternyata isinya kalkulasi tanggal/kalender kompleks terkait `paket_jenis`/`paket_metode_lelang` (master data tender yang sengaja ditunda dari kelompok A), bukan data referensi sederhana - akan digarap bareng kelompok A lanjutan kalau memang dibutuhkan
 
-**G. Auth/User (sudah dikerjakan sebagian besar di fondasi multi-role)**
-✅ `user_type`→`role_definitions`, `tbl_m_menu`→`menu_items`, `tbl_m_menu_akses`→`menu_role_access` semua sudah ada. Yang BELUM:
-- ⬜ Log login/aktivitas per user (`user_login_logs`) - beda dari `audit_logs` umum, ini spesifik histori login per akun
-- ⬜ Log sistem menu (`tbl_m_logs`)
-- ⬜ Sistem API key (`key`, `key_request`) - untuk integrasi API pihak ketiga
-- 🟡 Soft-delete/arsip (18 tabel `zdel_*`) - pola sistem lama: data yang "dihapus" dipindah ke tabel arsip terpisah, bukan hard delete. Sistem baru sekarang belum ada fitur hapus vendor/user sama sekali (cuma ubah status), jadi ini baru relevan kalau fitur hapus dibuat nanti - pendekatan modernnya cukup pakai kolom `deleted_at`, tidak perlu tabel duplikat terpisah seperti sistem lama.
+**G. Auth/User - selesai 2026-08-21**
+✅ `user_type`→`role_definitions`, `tbl_m_menu`→`menu_items`, `tbl_m_menu_akses`→`menu_role_access` semua sudah ada dari fondasi multi-role. Sudah ditambahkan (lihat tulisan lengkap "Kelompok G" di bawah):
+- ✅ Log login/aktivitas per user (`user_login_logs`) - riwayat login per akun (IP, browser, waktu login/logout, status sesi), plus halaman baru untuk melihatnya
+- ✅ Sistem API key (`api_keys`, `api_key_requests`) - untuk integrasi API pihak ketiga, plus UI kelola key (generate/aktifkan/nonaktifkan/hapus) yang di sistem lama tidak pernah ada
+- ✅ Kerangka Soft-delete (kolom `deleted_at` di `vendors` dan `users`) - disiapkan untuk dipakai nanti kalau fitur hapus permanen dibangun
+- ❌ Log sistem menu (`tbl_m_logs`) - **tidak dibuat**, ternyata bukan log menu, tapi log percobaan akses ditolak (403 Forbidden), dan tidak ada satupun halaman di sistem lama yang membacanya (murni tulis, tidak pernah ditampilkan) - tidak ada fungsi yang hilang kalau tidak ditiru
 
 **H. Komunikasi (sebagian sudah ada)**
 ✅ `inbox` + `inbox_category` → `inbox_messages` + `inbox_categories` sudah ada. Yang BELUM:
@@ -568,3 +568,23 @@ Sudah dites lewat curl end-to-end (master checklist dengan filter jenis paket, u
 **Frontend**: 3 komponen tabel baru di Data Master (`DocumentTemplateTable`, `HolidayTable`, `RegionTable`) plus 2 kategori reuse (`ijin_usaha`, `pendidikan`). `RegionTable` punya alur pilih-provinsi-dulu-baru-kelola-turunannya, dengan catatan peringatan di UI bahwa data di bawah provinsi memang belum ada dan perlu diisi manual/nanti dari sumber resmi.
 
 Sudah dites lewat curl end-to-end (upload template dokumen dengan filter target, hari libur replace-all, pengaturan sistem get+update, daftar 38 provinsi, tambah wilayah anak di bawah provinsi tertentu, kategori ijin_usaha/pendidikan). Semua data uji dibersihkan dari Supabase (38 provinsi TIDAK dihapus, itu data permanen). Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).
+
+### Kelompok G: Auth/User Lanjutan - selesai (2026-08-21)
+
+**Metodologi**: controller terkait dibaca dulu (`login.php`, `models/usersbase.php` untuk log login; `controllers/api.php`, `models/key.php` untuk API key; `controllers/rekanan_json.php` untuk contoh nyata pola `zdel_*`), dicek aktif/tidaknya lewat grep ke seluruh `views/`.
+
+**Log login/aktivitas (`USER_LOGIN_LOGS` di sistem lama)**: dikonfirmasi aktif ditulis tiap kali ada yang login (baik login manual maupun lewat SSO), dicatat IP, OS, browser, dan token sesi. Tapi setelah dicek, halaman yang ada (`logs_login.php`) ternyata **tidak menampilkan isi tabel ini sama sekali** - cuma menampilkan ringkasan "terakhir login kapan" dari tabel user biasa. Jadi di sistem lama, tabel ini sebenarnya write-only (datanya lengkap tapi tidak pernah ada yang bisa lihat detail histori login per baris). Karena datanya berguna untuk keamanan (tahu siapa login dari IP/perangkat mana dan kapan), sistem baru sekalian membuat halaman untuk melihatnya - ini murni fitur baru, tidak ada versi lama untuk dicontoh tampilannya.
+
+**Log sistem menu (`tbl_m_logs`) - TIDAK dibuat**: setelah ditelusuri, nama tabel ini menyesatkan - isinya bukan log perubahan menu, tapi log setiap kali ada yang mencoba akses halaman yang tidak diizinkan (kode 403 Forbidden), dipicu otomatis dari fungsi keamanan `cekSession()` yang dipakai di hampir semua halaman. Sama seperti log login, ini juga murni ditulis tapi **tidak ada satupun halaman di sistem lama yang membacanya** - tidak ada dashboard atau laporan untuk lihat percobaan akses ditolak. Karena tidak ada fungsi yang hilang kalau tidak ditiru, bagian ini dilewati.
+
+**API key untuk integrasi pihak ketiga**: dikonfirmasi aktif dipakai - ada 12 endpoint REST (`api.php`) yang bisa dipanggil sistem luar untuk ambil data RUP dan paket pengadaan, divalidasi pakai API key. Tapi ditemukan sistem lama **tidak punya satupun halaman untuk mengelola key ini** (bikin key baru, aktifkan/nonaktifkan) - itu dilakukan manual langsung ke database oleh developer. Sistem baru menambahkan halaman kelola API key sebagai perbaikan gap ini (generate key otomatis, bisa nonaktifkan sementara tanpa hapus, bisa lihat riwayat pemakaian tiap key).
+
+**Pola arsip `zdel_*` (18 tabel)**: dikonfirmasi lewat modul Rekanan (`rekanan_json.php` fungsi `excRekananDelete`) - polanya adalah menyalin seluruh isi baris ke tabel arsip (nama sama, prefix `ZDEL_`) DULU, baru setelah berhasil, baris aslinya benar-benar **dihapus permanen** dari tabel asal (bukan cuma ditandai/flag terhapus). Sistem baru **tidak meniru pola tabel arsip terpisah ini** karena boros (2x jumlah tabel) - pendekatan modern yang dipakai cukup 1 kolom `deleted_at` di tabel asli (data "terhapus" tetap ada di tempatnya, tinggal difilter `WHERE deleted_at IS NULL`). Kolom ini baru ditambahkan sebagai kerangka di tabel `vendors` dan `users` - **belum dipakai fitur apapun** karena sistem baru saat ini memang belum ada fitur hapus permanen vendor/user sama sekali (yang ada baru ubah status suspend/block). Kerangka ini disiapkan supaya siap dipakai begitu fitur hapus benar-benar dibangun nanti.
+
+**Migrasi baru** (`migrations/022_kelompok_g_auth_user_lanjutan.sql`): tabel `user_login_logs`, `api_keys`, `api_key_requests`, kolom `deleted_at` di `vendors`/`users`, plus pendaftaran 2 menu baru (`login_logs`, `api_keys`) ke sistem Hak Akses Menu khusus role admin.
+
+**Endpoint baru**: `server/routes/auth.js` (catat log login otomatis saat `POST /login` berhasil dan tutup sesi saat `POST /logout`, endpoint `GET /login-logs` untuk lihat riwayat login akun sendiri), `server/routes/users.js` (`GET /login-logs` versi admin untuk lihat SEMUA akun, CRUD `api-keys` lengkap: buat/lihat/toggle aktif/hapus/lihat riwayat pemakaian).
+
+**Frontend**: 2 halaman baru khusus admin - `src/pages/LoginLogs.jsx` (tabel riwayat login, siapa, dari IP mana, kapan, status sesi masih aktif atau sudah logout) dan `src/pages/ApiKeys.jsx` (kelola API key: buat baru dengan tombol salin, aktifkan/nonaktifkan, hapus, dan modal lihat riwayat pemakaian per key). Ditambahkan ke menu sidebar dan `App.jsx`.
+
+Sudah dites lewat curl end-to-end (login tercatat otomatis ke `user_login_logs`, logout menutup sesi dengan benar/`is_active` jadi false, riwayat login akun sendiri vs semua akun untuk admin, buat API key dengan key ter-generate otomatis, toggle aktif/nonaktif, lihat riwayat pemakaian key, hapus key). Data uji sudah dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200 dari Vite untuk semua file baru). Menu baru dikonfirmasi muncul untuk role admin lewat `GET /api/menu/admin`.
