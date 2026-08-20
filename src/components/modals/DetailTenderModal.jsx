@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle } from 'lucide-react';
+import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig, methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import ObjectionsTab from './ObjectionsTab';
 import ContractTab from './ContractTab';
 import AanwijzingTab from './AanwijzingTab';
+import NegotiationTab from './NegotiationTab';
 
 function VendorQualModal({ vendorId, vendorName, onClose }) {
   const { getAuthHeaders } = useApp();
@@ -489,6 +490,11 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 <AlertCircle size={16} /> Sanggahan
               </button>
             )}
+            {getTenderPhaseIndex(data.status) >= 4 && (
+              <button onClick={() => setActiveTab('negosiasi')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'negosiasi' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
+                <HandCoins size={16} /> Negosiasi
+              </button>
+            )}
             {getTenderPhaseIndex(data.status) >= 6 && (
               <button onClick={() => setActiveTab('kontrak')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'kontrak' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
                 <Award size={16} /> Kontrak & BAST
@@ -563,6 +569,15 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
             )}
             {activeTab === 'sanggah' && (
               <ObjectionsTab tenderId={data.id} tenderStatus={data.status} participants={participants} user={user} />
+            )}
+            {activeTab === 'negosiasi' && (
+              <NegotiationTab
+                tenderId={data.id}
+                vendorId={participants.find(p => p.is_winner)?.vendor_id}
+                user={user}
+                getAuthHeaders={getAuthHeaders}
+                refreshData={refreshData}
+              />
             )}
             {activeTab === 'kontrak' && (
               <ContractTab tenderId={data.id} tenderStatus={data.status} participants={participants} user={user} />

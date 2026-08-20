@@ -292,6 +292,95 @@ router.post('/:id/winner', async (req, res) => {
   }
 });
 
+// ── GET /api/tenders/:id/negotiation/:vendorId — Riwayat negosiasi harga dengan vendor pemenang ──
+router.get('/:id/negotiation/:vendorId', async (req, res) => {
+  try {
+    const participant = await pool.query(`
+      SELECT bid_price, negotiated_price, negotiation_status
+      FROM tender_participants
+      WHERE tender_id = $1 AND vendor_id = $2
+    `, [req.params.id, req.params.vendorId]);
+
+    if (!participant.rows.length) {
+      return res.status(404).json({ success: false, message: 'Peserta tender tidak ditemukan.' });
+    }
+
+    const chats = await pool.query(`
+      SELECT c.*, u.full_name AS user_name, u.role
+      FROM tender_negotiation_chats c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.tender_id = $1 AND c.vendor_id = $2
+      ORDER BY c.created_at ASC
+    `, [req.params.id, req.params.vendorId]);
+
+    res.json({
+      success: true,
+      data: {
+        bid_price: participant.rows[0].bid_price,
+        negotiated_price: participant.rows[0].negotiated_price,
+        negotiation_status: participant.rows[0].negotiation_status,
+        chats: chats.rows,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/negotiation/:vendorId — Kirim pesan/tawaran negosiasi ──
+router.post('/:id/negotiation/:vendorId', async (req, res) => {
+  try {
+    const { user_id, message, offered_price } = req.body;
+
+    if (!user_id || !message) {
+      return res.status(400).json({ success: false, message: 'user_id dan message diperlukan.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO tender_negotiation_chats (tender_id, vendor_id, user_id, message, offered_price)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [req.params.id, req.params.vendorId, user_id, message, offered_price || null]);
+
+    // Tandai negosiasi sudah berlangsung (kalau masih 'belum')
+    await pool.query(`
+      UPDATE tender_participants
+      SET negotiation_status = 'berlangsung'
+      WHERE tender_id = $1 AND vendor_id = $2 AND negotiation_status = 'belum'
+    `, [req.params.id, req.params.vendorId]);
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/negotiation/:vendorId/finalize — Sepakati atau gagalkan negosiasi (PPK/Pokja) ──
+router.post('/:id/negotiation/:vendorId/finalize', async (req, res) => {
+  try {
+    const { agreed, final_price } = req.body;
+
+    if (agreed && !final_price) {
+      return res.status(400).json({ success: false, message: 'final_price wajib diisi jika negosiasi disepakati.' });
+    }
+
+    await pool.query(`
+      UPDATE tender_participants
+      SET negotiation_status = $1, negotiated_price = $2
+      WHERE tender_id = $3 AND vendor_id = $4
+    `, [agreed ? 'sepakat' : 'gagal', agreed ? final_price : null, req.params.id, req.params.vendorId]);
+
+    await pool.query(
+      `INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'Negosiasi', $1, true)`,
+      [`Negosiasi tender ${req.params.id} dengan vendor ${req.params.vendorId}: ${agreed ? 'disepakati senilai Rp ' + final_price : 'gagal/tidak disepakati'}`]
+    );
+
+    res.json({ success: true, message: agreed ? 'Negosiasi berhasil disepakati.' : 'Negosiasi ditandai gagal.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/tenders/:id/aanwijzing — Chat Aanwijzing ──
 router.get('/:id/aanwijzing', async (req, res) => {
   try {

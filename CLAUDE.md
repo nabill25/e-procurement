@@ -95,10 +95,11 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 - Pengajuan: sync SAP, buat, submit, review, approve, reject - `server/routes/pengajuan.js`, halaman `src/pages/Pengajuan.jsx`
 - Dashboard, Audit log - `server/routes/dashboard.js`, `audit.js`
 - **Blacklist** (selesai 2026-08-20): list publik + tambah manual - `server/routes/blacklist.js`, tabel `blacklist` (`migrations/002_tabel_blacklist.sql`), halaman `src/pages/Blacklist.jsx`. Aksi "Blokir Vendor" di halaman Vendor (`vendors.js` PATCH `/:id/block`) sekarang otomatis bikin entri di tabel `blacklist` juga, jadi dua fitur ini sudah tersambung.
+- **Negosiasi** (selesai 2026-08-20): chat tawar-menawar harga antara Pokja/PPK dan vendor pemenang, plus tombol sepakati/gagalkan oleh Pokja/PPK - endpoint baru di `server/routes/tenders.js` (`GET/POST /:id/negotiation/:vendorId`, `POST /:id/negotiation/:vendorId/finalize`), kolom baru `negotiated_price`/`negotiation_status` di tabel `tender_participants`, tabel baru `tender_negotiation_chats` (`migrations/003_modul_negosiasi.sql`), komponen `src/components/modals/NegotiationTab.jsx` disambungkan sebagai tab baru "Negosiasi" di `DetailTenderModal.jsx` (muncul begitu tender sudah masuk tahap "pemenang" ke atas, ambil vendor pemenang otomatis dari data peserta).
 
 Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
 1. ~~Blacklist~~ - **selesai**
-2. Modul **Negosiasi** - belum dikerjakan
+2. ~~Negosiasi~~ - **selesai**
 3. **Data Master** (bank, mata uang, negara, satuan, dst): belum ada CRUD di backend
 4. **Manajemen hak akses berbasis menu**: sistem baru masih pakai role tetap (admin/ppk/pokja/vendor) yang di-hardcode, belum ada sistem menu dinamis seperti `tbl_m_menu`/`tbl_m_menu_akses` di sistem lama
 5. **Chat/shoutbox dan sistem pengaduan (inbox complain)**
@@ -141,6 +142,12 @@ Docker **tersedia** di komputer ini (`docker --version` = 29.7.2, `docker compos
 ## Testing
 
 Pengguna memilih testing **manual lewat browser** untuk saat ini (klik-klik langsung), belum pakai automated testing tools seperti Playwright. Kalau nanti diminta testing otomatis, baru disiapkan.
+
+## Cara kerja mulai 2026-08-20: testing dilakukan sendiri, bukan minta pengguna coba dulu
+
+Pengguna minta supaya setiap modul selesai dibangun, **saya (Claude) yang testing dan pastikan jalan tanpa error dulu** (lewat curl/API, alur lengkap end-to-end), bukan menyuruh pengguna coba manual duluan. Baru setelah saya yakin semuanya jalan, laporkan ke pengguna dan persilakan mereka coba juga kalau mau. Ini berlaku untuk semua modul berikutnya.
+
+Soal migrasi database: pengguna **tidak perlu** menambahkan apapun manual di Supabase. Setiap file migrasi baru langsung dijalankan sendiri lewat script node ke Supabase (karena ini database development, bukan production asli). Kalau nanti sudah waktunya ke production sungguhan, baru file migrasi diserahkan ke atasan untuk dijalankan duluan.
 
 ## Folder migrations/
 
