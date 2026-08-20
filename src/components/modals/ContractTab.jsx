@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp, API_BASE } from '../../context/AppContext';
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
+import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
 
@@ -232,6 +233,15 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
         <div className="p-6 text-center text-sm text-muted bg-surface rounded-xl border border-border">
           Belum ada data kontrak yang diunggah oleh PPK.
         </div>
+      )}
+
+      {/* Termin pembayaran, sanksi keterlambatan, dan progres pekerjaan */}
+      {contract && (
+        <>
+          <PaymentTermsSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
+          <DeliverablesSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
+          <PenaltiesSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
+        </>
       )}
 
       {/* Kode QR verifikasi keaslian dokumen kontrak (Admin/PPK) */}

@@ -607,4 +607,147 @@ router.post('/:id/contract', upload.fields([{ name: 'spk' }, { name: 'bast' }]),
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ── Helper: ambil contract_id dari tender_id ──
+async function getContractId(tenderId) {
+  const result = await pool.query('SELECT id FROM contracts WHERE tender_id = $1', [tenderId]);
+  return result.rows.length ? result.rows[0].id : null;
+}
+
+// ── TERMIN PEMBAYARAN ──────────────────────────────────────────────────────
+
+router.get('/:id/contract/payment-terms', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const result = await pool.query('SELECT * FROM contract_payment_terms WHERE contract_id = $1 ORDER BY created_at ASC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/payment-terms', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+
+    const { term_name, amount, progress_percent, notes } = req.body;
+    if (!term_name || !amount) return res.status(400).json({ success: false, message: 'term_name dan amount wajib diisi.' });
+
+    const result = await pool.query(`
+      INSERT INTO contract_payment_terms (contract_id, term_name, amount, progress_percent, notes)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [contractId, term_name, amount, progress_percent || null, notes || null]);
+
+    res.status(201).json({ success: true, message: 'Termin pembayaran berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/payment-terms/:termId', upload.single('bapp'), async (req, res) => {
+  try {
+    const { status, payment_date, notes } = req.body;
+    const bapp_file_path = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const result = await pool.query(`
+      UPDATE contract_payment_terms
+      SET status = COALESCE($1, status), payment_date = COALESCE($2, payment_date),
+          notes = COALESCE($3, notes), bapp_file_path = COALESCE($4, bapp_file_path)
+      WHERE id = $5 RETURNING *
+    `, [status || null, payment_date || null, notes || null, bapp_file_path, req.params.termId]);
+
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Termin tidak ditemukan.' });
+    res.json({ success: true, message: 'Termin pembayaran berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── SANKSI / DENDA KETERLAMBATAN ─────────────────────────────────────────────
+
+router.get('/:id/contract/penalties', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const result = await pool.query('SELECT * FROM contract_penalties WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/penalties', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+
+    const { days_late, penalty_rate, work_value, penalty_amount, notes } = req.body;
+    if (!days_late) return res.status(400).json({ success: false, message: 'days_late wajib diisi.' });
+
+    const result = await pool.query(`
+      INSERT INTO contract_penalties (contract_id, days_late, penalty_rate, work_value, penalty_amount, notes)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [contractId, days_late, penalty_rate || null, work_value || null, penalty_amount || null, notes || null]);
+
+    res.status(201).json({ success: true, message: 'Sanksi keterlambatan berhasil dicatat.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PROGRES PEKERJAAN (DELIVERABLE) ──────────────────────────────────────────
+
+router.get('/:id/contract/deliverables', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const result = await pool.query('SELECT * FROM contract_deliverables WHERE contract_id = $1 ORDER BY created_at ASC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/deliverables', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+
+    const { scope, deliverable_name, target_date, notes } = req.body;
+    if (!deliverable_name) return res.status(400).json({ success: false, message: 'deliverable_name wajib diisi.' });
+
+    const result = await pool.query(`
+      INSERT INTO contract_deliverables (contract_id, scope, deliverable_name, target_date, notes)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [contractId, scope || null, deliverable_name, target_date || null, notes || null]);
+
+    res.status(201).json({ success: true, message: 'Item progres pekerjaan berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/deliverables/:deliverableId', upload.single('document'), async (req, res) => {
+  try {
+    const { progress_percent, status, notes } = req.body;
+    const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const received_date = status === 'selesai' ? new Date() : null;
+
+    const result = await pool.query(`
+      UPDATE contract_deliverables
+      SET progress_percent = COALESCE($1, progress_percent), status = COALESCE($2, status),
+          notes = COALESCE($3, notes), file_path = COALESCE($4, file_path),
+          received_date = COALESCE($5, received_date)
+      WHERE id = $6 RETURNING *
+    `, [progress_percent || null, status || null, notes || null, file_path, received_date, req.params.deliverableId]);
+
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Item progres tidak ditemukan.' });
+    res.json({ success: true, message: 'Progres pekerjaan berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

@@ -115,7 +115,7 @@ Modul lanjutan yang BELUM dikerjakan (bukan bagian dari 7 modul awal, disebutkan
 Setelah 7 modul di atas selesai, pengguna bertanya apakah SEMUA modul eproc sudah diterapkan. Jawabannya: kerangka utamanya sudah lengkap dan bisa dipakai dari awal sampai akhir, tapi beberapa bagian masih jauh lebih simpel dibanding sistem lama yang sudah bertahun-tahun dikembangkan. Pengguna minta diperdalam juga, urutan yang disepakati:
 1. Evaluasi Tender - **selesai 2026-08-20**
 2. Kualifikasi Vendor (SIKaP) - **selesai 2026-08-20**
-3. Kontrak (termin pembayaran, sanksi, SLA) - belum dikerjakan
+3. Kontrak (termin pembayaran, sanksi, progres pekerjaan) - **selesai 2026-08-20**
 4. RUP/Permohonan Paket (analisa kebutuhan & pasar) - belum dikerjakan
 5. Integrasi SAP - **sengaja tetap simulasi**, karena butuh akses/kredensial SAP asli milik UI yang tidak dimiliki, bukan sesuatu yang bisa dibuat "asli" tanpa itu
 
@@ -128,6 +128,19 @@ Sebelum mengerjakan ini, saya cek dulu halaman Profil & Kualifikasi Vendor yang 
 Yang benar-benar belum ada: **data rekening bank** dan **neraca keuangan**. Ditambahkan dengan cara yang sama persis seperti yang sudah ada (kolom jsonb baru `bank` dan `neraca` di tabel `vendors`, `migrations/010_kualifikasi_vendor_detail.sql`), plus 2 tab baru "Bank" dan "Neraca" di halaman Profil Vendor. Juga ditambahkan 2 pilihan jenis dokumen baru yang belum ada di dropdown ("Sertifikat" dan "Ijin Usaha"), memakai tabel `vendor_documents` yang sudah ada (tidak perlu tabel baru).
 
 **Catatan teknis penting yang ditemukan waktu testing** (bukan bug, tapi gampang salah kalau lupa): endpoint `POST /api/vendors/:id/documents` itu `:id`-nya adalah **users.id** punya vendor (bukan vendors.id / id baris di tabel vendors), karena `vendor_documents.vendor_id` foreign key ke tabel `users`, bukan ke tabel `vendors`. Ini konsisten dengan pola di seluruh aplikasi (vendor_id di tender_participants, katalog_items, dst juga selalu berarti users.id), jadi bukan hal baru, cuma dicatat di sini supaya tidak bingung lagi kalau testing manual.
+
+### Kontrak - termin pembayaran, sanksi, progres pekerjaan (selesai 2026-08-20)
+
+Sebelumnya di tab Kontrak cuma bisa unggah SPK dan BAST saja. Sekarang ditambah 3 hal, mengikuti tabel `contracting_payment`, `contracting_sanksi`, `contracting_deliverable` di sistem lama:
+- **Termin Pembayaran**: tabel `contract_payment_terms`, bisa tambah termin (nama, nilai, persentase progres), tandai sudah dibayar.
+- **Sanksi Keterlambatan**: tabel `contract_penalties`, catat hari terlambat, tarif denda, nilai denda.
+- **Progres Pekerjaan**: tabel `contract_deliverables`, tambah item pekerjaan/deliverable, update persentase progres, otomatis tercatat tanggal selesai kalau progres 100%.
+
+Semua di `migrations/011_kontrak_detail.sql`. Endpoint baru di `server/routes/tenders.js` (nested di bawah `/api/tenders/:id/contract/...`, konsisten dengan pola endpoint lain). Komponen frontend baru `src/components/modals/ContractDetailSections.jsx` (3 komponen: `PaymentTermsSection`, `PenaltiesSection`, `DeliverablesSection`), disambungkan ke `ContractTab.jsx`, muncul begitu kontrak sudah dibuat.
+
+**Sengaja tidak termasuk "SLA"** (contracting_sla di sistem lama) karena itu spesifik untuk kontrak jenis layanan/maintenance saja, lingkupnya lebih sempit dibanding 3 hal di atas yang berlaku untuk hampir semua jenis kontrak. Bisa ditambahkan nanti kalau memang dibutuhkan.
+
+Sudah dites lewat API dari ujung ke ujung: buat kontrak → tambah termin → tandai dibayar → catat sanksi → tambah item progres → update progres jadi 100% (otomatis status "selesai" dan tanggal terima terisi). Semua berhasil.
 
 Sudah dites lewat API: simpan data bank, simpan data neraca, cek data kebaca lagi lewat endpoint qualifications, upload dokumen dengan jenis baru - semua berhasil.
 
