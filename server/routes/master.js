@@ -3,7 +3,7 @@ const router  = express.Router();
 const { pool } = require('../db');
 
 // Kategori data master yang valid (mengikuti tabel referensi di eProc lama)
-const VALID_CATEGORIES = ['bank', 'mata_uang', 'negara', 'satuan', 'incoterm', 'payment_method', 'analisa_kebutuhan', 'analisa_pasar', 'rekanan_tipe', 'sertifikat_jenis'];
+const VALID_CATEGORIES = ['bank', 'mata_uang', 'negara', 'satuan', 'incoterm', 'payment_method', 'analisa_kebutuhan', 'analisa_pasar', 'rekanan_tipe', 'sertifikat_jenis', 'jenis_belanja', 'analisa_kategori'];
 
 function checkCategory(req, res, next) {
   if (!VALID_CATEGORIES.includes(req.params.category)) {

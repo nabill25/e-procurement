@@ -228,4 +228,191 @@ router.post('/:id/reject', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════
+// KELOMPOK E - Permohonan Paket/RUP Detail
+// (file analisa, approval berjenjang, revisi, checklist kelengkapan)
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── MASTER CHECKLIST (ditaruh sebelum /:id supaya tidak ketiban rute pengajuan) ──
+router.get('/master/checklist', async (req, res) => {
+  try {
+    const { paket_jenis, metode_pemilihan } = req.query;
+    let sql = 'SELECT * FROM master_checklist WHERE is_active = true';
+    const params = [];
+    if (paket_jenis) { sql += ` AND (paket_jenis IS NULL OR paket_jenis = $${params.length + 1})`; params.push(paket_jenis); }
+    if (metode_pemilihan) { sql += ` AND (metode_pemilihan IS NULL OR metode_pemilihan = $${params.length + 1})`; params.push(metode_pemilihan); }
+    sql += ' ORDER BY nama ASC';
+    const result = await pool.query(sql, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/master/checklist', async (req, res) => {
+  try {
+    const { nama, paket_jenis, metode_pemilihan, wajib, created_by } = req.body;
+    if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
+    const result = await pool.query(`
+      INSERT INTO master_checklist (nama, paket_jenis, metode_pemilihan, wajib, created_by)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [nama, paket_jenis || null, metode_pemilihan || null, !!wajib, created_by || null]);
+    res.status(201).json({ success: true, message: 'Item checklist berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/master/checklist/:checklistId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM master_checklist WHERE id = $1', [req.params.checklistId]);
+    res.json({ success: true, message: 'Item checklist berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── FILE ANALISA ──
+router.get('/:id/files', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM procurement_request_files WHERE procurement_request_id = $1 ORDER BY created_at DESC', [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/files', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
+    const { judul, created_by } = req.body;
+    const result = await pool.query(`
+      INSERT INTO procurement_request_files (procurement_request_id, judul, file_path, file_type, file_size, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [req.params.id, judul || req.file.originalname, `/uploads/${req.file.filename}`, req.file.mimetype, req.file.size, created_by || null]);
+    res.status(201).json({ success: true, message: 'File analisa berhasil diunggah.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/files/:fileId/esign', async (req, res) => {
+  try {
+    const { esign_nomor_surat, esign_status } = req.body;
+    const result = await pool.query(`
+      UPDATE procurement_request_files SET esign_nomor_surat = $1, esign_status = $2 WHERE id = $3 RETURNING *
+    `, [esign_nomor_surat || null, esign_status || null, req.params.fileId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'File tidak ditemukan.' });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/files/:fileId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM procurement_request_files WHERE id = $1 AND procurement_request_id = $2', [req.params.fileId, req.params.id]);
+    res.json({ success: true, message: 'File berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── APPROVAL BERJENJANG ──
+router.get('/:id/approvals', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.*, u.full_name AS approved_by_name
+      FROM procurement_request_approvals a
+      LEFT JOIN users u ON a.approved_by = u.id
+      WHERE a.procurement_request_id = $1
+      ORDER BY a.created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Satu baris per approver (mengikuti alur asli: cek dulu apakah approver ini sudah pernah approve,
+// kalau belum insert baru, kalau sudah update baris yang ada).
+router.post('/:id/approvals', async (req, res) => {
+  try {
+    const { approved, approved_by, created_by } = req.body;
+    if (!approved_by) return res.status(400).json({ success: false, message: 'approved_by diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO procurement_request_approvals (procurement_request_id, approved, approved_by, created_by)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (procurement_request_id, approved_by) DO UPDATE SET approved = EXCLUDED.approved
+      RETURNING *
+    `, [req.params.id, !!approved, approved_by, created_by || approved_by]);
+    res.json({ success: true, message: 'Data berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── RIWAYAT REVISI ──
+router.get('/:id/revisions', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM procurement_request_revisions WHERE procurement_request_id = $1 ORDER BY created_at DESC', [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/revisions', upload.single('file'), async (req, res) => {
+  try {
+    const { catatan, created_by } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const result = await pool.query(`
+      INSERT INTO procurement_request_revisions (procurement_request_id, catatan, file_path, created_by)
+      VALUES ($1, $2, $3, $4) RETURNING *
+    `, [req.params.id, catatan || null, filePath, created_by || null]);
+    await pool.query("UPDATE procurement_requests SET status = 'revisi' WHERE id = $1", [req.params.id]);
+    res.status(201).json({ success: true, message: 'Catatan revisi berhasil dikirim.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── CHECKLIST KELENGKAPAN PER PENGAJUAN ──
+router.get('/:id/checklist', async (req, res) => {
+  try {
+    const { paket_jenis, metode_pemilihan } = req.query;
+    let masterSql = 'SELECT * FROM master_checklist WHERE is_active = true';
+    const params = [];
+    if (paket_jenis) { masterSql += ` AND (paket_jenis IS NULL OR paket_jenis = $${params.length + 1})`; params.push(paket_jenis); }
+    if (metode_pemilihan) { masterSql += ` AND (metode_pemilihan IS NULL OR metode_pemilihan = $${params.length + 1})`; params.push(metode_pemilihan); }
+    masterSql += ' ORDER BY nama ASC';
+    const master = await pool.query(masterSql, params);
+    const existing = await pool.query('SELECT * FROM procurement_request_checklist WHERE procurement_request_id = $1', [req.params.id]);
+
+    const merged = master.rows.map(m => {
+      const found = existing.rows.find(e => e.master_checklist_id === m.id);
+      return { ...m, checklist_item_id: found?.id || null, approved: found?.approved || false, notes: found?.notes || null };
+    });
+    res.json({ success: true, data: merged });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/checklist', async (req, res) => {
+  try {
+    const { master_checklist_id, approved, notes, created_by } = req.body;
+    if (!master_checklist_id) return res.status(400).json({ success: false, message: 'master_checklist_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO procurement_request_checklist (procurement_request_id, master_checklist_id, approved, notes, created_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (procurement_request_id, master_checklist_id) DO UPDATE SET approved = EXCLUDED.approved, notes = EXCLUDED.notes, updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [req.params.id, master_checklist_id, !!approved, notes || null, created_by || null]);
+    res.json({ success: true, message: 'Checklist berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
