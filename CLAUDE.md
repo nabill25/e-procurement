@@ -300,3 +300,115 @@ Setelah kerjaan multi-role di atas selesai dan dilaporkan, pengguna coba di brow
 **Pelajaran penting untuk ke depan**: kalau nambah fungsi baru di `AppContext.jsx` yang levelnya top-level di dalam komponen (bukan di dalam function lain), dan fungsi itu butuh referensi fungsi lain sebagai dependency array `useCallback`/`useEffect`/`useMemo`, PASTIKAN fungsi yang direferensikan itu sudah dideklarasikan LEBIH DULU di atasnya secara urutan baris kode. Ini jenis bug yang **tidak ketahuan dari sekadar cek kompilasi Vite** (Vite/esbuild cuma cek sintaks, bukan urutan eksekusi runtime), jadi harus dites beneran di browser buat ketahuan.
 
 **Catatan tambahan**: waktu debug ini juga ketahuan ada 2 proses `npm run dev` yang nyala bersamaan tanpa sengaja (satu di port 5173, satu lagi "numpuk" ke port 5174 karena 5173 sudah dipakai). Ini bikin bingung karena pengguna buka tab yang ternyata nyambung ke proses yang beda dari yang sedang saya kelola/tes. Sudah dibereskan (kedua proses lama dimatikan, dijalankan ulang 1 instance bersih di port 5173). Ke depan, sebelum bilang "sudah saya restart dan tes", selalu cek dulu proses mana saja yang benar-benar dengar di port 5173/3001 (`netstat -ano | grep LISTENING`), jangan asumsikan cuma ada 1 instance.
+
+## KEPUTUSAN BESAR (2026-08-21): target berubah jadi 100% paritas dengan sistem lama
+
+Setelah laporan kompleksitas (32 tabel/97 endpoint vs 218 tabel/184 controller sistem lama) dan gap struktur role, pengguna memberi arahan tegas:
+
+> "Kita tidak bisa membuat sistem baru yang beda dari sistem lama yang sudah berjalan di kantor. Kita cuma pindahkan sistem yang sudah ada ke teknologi lebih modern (bukan CodeIgniter 2/PHP 7.3-7.4 lagi), supaya pengembangan ke depan lebih mudah. Target: 100% sama secara fungsionalitas dan kompleksitas dengan eProc lama. Tidak masalah walau makan waktu lama."
+
+Jadi ini **BUKAN** proyek "bikin sistem baru yang lebih simpel", ini proyek **migrasi 1:1 ke stack modern**. Sistem lama (`eproc/`) adalah sumber kebenaran mutlak untuk semua keputusan fitur - kalau ada di sistem lama, harus ada juga di sistem baru, sedetail apapun itu. Ini mengubah cara kerja ke depan: sebelumnya saya cuma menutup gap yang "kelihatan jelas", sekarang harus benar-benar menelusuri semua 218 tabel dan 184 controller satu per satu.
+
+### Peta lengkap 218 tabel sistem lama vs status sistem baru (per 2026-08-21)
+
+Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum ada sama sekali
+
+**A. Tender/Paket (49 tabel, prefix `paket_*` + `paket` sendiri)**
+🟡 Inti sudah ada (`tenders`, `tender_participants`, `tender_eval_criteria/scores`, `tender_aanwijzing_chats`, `tender_objections`, `tender_negotiation_chats`). Yang BELUM ada sebagai fitur tersendiri:
+- ⬜ Dokumen tender (`paket_dokumen`, `paket_dokumen_backup`, `paket_dokumen_download`) - upload/download dokumen pengadaan resmi (beda dari dokumen penawaran vendor)
+- ⬜ Panitia/Pokja per paket (`paket_panitia`, `paket_panitia_backup`, `paket_panitia_sk`, `panitia`, `sk_panitia`) - penunjukan anggota panitia + SK
+- ⬜ Pembukaan penawaran 2 tahap (`paket_pembukaan_validasi`, `paket_pembukaankedua_validasi`) - untuk metode 2 sampul/2 tahap
+- ⬜ Pernyataan minat / pra-kualifikasi (`paket_pernyataan_minat`)
+- ⬜ Klarifikasi (`paket_klarifikasi`) - beda dari aanwijzing
+- ⬜ Reschedule tahapan dengan riwayat (`paket_tahap_reschedule`) - sekarang cuma ubah status, belum ada riwayat reschedule
+- ⬜ Peringkat pemenang & cadangan (`paket_pemenang_peringkat`)
+- ⬜ Template & jenis master (`paket_jenis`, `paket_metode_evaluasi`, `paket_metode_kualifikasi`, `paket_metode_lelang`, `paket_kriteria_eval`, `evaluasi_jenis`, `matrix_evaluasi`)
+- ⬜ Pakta integritas (`paket_pakta_integritas`)
+- ⬜ Pihak lain / sub-kontraktor (`paket_pihak_lain`)
+- ⬜ Template penilaian (`paket_penilaian_template`) - beda dari `vendor_ratings` yang sudah ada
+- 🟡 Bidang usaha per paket (`paket_bidang_usaha`) - butuh master `bidang_usaha` dulu
+
+**B. Vendor/Rekanan (41 tabel, prefix `rekanan_*` + `rekanan` sendiri)**
+🟡 Inti sudah ada (`vendors` + kolom jsonb pajak/pengurus/tenaga_ahli/peralatan/bank/neraca + `vendor_documents` + `vendor_experiences` + `vendor_ratings`). Yang BELUM ada sebagai fitur/tabel tersendiri:
+- ⬜ Rekening koran (`rekanan_rekening_koran`) - bukti mutasi bank, beda dari sekadar nomor rekening
+- ⬜ Sertifikat dengan jenis terstruktur (`rekanan_sertifikat_jenis`) - sekarang cuma `doc_type='sertifikat'` generik
+- ⬜ Bidang usaha per vendor (`rekanan_bidang_usaha`) - butuh master `bidang_usaha`
+- ⬜ Tipe vendor master (`rekanan_tipe`) - Penyedia Barang/Jasa Konsultansi/Konstruksi/dst sebagai master data terstruktur
+- ⬜ Retail (`rekanan_retail`) - kategori vendor retail/katalog
+- ⬜ Checklist kualifikasi (`rekanan_checklist`) - butuh `master_checklist` dulu
+- ⬜ Pakta integritas vendor (`rekanan_pakta_integritas`)
+- ⬜ Validasi URL/whitelist (`rekanan_url_validasi`, `rekanan_url_validasi_allow`) - prioritas rendah, teknis lama (kemungkinan terkait pembatasan IP/domain akses)
+- ❌ Oracle ERP integration (`rekanan_oracle`) - **tidak akan dibuat**, ini integrasi ke sistem finansial lama yang sudah tidak dipakai/di luar cakupan
+- 🟡 Password per paket (`rekanan_paket_penawaran`, `paket_rekanan_password`) - mekanisme keamanan submisi penawaran lama, perlu dicek relevansinya di sistem modern (biasanya sudah digantikan HTTPS + auth token)
+
+**C. Contracting/Kontrak (23 tabel, prefix `contracting_*`)**
+🟡 Sudah ada `contracts`, `contract_payment_terms`, `contract_penalties`, `contract_deliverables`. Yang BELUM:
+- ⬜ SLA (`contracting_sla`) - sebelumnya sengaja dilewati, sekarang harus dibuat juga untuk 100%
+- ⬜ Surat Pesanan + material (`contracting_surat_pesanan`, `contracting_surat_pesanan_material`) - untuk kontrak jenis pengadaan barang bertahap
+- ⬜ SPMK & proses kontrak bertahap (`contracting_proses`, `contracting_rekanan_proses1/4/5`, `contracting_rekanan_proses1_spmk`) - alur kerja detail kontrak (persiapan → pelaksanaan → serah terima)
+- ⬜ Notifikasi kontrak (`contracting_notifikasi`) - pengingat otomatis (misal kontrak akan berakhir)
+- ⬜ Catatan/monitoring teks bebas (`contracting_catatan`, `contracting_text_monitoring`)
+- ⬜ File kontrak tambahan (`contracting_file`) - beda dari SPK/BAST, lampiran pendukung lain
+- ⬜ Material yang dipakai (`contracting_material`)
+- ⬜ SPPJB - Surat Perjanjian Pemborongan Jasa/Barang (`sppjb`) - varian dokumen kontrak konstruksi
+- 🟡 Master jenis kontrak/pekerjaan/status (`contracting_jenis_kontrak`, `contracting_jenis_pekerjaan`, `contracting_status_kontrak`, `contracting_matrix`, `contracting_matrix_ori`)
+
+**D. Katalog/E-Purchasing (11 tabel)**
+🟡 Sudah ada `katalog_items`. Yang BELUM:
+- ⬜ Foto produk (`katalog_foto`) - sekarang cuma 1 `image_url`, seharusnya banyak foto per produk
+- ⬜ Lampiran (`katalog_lampiran`) - dokumen pendukung produk (brosur, spesifikasi)
+- ⬜ Kategori (`katalog_kategori`, `katalog_kategori_rekanan`) - taksonomi kategori produk terstruktur
+- ⬜ Riwayat harga (`katalog_riwayat_harga`) - histori perubahan harga produk
+- ⬜ Bandingkan produk (`katalog_compare`) - fitur compare untuk pembeli
+- ⬜ Laporan katalog (`katalog_laporan`)
+- ⬜ Logistik (`katalog_logistik`) - info pengiriman
+- ⬜ Surat pernyataan (`katalog_surat_pernyataan`)
+
+**E. Permohonan Paket / RUP (9 tabel)**
+🟡 Sudah ada `procurement_requests` + field analisa kebutuhan/pasar. Yang BELUM:
+- ⬜ File analisa (`permohonan_paket_analisa_file`) - lampiran dokumen analisa
+- ⬜ Approval berjenjang + revisi (`permohonan_paket_approval`, `permohonan_paket_approval_revisi`) - sekarang cuma 1 tahap approve/reject, seharusnya berjenjang dengan riwayat revisi
+- ⬜ Checklist kelengkapan (`permohonan_paket_checklist`) - butuh `master_checklist`
+- 🟡 Master jenis belanja & kategori (`permohonan_paket_analisa_jenis_belanja`, `permohonan_paket_analisa_kategori`)
+- ⬜ Import dari SIRUP (`import_sirup`) - integrasi ke sistem resmi LKPP, butuh akses API SIRUP asli (sama seperti SAP, tidak bisa dibuat "asli" tanpa akses eksternal)
+
+**F. Data Master (bertebaran, sekitar 25 tabel)**
+🟡 Sudah ada sebagian di Data Master (bank, mata_uang, negara, satuan, incoterm, payment_method, analisa_kebutuhan, analisa_pasar, unit_kerja_master). Yang BELUM ditambahkan sebagai kategori Data Master:
+- ⬜ `akta_type`, `bidang_usaha`, `direktorat`, `dokumen_template` + `dokumen_template_rekanan`, `ijin_usaha` (jenis izin), `komoditas`, `kurs`, `master_checklist`, `master_dokumen_template` + `upload`, `master_pengaturan` (pengaturan sistem umum), `metode` + `metode_tahap` + `metode_tahap_panel`, `pendidikan`, `region`, `tanggal_merah` (hari libur)
+
+**G. Auth/User (sudah dikerjakan sebagian besar di fondasi multi-role)**
+✅ `user_type`→`role_definitions`, `tbl_m_menu`→`menu_items`, `tbl_m_menu_akses`→`menu_role_access` semua sudah ada. Yang BELUM:
+- ⬜ Log login/aktivitas per user (`user_login_logs`) - beda dari `audit_logs` umum, ini spesifik histori login per akun
+- ⬜ Log sistem menu (`tbl_m_logs`)
+- ⬜ Sistem API key (`key`, `key_request`) - untuk integrasi API pihak ketiga
+- 🟡 Soft-delete/arsip (18 tabel `zdel_*`) - pola sistem lama: data yang "dihapus" dipindah ke tabel arsip terpisah, bukan hard delete. Sistem baru sekarang belum ada fitur hapus vendor/user sama sekali (cuma ubah status), jadi ini baru relevan kalau fitur hapus dibuat nanti - pendekatan modernnya cukup pakai kolom `deleted_at`, tidak perlu tabel duplikat terpisah seperti sistem lama.
+
+**H. Komunikasi (sebagian sudah ada)**
+✅ `inbox` + `inbox_category` → `inbox_messages` + `inbox_categories` sudah ada. Yang BELUM:
+- ⬜ Kategori komplain terstruktur (`inbox_complain_set`, `inbox_complain_type`)
+- ⬜ Chat umum per paket (`chatshoutbox`) - beda dari aanwijzing/negosiasi yang sudah ada, ini sepertinya chat umum/diskusi
+- ⬜ Chat PHP shoutbox lama (`phpshoutbox`) - kemungkinan legacy/duplikat `chatshoutbox`, perlu dicek relevansinya
+
+**I. Konten Publik**
+✅ `berita`→`cms_news`, `faq`→`cms_faq` sudah ada. Yang BELUM (sebelumnya sengaja dilewati, sekarang harus dibuat untuk 100%):
+- ⬜ `banner` - kelola gambar carousel halaman utama lewat admin (sekarang hardcode di kode)
+- ⬜ `kebijakan` - halaman kebijakan publik
+
+**J. Evaluasi Detail dengan Rumus Resmi**
+🟡 Sudah ada sistem kriteria+skor generik (`tender_eval_criteria/scores`). Yang BELUM:
+- ⬜ Rumus resmi untuk kategori "pengalaman" (`paket_eval_pengalaman`/`rekanan_eval_pengalaman`, ada kolom `bp_nilai`, `nk1_rp`, `nk2_rpmin/rpmax` dst) dan "personil" (`paket_eval_personil`, ada `ska`, `cv`, `nilai_minimum`) - **sekarang sumbernya sudah ada di kode PHP asli** (`eproc/application/controllers/rekanan_eval_pengalaman_json.php` dan sejenisnya), jadi TIDAK PERLU nebak lagi seperti kemarin - tinggal baca logika perhitungannya langsung dari situ dan tiru persis. Ini jadi prioritas tinggi karena sebelumnya saya salah langkah (mengira tidak ada rujukan resminya, padahal source code aslinya ADA di project ini).
+- ⬜ `paket_eval_kd`, `paket_eval_keuangan`, `paket_eval_peralatan_detil` - sub-kategori evaluasi yang lebih rinci
+
+**K. Lain-lain**
+- ⬜ `visitor` - statistik pengunjung halaman publik
+- ⬜ `rekam_jejak` - jejak audit lebih detail dari `audit_logs` yang sudah ada (perlu dicek bedanya)
+- ⬜ `logs_kirim_email_dok_expired` - notifikasi email otomatis dokumen akan kedaluwarsa
+- ⬜ `pivoting` - perlu diselidiki fungsinya, nama tabel tidak cukup jelas
+- ❌ `sap_pr` (integrasi SAP) - **tetap simulasi**, butuh akses SAP asli milik UI
+- ❌ `import_sirup` - **tetap belum bisa "asli"**, butuh akses API SIRUP resmi LKPP
+
+### Rencana kerja ke depan
+
+Karena skalanya sangat besar, dikerjakan bertahap per kelompok (A sampai K di atas), setiap fitur/tabel yang dikerjakan tetap mengikuti proses yang sama seperti sebelumnya: cek dulu logika PHP asli di `eproc/application/controllers/` (bukan cuma struktur tabelnya) supaya tidak menebak-nebak aturan bisnis, baru bikin migrasi + endpoint + halaman, lalu dites sendiri lewat API dan cek kompilasi sebelum lapor selesai. Urutan pengerjaan kelompok dikonfirmasi ke pengguna sebelum mulai setiap kelompok baru (kecuali diminta jalan terus tanpa henti).
+
+**Prioritas yang disepakati** (urutan pengerjaan): lihat riwayat percakapan/commit terbaru untuk tahu kelompok mana yang sedang/sudah dikerjakan setelah tanggal 2026-08-21 ini.
