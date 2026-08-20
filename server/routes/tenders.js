@@ -852,6 +852,701 @@ router.patch('/:id/contract/deliverables/:deliverableId', upload.single('documen
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════
+// KELOMPOK C - Contracting/Kontrak Detail
+// (SPPBJ, SPMK, SPK/PKS, SPPJB, jaminan, SLA, material/surat pesanan, addendum,
+// catatan, pengingat, dokumen tambahan, perubahan status, PIC, penilaian)
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── SPPBJ (Surat Penunjukan Penyedia Barang/Jasa) & SPK/PKS - field di tabel contracts ──
+router.patch('/:id/contract/sppbj', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET
+        sppbj_code = $1, sppbj_date = $2, sppbj_nilai = $3, sppbj_direktur_nama = $4, sppbj_direktur_jabatan = $5,
+        sppbj_direktur_alamat = $6, sppbj_direktur_kota = $7, sppbj_pejabat_berwenang = $8, sppbj_pejabat_nip = $9,
+        sppbj_pejabat_jabatan = $10, sppbj_pelaksanaan_dari = $11, sppbj_pelaksanaan_sampai = $12, sppbj_ppn = $13,
+        sppbj_jaminan_pelaksana = $14, sppbj_jaminan_persen = $15, sppbj_jaminan_nilai = $16,
+        sppbj_jaminan_jangka_dari = $17, sppbj_jaminan_jangka_sampai = $18, sppbj_jaminan_maksimal_penyerahan = $19,
+        is_non_sppbj = $20, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $21 RETURNING *
+    `, [b.sppbj_code || null, b.sppbj_date || null, b.sppbj_nilai || null, b.sppbj_direktur_nama || null, b.sppbj_direktur_jabatan || null,
+        b.sppbj_direktur_alamat || null, b.sppbj_direktur_kota || null, b.sppbj_pejabat_berwenang || null, b.sppbj_pejabat_nip || null,
+        b.sppbj_pejabat_jabatan || null, b.sppbj_pelaksanaan_dari || null, b.sppbj_pelaksanaan_sampai || null, b.sppbj_ppn || null,
+        b.sppbj_jaminan_pelaksana || null, b.sppbj_jaminan_persen || null, b.sppbj_jaminan_nilai || null,
+        b.sppbj_jaminan_jangka_dari || null, b.sppbj_jaminan_jangka_sampai || null, b.sppbj_jaminan_maksimal_penyerahan || null,
+        !!b.is_non_sppbj, contractId]);
+    res.json({ success: true, message: 'SPPBJ berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/spk-detail', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET
+        spk_code = $1, metode_pembayaran = $2, jenis_pengadaan = $3, jenis_pekerjaan = $4, jenis_kontrak = $5,
+        waktu_pelaksanaan_dari = $6, waktu_pelaksanaan_sampai = $7, pihak1_nama = $8, pihak1_jabatan = $9,
+        pihak2_nama = $10, pihak2_jabatan = $11, lingkup_pekerjaan = $12, legal_nomor_pks = $13, legal_tanggal = $14,
+        legal_nomor_rekanan = $15, purchase_order_number = $16, penyelesaian_kontrak_awal = $17,
+        penyelesaian_kontrak_akhir = $18, masa_garansi = $19, masa_garansi_periode = $20, nama_kegiatan = $21,
+        dokumen_jenis = $22, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $23 RETURNING *
+    `, [b.spk_code || null, b.metode_pembayaran || null, b.jenis_pengadaan || null, b.jenis_pekerjaan || null, b.jenis_kontrak || null,
+        b.waktu_pelaksanaan_dari || null, b.waktu_pelaksanaan_sampai || null, b.pihak1_nama || null, b.pihak1_jabatan || null,
+        b.pihak2_nama || null, b.pihak2_jabatan || null, b.lingkup_pekerjaan || null, b.legal_nomor_pks || null, b.legal_tanggal || null,
+        b.legal_nomor_rekanan || null, b.purchase_order_number || null, b.penyelesaian_kontrak_awal || null,
+        b.penyelesaian_kontrak_akhir || null, b.masa_garansi || null, b.masa_garansi_periode || null, b.nama_kegiatan || null,
+        b.dokumen_jenis || 'spk', contractId]);
+    res.json({ success: true, message: 'Detail SPK/PKS berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/approval', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { field, value } = req.body;
+    const ALLOWED = ['approve_manager', 'approve_ppk'];
+    if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    const result = await pool.query(`UPDATE contracts SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [!!value, contractId]);
+    res.json({ success: true, message: 'Persetujuan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/pemeriksa', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { pemeriksa_nama, pemeriksa_jabatan } = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET pemeriksa_nama = $1, pemeriksa_jabatan = $2, pemeriksa_approval = true, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3 RETURNING *
+    `, [pemeriksa_nama || null, pemeriksa_jabatan || null, contractId]);
+    res.json({ success: true, message: 'Approval pemeriksa berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PIC per tahap & tahap (stage) kontrak ──
+router.patch('/:id/contract/pic', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { tahap, user_id, pengawas_unit_kerja } = req.body;
+    const COLUMN_MAP = { persiapan: 'pic_persiapan_id', pengendali: 'pic_pengendali_id', penyelesai: 'pic_penyelesai_id' };
+    const col = COLUMN_MAP[tahap];
+    if (!col) return res.status(400).json({ success: false, message: `tahap harus salah satu dari: ${Object.keys(COLUMN_MAP).join(', ')}` });
+    const result = await pool.query(`
+      UPDATE contracts SET ${col} = $1, pengawas_unit_kerja = COALESCE($2, pengawas_unit_kerja), updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3 RETURNING *
+    `, [user_id || null, pengawas_unit_kerja || null, contractId]);
+    res.json({ success: true, message: 'PIC berhasil ditunjuk.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/stage', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { stage } = req.body;
+    if (!['persiapan', 'pengendalian', 'penyelesaian', 'selesai'].includes(stage)) {
+      return res.status(400).json({ success: false, message: 'stage tidak valid.' });
+    }
+    const result = await pool.query(`UPDATE contracts SET stage = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [stage, contractId]);
+    res.json({ success: true, message: 'Tahap kontrak berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── BAST (Berita Acara Serah Terima): Hasil Pekerjaan & Masa Pemeliharaan ──
+router.patch('/:id/contract/bast-hasil', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET
+        bast_pekerjaan_nomor = $1, bast_pekerjaan_tanggal = $2, bast_pekerjaan_nama_penyedia = $3,
+        bast_pekerjaan_jabatan_penyedia = $4, bast_pekerjaan_nama_penerima = $5, bast_pekerjaan_jabatan_penerima = $6,
+        bast_pekerjaan_status = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8 RETURNING *
+    `, [b.nomor || null, b.tanggal || null, b.nama_penyedia || null, b.jabatan_penyedia || null,
+        b.nama_penerima || null, b.jabatan_penerima || null, b.status || null, contractId]);
+    res.json({ success: true, message: 'BAST Hasil Pekerjaan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/bast-masa', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET
+        bast_masa_nomor = $1, bast_masa_tanggal = $2, bast_masa_nama_penyedia = $3,
+        bast_masa_jabatan_penyedia = $4, bast_masa_nama_penerima = $5, bast_masa_jabatan_penerima = $6,
+        bast_masa_status = $7, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $8 RETURNING *
+    `, [b.nomor || null, b.tanggal || null, b.nama_penyedia || null, b.jabatan_penyedia || null,
+        b.nama_penerima || null, b.jabatan_penerima || null, b.status || null, contractId]);
+    res.json({ success: true, message: 'BAST Masa Pemeliharaan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Penilaian kinerja penyedia (3 tahap approval independen) ──
+router.patch('/:id/contract/penilaian', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { grade, total_skor } = req.body;
+    const result = await pool.query(`
+      UPDATE contracts SET penilaian_grade = COALESCE($1, penilaian_grade), penilaian_total_skor = COALESCE($2, penilaian_total_skor), updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3 RETURNING *
+    `, [grade || null, total_skor || null, contractId]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/penilaian/approval', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { field, value } = req.body;
+    const ALLOWED = ['penilaian_approval_ppk', 'penilaian_approval_kasubdit', 'penilaian_approval_unit'];
+    if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    const result = await pool.query(`UPDATE contracts SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [!!value, contractId]);
+    res.json({ success: true, message: 'Persetujuan penilaian berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── SPMK (Surat Perintah Mulai Kerja) ──
+router.get('/:id/contract/spmk', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_spmk WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/spmk', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { nomor, spmk_dari, spmk_sampai, keterangan, created_by } = req.body;
+    if (!nomor) return res.status(400).json({ success: false, message: 'nomor diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO contract_spmk (contract_id, nomor, spmk_dari, spmk_sampai, keterangan, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [contractId, nomor, spmk_dari || null, spmk_sampai || null, keterangan || null, created_by || null]);
+    res.status(201).json({ success: true, message: 'SPMK berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Jaminan Pelaksanaan ──
+router.get('/:id/contract/jaminan', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_jaminan WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/jaminan', upload.fields([{ name: 'file_jaminan' }, { name: 'file_konfirmasi' }]), async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { nomor, tanggal_jaminan, tanggal_konfirmasi_kebank, tanggal_konfirmasi_oleh_bank, status_konfirmasi, created_by } = req.body;
+    const fileJaminan = req.files?.file_jaminan ? `/uploads/${req.files.file_jaminan[0].filename}` : null;
+    const fileKonfirmasi = req.files?.file_konfirmasi ? `/uploads/${req.files.file_konfirmasi[0].filename}` : null;
+    const result = await pool.query(`
+      INSERT INTO contract_jaminan (contract_id, nomor, tanggal_jaminan, file_jaminan, tanggal_konfirmasi_kebank, tanggal_konfirmasi_oleh_bank, status_konfirmasi, file_konfirmasi, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+    `, [contractId, nomor || null, tanggal_jaminan || null, fileJaminan, tanggal_konfirmasi_kebank || null, tanggal_konfirmasi_oleh_bank || null, status_konfirmasi || null, fileKonfirmasi, created_by || null]);
+    res.status(201).json({ success: true, message: 'Jaminan pelaksanaan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/jaminan/:jaminanId/konfirmasi', async (req, res) => {
+  try {
+    const { status_konfirmasi } = req.body;
+    const result = await pool.query(`
+      UPDATE contract_jaminan SET status_konfirmasi = $1, tanggal_konfirmasi_oleh_bank = CURRENT_DATE WHERE id = $2 RETURNING *
+    `, [status_konfirmasi, req.params.jaminanId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data jaminan tidak ditemukan.' });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Jaminan Pemeliharaan (garansi purna kontrak) ──
+router.get('/:id/contract/jaminan-pemeliharaan', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_jaminan_pemeliharaan WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/jaminan-pemeliharaan', upload.single('file_jaminan'), async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { nomor, nilai, masa, tanggal_mulai, tanggal_akhir, created_by } = req.body;
+    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const result = await pool.query(`
+      INSERT INTO contract_jaminan_pemeliharaan (contract_id, nomor, nilai, masa, tanggal_mulai, tanggal_akhir, file_jaminan, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+    `, [contractId, nomor || null, nilai || null, masa || null, tanggal_mulai || null, tanggal_akhir || null, filePath, created_by || null]);
+    res.status(201).json({ success: true, message: 'Jaminan pemeliharaan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── SLA (Service Level Agreement) ──
+router.get('/:id/contract/sla', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_sla WHERE contract_id = $1 ORDER BY created_at ASC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/sla', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { availability, waktu, denda, biaya_maintenance, nilai_denda, created_by } = req.body;
+    const result = await pool.query(`
+      INSERT INTO contract_sla (contract_id, availability, waktu, denda, biaya_maintenance, nilai_denda, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+    `, [contractId, availability || null, waktu || null, denda || null, biaya_maintenance || null, nilai_denda || null, created_by || null]);
+    res.status(201).json({ success: true, message: 'SLA berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/contract/sla/:slaId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM contract_sla WHERE id = $1', [req.params.slaId]);
+    res.json({ success: true, message: 'SLA berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Material (khusus Kontrak Payung) ──
+router.get('/:id/contract/materials', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_materials WHERE contract_id = $1 ORDER BY created_at ASC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Replace-all pattern (mengikuti addMaterial() asli: hapus semua material lama, insert ulang).
+router.post('/:id/contract/materials', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { materials, created_by } = req.body;
+    if (!Array.isArray(materials) || !materials.length) {
+      return res.status(400).json({ success: false, message: 'Daftar material diperlukan.' });
+    }
+    await client.query('BEGIN');
+    await client.query('DELETE FROM contract_materials WHERE contract_id = $1', [contractId]);
+    for (const m of materials) {
+      await client.query(`
+        INSERT INTO contract_materials (contract_id, nama, qty, satuan, harga_satuan, sifat, keterangan, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [contractId, m.nama, m.qty || null, m.satuan || null, m.harga_satuan || null, m.sifat || null, m.keterangan || null, created_by || null]);
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Daftar material berhasil disimpan.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/:id/contract/materials/:materialId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM contract_materials WHERE id = $1', [req.params.materialId]);
+    res.json({ success: true, message: 'Material berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Surat Pesanan (dokumen turunan Kontrak Payung) ──
+router.get('/:id/contract/surat-pesanan', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const headers = await pool.query('SELECT * FROM contract_surat_pesanan WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    const withItems = await Promise.all(headers.rows.map(async h => {
+      const items = await pool.query('SELECT * FROM contract_surat_pesanan_items WHERE surat_pesanan_id = $1 ORDER BY created_at ASC', [h.id]);
+      return { ...h, items: items.rows };
+    }));
+    res.json({ success: true, data: withItems });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/surat-pesanan', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { nomor_surat, tanggal, items, created_by } = req.body;
+    if (!nomor_surat || !Array.isArray(items) || !items.length) {
+      return res.status(400).json({ success: false, message: 'nomor_surat dan minimal satu item diperlukan.' });
+    }
+    await client.query('BEGIN');
+    const header = await client.query(`
+      INSERT INTO contract_surat_pesanan (contract_id, nomor_surat, tanggal, created_by) VALUES ($1, $2, $3, $4) RETURNING *
+    `, [contractId, nomor_surat, tanggal || null, created_by || null]);
+    for (const it of items) {
+      const qty = Number(it.qty) || 0;
+      const hargaSatuan = Number(it.harga_satuan) || 0;
+      await client.query(`
+        INSERT INTO contract_surat_pesanan_items (surat_pesanan_id, material_id, nama, harga_satuan, qty, satuan, sifat, total, keterangan, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `, [header.rows[0].id, it.material_id || null, it.nama, hargaSatuan, qty, it.satuan || null, it.sifat || null, qty * hargaSatuan, it.keterangan || null, created_by || null]);
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, message: 'Surat pesanan berhasil dibuat.', data: header.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.patch('/:id/contract/surat-pesanan/items/:itemId', async (req, res) => {
+  try {
+    const { status_terima, status_keterangan, tanggal_terima, presentase } = req.body;
+    const result = await pool.query(`
+      UPDATE contract_surat_pesanan_items SET
+        status_terima = COALESCE($1, status_terima), status_keterangan = COALESCE($2, status_keterangan),
+        tanggal_terima = COALESCE($3, tanggal_terima), presentase = COALESCE($4, presentase)
+      WHERE id = $5 RETURNING *
+    `, [status_terima || null, status_keterangan || null, tanggal_terima || null, presentase || null, req.params.itemId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Item surat pesanan tidak ditemukan.' });
+    res.json({ success: true, message: 'Status penerimaan berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/contract/surat-pesanan/:suratPesananId', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM contract_surat_pesanan_items WHERE surat_pesanan_id = $1', [req.params.suratPesananId]);
+    await client.query('DELETE FROM contract_surat_pesanan WHERE id = $1', [req.params.suratPesananId]);
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Surat pesanan berhasil dihapus.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ── Addendum (2 tahap approval: Kasubdit dan Penyedia) ──
+router.get('/:id/contract/addendum', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_addendum WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/addendum', upload.fields([{ name: 'file_persetujuan' }, { name: 'file_addendum' }]), async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const filePersetujuan = req.files?.file_persetujuan ? `/uploads/${req.files.file_persetujuan[0].filename}` : null;
+    const fileAddendum = req.files?.file_addendum ? `/uploads/${req.files.file_addendum[0].filename}` : null;
+    const result = await pool.query(`
+      INSERT INTO contract_addendum
+        (contract_id, nomor, addendum_ke, jenis, tanggal, tanggal_kontrak_dari, tanggal_kontrak_sampai,
+         tanggal_penyelesaian_awal, tanggal_penyelesaian_akhir, file_persetujuan, file_addendum, keterangan, nilai_baru, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
+    `, [contractId, b.nomor || null, b.addendum_ke || null, b.jenis || null, b.tanggal || null, b.tanggal_kontrak_dari || null,
+        b.tanggal_kontrak_sampai || null, b.tanggal_penyelesaian_awal || null, b.tanggal_penyelesaian_akhir || null,
+        filePersetujuan, fileAddendum, b.keterangan || null, b.nilai_baru || null, b.created_by || null]);
+    res.status(201).json({ success: true, message: 'Addendum berhasil diajukan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/addendum/:addendumId/approval', async (req, res) => {
+  try {
+    const { field, value } = req.body;
+    const ALLOWED = ['approved_kasubdit', 'approved_penyedia'];
+    if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    const result = await pool.query(`UPDATE contract_addendum SET ${field} = $1 WHERE id = $2 RETURNING *`, [!!value, req.params.addendumId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Addendum tidak ditemukan.' });
+
+    const row = result.rows[0];
+    if (row.approved_kasubdit && row.approved_penyedia && row.status !== 'selesai') {
+      await pool.query(`UPDATE contract_addendum SET status = 'selesai' WHERE id = $1`, [row.id]);
+      row.status = 'selesai';
+    }
+    res.json({ success: true, message: 'Persetujuan addendum berhasil disimpan.', data: row });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/contract/addendum/:addendumId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM contract_addendum WHERE id = $1', [req.params.addendumId]);
+    res.json({ success: true, message: 'Addendum berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Catatan (internal / versi penyedia) ──
+router.get('/:id/contract/notes', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const { jenis } = req.query;
+    const params = [contractId];
+    let sql = 'SELECT n.*, u.full_name AS created_by_name FROM contract_notes n LEFT JOIN users u ON n.created_by = u.id WHERE n.contract_id = $1';
+    if (jenis) { sql += ' AND n.jenis = $2'; params.push(jenis); }
+    sql += ' ORDER BY n.created_at DESC';
+    const result = await pool.query(sql, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/notes', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { jenis, pesan, created_by } = req.body;
+    if (!pesan || !pesan.trim()) return res.status(400).json({ success: false, message: 'Catatan tidak boleh kosong.' });
+    const result = await pool.query(`
+      INSERT INTO contract_notes (contract_id, jenis, pesan, created_by) VALUES ($1, $2, $3, $4) RETURNING *
+    `, [contractId, jenis || 'internal', pesan, created_by || null]);
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Notifikasi/Pengingat kontrak ──
+router.get('/:id/contract/reminders', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_reminders WHERE contract_id = $1 ORDER BY tanggal_dari DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/reminders', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { judul, tanggal_dari, tanggal_sampai, created_by } = req.body;
+    if (!judul) return res.status(400).json({ success: false, message: 'judul diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO contract_reminders (contract_id, judul, tanggal_dari, tanggal_sampai, created_by)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [contractId, judul, tanggal_dari || null, tanggal_sampai || null, created_by || null]);
+    res.status(201).json({ success: true, message: 'Pengingat berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/contract/reminders/:reminderId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM contract_reminders WHERE id = $1', [req.params.reminderId]);
+    res.json({ success: true, message: 'Pengingat berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Dokumen tambahan (selain SPK/BAST utama) ──
+router.get('/:id/contract/documents', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_documents WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/documents', upload.single('file'), async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
+    const { nama, jenis, keterangan, created_by } = req.body;
+    const result = await pool.query(`
+      INSERT INTO contract_documents (contract_id, nama, file_path, file_size, jenis, keterangan, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+    `, [contractId, nama || req.file.originalname, `/uploads/${req.file.filename}`, req.file.size, jenis || null, keterangan || null, created_by || null]);
+    res.status(201).json({ success: true, message: 'Dokumen berhasil diunggah.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/contract/documents/:docId/publish', async (req, res) => {
+  try {
+    const { publish } = req.body;
+    const result = await pool.query(`UPDATE contract_documents SET publish_ke_penyedia = $1 WHERE id = $2 RETURNING *`, [!!publish, req.params.docId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Dokumen tidak ditemukan.' });
+    res.json({ success: true, message: publish ? 'Dokumen berhasil dipublish ke penyedia.' : 'Dokumen berhasil di-unpublish.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/contract/documents/:docId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM contract_documents WHERE id = $1', [req.params.docId]);
+    res.json({ success: true, message: 'Dokumen berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Perubahan Status Kontrak (Perubahan/Penyesuaian/Kahar/Berakhir/Pemutusan/Kesempatan/Denda) ──
+const STATUS_CHANGE_TYPES = ['perubahan', 'penyesuaian', 'kahar', 'berakhir', 'pemutusan', 'kesempatan', 'denda'];
+
+router.get('/:id/contract/status-changes', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: [] });
+    const result = await pool.query('SELECT * FROM contract_status_changes WHERE contract_id = $1 ORDER BY created_at DESC', [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/status-changes', upload.single('file'), async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const { jenis, alasan, created_by } = req.body;
+    if (!STATUS_CHANGE_TYPES.includes(jenis)) {
+      return res.status(400).json({ success: false, message: `jenis harus salah satu dari: ${STATUS_CHANGE_TYPES.join(', ')}` });
+    }
+    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const result = await pool.query(`
+      INSERT INTO contract_status_changes (contract_id, jenis, alasan, file_path, created_by)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [contractId, jenis, alasan || null, filePath, created_by || null]);
+    res.status(201).json({ success: true, message: 'Perubahan status kontrak berhasil dicatat.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── SPPJB (Surat Perjanjian, varian dokumen kontrak) ──
+router.get('/:id/contract/sppjb', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.json({ success: true, data: null });
+    const result = await pool.query('SELECT * FROM contract_sppjb WHERE contract_id = $1 ORDER BY created_at DESC LIMIT 1', [contractId]);
+    res.json({ success: true, data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/sppjb', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const b = req.body;
+    const result = await pool.query(`
+      INSERT INTO contract_sppjb
+        (contract_id, kode, tanggal, nama_dirut, alamat_dirut, kota_dirut, ppn, persen_jaminan, tmt_jaminan,
+         jangka_waktu, jangka_waktu_jaminan, penanda_tangan, penanda_tangan_jabatan, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *
+    `, [contractId, b.kode || null, b.tanggal || null, b.nama_dirut || null, b.alamat_dirut || null, b.kota_dirut || null,
+        b.ppn || null, b.persen_jaminan || null, b.tmt_jaminan || null, b.jangka_waktu || null, b.jangka_waktu_jaminan || null,
+        b.penanda_tangan || null, b.penanda_tangan_jabatan || null, b.created_by || null]);
+    res.status(201).json({ success: true, message: 'SPPJB berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── RUMUS EVALUASI RESMI (Personil, Peralatan, Sertifikat) ──────────────────
 // Meniru persis fungsi hitungPersonil()/hitungPeralatan()/hitungSertifikat() di
 // eproc/lib/eproc/allfunc.js (kode yang benar-benar dipakai sistem produksi lama).
