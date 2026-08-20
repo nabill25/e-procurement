@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const { buyer_id, vendor_id } = req.query;
     let sql = `
-      SELECT p.*, v.company_name AS vendor_name, u.name AS buyer_name
+      SELECT p.*, v.company_name AS vendor_name, u.full_name AS buyer_name
       FROM purchasing_orders p
       LEFT JOIN vendors v ON p.vendor_id = v.user_id
       LEFT JOIN users u ON p.buyer_id = u.id
@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const orderResult = await pool.query(`
-      SELECT p.*, v.company_name AS vendor_name, u.name AS buyer_name
+      SELECT p.*, v.company_name AS vendor_name, u.full_name AS buyer_name
       FROM purchasing_orders p
       LEFT JOIN vendors v ON p.vendor_id = v.user_id
       LEFT JOIN users u ON p.buyer_id = u.id
@@ -96,8 +96,8 @@ router.post('/', async (req, res) => {
     }
 
     // Log the action
-    const buyerRes = await client.query('SELECT name FROM users WHERE id = $1', [buyer_id]);
-    const buyerName = buyerRes.rows.length ? buyerRes.rows[0].name : 'PPK';
+    const buyerRes = await client.query('SELECT full_name FROM users WHERE id = $1', [buyer_id]);
+    const buyerName = buyerRes.rows.length ? buyerRes.rows[0].full_name : 'PPK';
     await client.query(`
       INSERT INTO audit_logs (action, entity_type, description, is_success) 
       VALUES ('CREATE', 'Purchasing', $1, true)

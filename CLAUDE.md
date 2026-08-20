@@ -140,3 +140,28 @@ Docker **tersedia** di komputer ini (`docker --version` = 29.7.2, `docker compos
 ## Testing
 
 Pengguna memilih testing **manual lewat browser** untuk saat ini (klik-klik langsung), belum pakai automated testing tools seperti Playwright. Kalau nanti diminta testing otomatis, baru disiapkan.
+
+## Folder migrations/
+
+Semua perubahan struktur database (tabel/kolom/view baru) ditulis sebagai file `.sql` bernomor urut di folder `migrations/` (contoh: `migrations/001_lengkapi_skema_awal.sql`). Untuk database Supabase yang dipakai development ini, migrasi dijalankan langsung (karena ini bukan production asli, aksesnya memang untuk development). File migrasi tetap dibuat dan disimpan supaya ada jejak historis dan supaya polanya siap dipakai kalau nanti memang harus diserahkan ke orang lain untuk dijalankan di server lain.
+
+## Status terakhir: sudah jalan normal (2026-08-20)
+
+Backend (`npm run server`, port 3001) dan frontend (`npm run dev`, port 5173) sudah dicoba dijalankan bersamaan dan berhasil, backend konek ke Supabase, halaman utama berhasil tampil.
+
+Sempat ditemukan skema database Supabase belum lengkap dibanding yang dibutuhkan kode backend (sudah begitu dari sebelum sesi ini, bukan sesuatu yang baru rusak), plus beberapa bug penamaan kolom di kode. Semua sudah diperbaiki:
+
+- `migrations/001_lengkapi_skema_awal.sql` sudah dibuat dan dijalankan ke Supabase: menambahkan kolom yang kurang di tabel `vendors` (email, phone, province, nib, contact_person, qualification_class, blacklisted, verified_by, verified_at), `users` (unit_kerja), `tender_participants` (document_path, technical_score, evaluation_notes, is_evaluated, is_winner), `audit_logs` (is_success), membuat view `v_dashboard_stats`, dan menyamakan data status vendor yang tadinya `'verified'` jadi `'terverifikasi'` (istilah yang dipakai konsisten di kode).
+- Bug kode yang diperbaiki: `server/routes/auth.js` (kolom `password_hash`/`is_active` yang salah, seharusnya `password`/`status`, bikin fitur daftar akun baru gagal total sebelumnya), `server/routes/purchasing.js` (kolom `u.name` seharusnya `u.full_name`), `server/routes/tenders.js` (query daftar tender salah join ke tabel `bids` yang tidak ada, seharusnya hitung dari `tender_participants`; query sanggahan dan kontrak salah ambil `company_name` dari tabel `users`, seharusnya dari tabel `vendors`).
+
+Semua 8 endpoint utama sudah dites ulang satu per satu dan jalan normal: `/api/dashboard`, `/api/tenders`, `/api/vendors`, `/api/purchasing`, `/api/katalog`, `/api/audit`, `/api/pengajuan`, `/api/auth` (login, register, me).
+
+**Akun untuk testing manual di browser** (dibuat lewat `server/seed_real_users.js`, sudah ada di database Supabase):
+| Role | Username | Password |
+|---|---|---|
+| Admin | admin@ui.ac.id | UIAdmin2026! |
+| PPK | ppk@ui.ac.id | UIPPK2026! |
+| Pokja | pokja@ui.ac.id | UIPokja2026! |
+| Vendor | vendor@gmail.com | UIVendor2026! |
+
+Catatan: data di database Supabase saat ini masih sangat sedikit (cuma 1 vendor, belum ada tender/pengajuan/katalog), jadi kebanyakan halaman list akan terlihat kosong sampai ada yang mengisi data lewat form di aplikasi atau lewat seed script tambahan.

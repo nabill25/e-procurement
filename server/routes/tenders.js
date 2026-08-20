@@ -33,11 +33,11 @@ router.get('/', async (req, res) => {
         t.work_location, t.created_at,
         u_ppk.full_name   AS ppk_name,
         u_pokja.full_name AS pokja_lead_name,
-        COUNT(b.id)       AS bid_count
+        (SELECT COUNT(*) FROM tender_participants tp
+          WHERE tp.tender_id = t.id AND tp.bid_price IS NOT NULL) AS bid_count
       FROM tenders t
       LEFT JOIN users u_ppk   ON t.ppk_id       = u_ppk.id
       LEFT JOIN users u_pokja ON t.pokja_lead_id = u_pokja.id
-      LEFT JOIN bids  b       ON b.tender_id     = t.id
       WHERE 1=1
     `;
     const params = [];
@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
     if (search) { sql += ` AND (t.title ILIKE $${paramIndex++} OR t.tender_number ILIKE $${paramIndex++})`;
                   params.push(`%${search}%`, `%${search}%`); }
 
-    sql += ` GROUP BY t.id ORDER BY t.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    sql += ` ORDER BY t.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(parseInt(limit), offset);
 
     const result = await pool.query(sql, params);
@@ -333,9 +333,10 @@ router.post('/:id/aanwijzing', async (req, res) => {
 router.get('/:id/objections', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT o.*, u.full_name AS vendor_name, u.company_name
+      SELECT o.*, u.full_name AS vendor_name, v.company_name
       FROM tender_objections o
-      JOIN users u ON o.vendor_id = u.id
+      LEFT JOIN users u   ON o.vendor_id = u.id
+      LEFT JOIN vendors v ON o.vendor_id = v.user_id
       WHERE o.tender_id = $1
       ORDER BY o.created_at DESC
     `, [req.params.id]);
@@ -388,9 +389,9 @@ router.post('/:id/objections/:objId/reply', upload.single('response_attachment')
 router.get('/:id/contract', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT c.*, u.company_name AS vendor_name
+      SELECT c.*, v.company_name AS vendor_name
       FROM contracts c
-      JOIN users u ON c.vendor_id = u.id
+      LEFT JOIN vendors v ON c.vendor_id = v.user_id
       WHERE c.tender_id = $1
     `, [req.params.id]);
     res.json({ success: true, data: result.rows.length ? result.rows[0] : null });

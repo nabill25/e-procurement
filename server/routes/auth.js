@@ -130,8 +130,8 @@ router.post('/register', async (req, res) => {
 
     // 3. Insert ke tabel users
     const userResult = await pool.query(`
-      INSERT INTO users (username, password_hash, full_name, email, role, is_active)
-      VALUES ($1, $2, $3, $4, 'vendor', true)
+      INSERT INTO users (username, password, full_name, email, role, role_label, status)
+      VALUES ($1, $2, $3, $4, 'vendor', 'Vendor / Penyedia', 'aktif')
       RETURNING id
     `, [username, password_hash, company_name, email]);
     
@@ -166,7 +166,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     // Ambil data terbaru dari database
     const result = await pool.query(
-      'SELECT id, username, full_name, email, role, unit_kerja, is_active FROM users WHERE id = $1',
+      'SELECT id, username, full_name, email, role, unit_kerja, status FROM users WHERE id = $1',
       [req.user.id]
     );
 
@@ -175,7 +175,7 @@ router.get('/me', requireAuth, async (req, res) => {
     }
 
     const user = result.rows[0];
-    if (user.is_active === false || user.is_active === 0) {
+    if (user.status !== 'aktif') {
       return res.status(401).json({ success: false, message: 'Akun tidak aktif.' });
     }
 
