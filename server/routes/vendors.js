@@ -225,14 +225,20 @@ router.patch('/:id/suspend', async (req, res) => {
 router.patch('/:id/block', async (req, res) => {
   try {
     const { reason } = req.body;
-    const result = await pool.query('SELECT company_name FROM vendors WHERE id = $1', [req.params.id]);
+    const result = await pool.query('SELECT user_id, company_name, npwp, city FROM vendors WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+    const vendor = result.rows[0];
 
     await pool.query("UPDATE vendors SET status='diblokir', blacklisted=true WHERE id=$1", [req.params.id]);
 
+    await pool.query(`
+      INSERT INTO blacklist (vendor_id, company_name, npwp, city, reason)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [vendor.user_id, vendor.company_name, vendor.npwp, vendor.city, reason || 'Tidak ada alasan yang dicantumkan.']);
+
     await pool.query(
       `INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'Vendor', $1, true)`,
-      [`Vendor diblokir/blacklist: ${result.rows[0].company_name}${reason ? '. Alasan: ' + reason : ''}`]
+      [`Vendor diblokir/blacklist: ${vendor.company_name}${reason ? '. Alasan: ' + reason : ''}`]
     );
 
     res.json({ success: true, message: 'Vendor berhasil diblokir dan ditambahkan ke daftar hitam.' });

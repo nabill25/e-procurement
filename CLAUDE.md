@@ -94,17 +94,18 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 - Purchasing: list, detail, buat, ubah status - `server/routes/purchasing.js`, halaman `src/pages/Purchasing.jsx`
 - Pengajuan: sync SAP, buat, submit, review, approve, reject - `server/routes/pengajuan.js`, halaman `src/pages/Pengajuan.jsx`
 - Dashboard, Audit log - `server/routes/dashboard.js`, `audit.js`
+- **Blacklist** (selesai 2026-08-20): list publik + tambah manual - `server/routes/blacklist.js`, tabel `blacklist` (`migrations/002_tabel_blacklist.sql`), halaman `src/pages/Blacklist.jsx`. Aksi "Blokir Vendor" di halaman Vendor (`vendors.js` PATCH `/:id/block`) sekarang otomatis bikin entri di tabel `blacklist` juga, jadi dua fitur ini sudah tersambung.
 
-Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan):
-- Modul **Negosiasi**
-- **Blacklist**: halaman frontend-nya sudah ada (`src/pages/Blacklist.jsx`) tapi **tidak ada route backend-nya**, jadi masih pakai data dummy/mock
-- **Data Master** (bank, mata uang, negara, satuan, dst): belum ada CRUD di backend
-- **Manajemen hak akses berbasis menu**: sistem baru masih pakai role tetap (admin/ppk/pokja/vendor) yang di-hardcode, belum ada sistem menu dinamis seperti `tbl_m_menu`/`tbl_m_menu_akses` di sistem lama
-- **Chat/shoutbox dan sistem pengaduan (inbox complain)**
-- **Konten/CMS** (berita, FAQ, kebijakan): kemungkinan besar masih statis di frontend, belum ada backend-nya
-- **Validasi QR**
+Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
+1. ~~Blacklist~~ - **selesai**
+2. Modul **Negosiasi** - belum dikerjakan
+3. **Data Master** (bank, mata uang, negara, satuan, dst): belum ada CRUD di backend
+4. **Manajemen hak akses berbasis menu**: sistem baru masih pakai role tetap (admin/ppk/pokja/vendor) yang di-hardcode, belum ada sistem menu dinamis seperti `tbl_m_menu`/`tbl_m_menu_akses` di sistem lama
+5. **Chat/shoutbox dan sistem pengaduan (inbox complain)**
+6. **Konten/CMS** (berita, FAQ, kebijakan): kemungkinan besar masih statis di frontend, belum ada backend-nya
+7. **Validasi QR**
 
-Catatan: menyamakan SEMUA modul di atas 1:1 adalah pekerjaan besar (skala berbulan-bulan, bukan sekali kerja). Sebelum mengerjakan modul besar berikutnya, **cek dulu prioritas dengan pengguna**, jangan langsung membangun semuanya sekaligus tanpa konfirmasi.
+Catatan: menyamakan SEMUA modul di atas 1:1 adalah pekerjaan besar (skala berbulan-bulan, bukan sekali kerja). Dikerjakan satu per satu sesuai urutan di atas, dan pengguna dikabari tiap satu modul selesai supaya bisa dicoba dulu sebelum lanjut ke modul berikutnya.
 
 ## Data sensitif yang HARUS dijaga
 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Home } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { API_BASE, useApp } from '../context/AppContext';
 
 function Breadcrumb({ onHome }) {
   return (
@@ -14,12 +14,6 @@ function Breadcrumb({ onHome }) {
   );
 }
 
-// Static data matching the real blacklist structure
-const BLACKLIST_DATA = [
-  // Currently empty as in the real site - but we can pre-populate for demo:
-  // { id: 1, nama: 'PT Pembangunan Semesta', npwp: '09.876.543.2-109.000', tanggal: '2024-01-15', sk: 'SK/001/DPBJ/2024' },
-];
-
 function SortIcon() {
   return (
     <span className="inline-flex flex-col ml-1 opacity-40">
@@ -30,12 +24,40 @@ function SortIcon() {
 }
 
 export default function Blacklist({ onNavigateHome }) {
-  const { user } = useApp();
+  const { user, refreshTrigger } = useApp();
   const [search, setSearch] = useState('');
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filtered = BLACKLIST_DATA.filter(row =>
+  const fetchBlacklist = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/blacklist`);
+      const json = await res.json();
+      if (json.success) {
+        setData(json.data.map(row => ({
+          id: row.id,
+          nama: row.company_name,
+          npwp: row.npwp,
+          tanggal: row.start_date ? new Date(row.start_date).toLocaleDateString('id-ID') : '-',
+          sk: row.sk_number || '-',
+          sk_file_path: row.sk_file_path,
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch blacklist:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBlacklist();
+  }, [fetchBlacklist, refreshTrigger]);
+
+  const filtered = data.filter(row =>
     row.nama?.toLowerCase().includes(search.toLowerCase()) ||
     row.npwp?.toLowerCase().includes(search.toLowerCase())
   );
@@ -99,19 +121,31 @@ export default function Blacklist({ onNavigateHome }) {
               </tr>
             </thead>
             <tbody>
-              {paginated.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={4} className="py-10 text-center text-muted text-sm">
+                    Memuat data...
+                  </td>
+                </tr>
+              ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-10 text-center text-muted text-sm">
                     Data tidak ditemukan.
                   </td>
                 </tr>
               ) : (
-                paginated.map((row, idx) => (
-                  <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50/20 transition-colors">
+                paginated.map((row) => (
+                  <tr key={row.id} className="border-b border-gray-100 hover:bg-blue-50/20 transition-colors">
                     <td className="px-4 py-3 font-medium text-dpbj-navy text-sm">{row.nama}</td>
                     <td className="px-4 py-3 font-mono text-xs text-dpbj-slate">{row.npwp}</td>
                     <td className="px-4 py-3 text-xs text-muted">{row.tanggal}</td>
-                    <td className="px-4 py-3 text-xs text-blue-600 hover:underline cursor-pointer">{row.sk}</td>
+                    {row.sk_file_path ? (
+                      <td className="px-4 py-3 text-xs text-blue-600 hover:underline cursor-pointer">
+                        <a href={row.sk_file_path} target="_blank" rel="noreferrer">{row.sk}</a>
+                      </td>
+                    ) : (
+                      <td className="px-4 py-3 text-xs text-muted">{row.sk}</td>
+                    )}
                   </tr>
                 ))
               )}
