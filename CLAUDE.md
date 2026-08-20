@@ -411,4 +411,26 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 
 Karena skalanya sangat besar, dikerjakan bertahap per kelompok (A sampai K di atas), setiap fitur/tabel yang dikerjakan tetap mengikuti proses yang sama seperti sebelumnya: cek dulu logika PHP asli di `eproc/application/controllers/` (bukan cuma struktur tabelnya) supaya tidak menebak-nebak aturan bisnis, baru bikin migrasi + endpoint + halaman, lalu dites sendiri lewat API dan cek kompilasi sebelum lapor selesai. Urutan pengerjaan kelompok dikonfirmasi ke pengguna sebelum mulai setiap kelompok baru (kecuali diminta jalan terus tanpa henti).
 
-**Prioritas yang disepakati** (urutan pengerjaan): lihat riwayat percakapan/commit terbaru untuk tahu kelompok mana yang sedang/sudah dikerjakan setelah tanggal 2026-08-21 ini.
+**Prioritas yang disepakati** (urutan pengerjaan): mulai dari kelompok J (Rumus Evaluasi Resmi) dulu, baru lanjut A sampai K berurutan, satu-satu, dikabari tiap kelompok selesai.
+
+### Kelompok J: Rumus Evaluasi Resmi (selesai 2026-08-21)
+
+**Temuan penting yang meluruskan kesalahan sebelumnya**: kemarin (migrations/009) saya kira rumus resmi kategori "pengalaman" tidak ada dokumennya jadi saya bikin manual semua. Setelah ditelusuri LANGSUNG ke kode JavaScript asli yang benar-benar dipakai sistem produksi (`eproc/lib/eproc/allfunc.js`, dicocokkan dengan view mana saja yang benar-benar memanggilnya di `eproc/application/views/main/` - folder aktif, bukan backup), ketahuan faktanya:
+
+- **Kategori Pengalaman**: halaman aktifnya (`evaluasi_kualifikasi_pengalaman.php`) memang cuma input manual, TIDAK ADA rumus otomatis yang benar-benar dipakai. Ada fungsi `hitungBidangPekerjaan()` di `allfunc.js` yang kelihatannya rumus lama & kompleks (pakai field BP_NILAI, NK1/NK2/NK3, STBU dari tabel `paket_eval_pengalaman`), tapi sudah dicek ke SELURUH folder views (termasuk backup) dan fungsi itu **tidak dipanggil dari manapun** - kode mati/ditinggalkan. Jadi cara manual yang sudah dibangun sebelumnya **sudah benar, tidak perlu diubah**.
+- **Kategori Personil, Peralatan, Sertifikat Lain**: BENAR-BENAR punya rumus otomatis yang aktif dipakai (`hitungPersonil()`, `hitungPeralatan()`, `hitungSertifikat()` di `allfunc.js`, dipanggil dari `evaluasi_kualifikasi_personil.php`, `_peralatan.php`, `_sertifikat.php` di folder aktif). Rumus ini sudah diimplementasikan persis di `migrations/015_rumus_evaluasi_resmi.sql` + endpoint baru di `server/routes/tenders.js`.
+
+**Pelajaran metodologi penting untuk kelompok kerja berikutnya (A-K)**: struktur tabel database TIDAK CUKUP untuk tahu apakah suatu fitur/rumus benar-benar dipakai. Harus dicek juga: (1) apakah ada view yang memanggilnya, dan (2) apakah view itu ada di folder AKTIF (`views/main/`, bukan `views-/`, `views--/`, atau folder `# BC ...` yang merupakan backup/percobaan lama). Kalau cuma tabel ada tapi tidak ada satupun view aktif yang pakai, kemungkinan besar itu fitur yang sudah ditinggalkan, tidak perlu ditiru.
+
+**Rumus yang diimplementasikan** (detail lengkap ada di komentar `migrations/015_rumus_evaluasi_resmi.sql`):
+- Tiap item (1 personil/1 alat/1 sertifikat yang diajukan vendor) dinilai "Kesesuaian": S(Sesuai)=100, TS(Tidak Sesuai)=0, atau manual (dipaksa jadi 50 kalau diisi persis 0/100 tanpa pilih S/TS eksplisit - meniru validasi asli).
+- Peralatan dikalikan faktor kepemilikan (100=milik sendiri, kurang dari itu kalau sewa dst).
+- Personil: kalau jumlah yang diajukan kurang dari kebutuhan, nilai didilusi proporsional; kalau cukup/lebih, di-cap maksimal 100%.
+- Peralatan & Sertifikat: jumlah nilai kesesuaian dibagi 100, di-cap maksimal 100%.
+- Rasio itu dikali bobot kriteria dalam kategorinya → nilai kontribusi. Dijumlah semua kriteria dalam kategori yang sama → nilai kali nilai maksimal kategori dibagi 100 → nilai akhir kategori untuk vendor itu.
+
+Tabel baru: `tender_eval_category_config` (nilai maksimal per kategori per tender), `tender_eval_score_items` (item individual per kriteria per vendor), kolom baru `tender_eval_criteria.required_count` (khusus personil). Endpoint baru: `eval-category-config`, `eval-score-items`, `eval-formula-score/:vendorId/:category` (mesin hitungnya, fungsi `calcCriteriaRatio()` di `server/routes/tenders.js`).
+
+**Sudah diverifikasi dengan hitungan manual sebelum dipakai** (bukan cuma dites jalan, tapi dicek angkanya benar): 3 skenario dihitung tangan dulu (personil dengan kekurangan orang, peralatan sewa, sertifikat lengkap), lalu dibandingkan hasil API-nya - ketiganya cocok persis dengan hitungan manual.
+
+Frontend: `src/components/modals/FormulaCategorySection.jsx` (baru), disambungkan ke `EvaluationDetailModal.jsx` - kategori Personil/Peralatan/Sertifikat Lain otomatis tampil pakai UI item-based (tambah item + rumus otomatis), kategori lain tetap pakai skor manual seperti sebelumnya.

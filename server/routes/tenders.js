@@ -396,14 +396,14 @@ router.get('/:id/eval-criteria', async (req, res) => {
 // ── POST /api/tenders/:id/eval-criteria — Pokja tambah kriteria evaluasi baru ──
 router.post('/:id/eval-criteria', async (req, res) => {
   try {
-    const { category, name, is_mandatory, weight } = req.body;
+    const { category, name, is_mandatory, weight, required_count } = req.body;
     if (!category || !name) return res.status(400).json({ success: false, message: 'category dan name wajib diisi.' });
 
     const result = await pool.query(`
-      INSERT INTO tender_eval_criteria (tender_id, category, name, is_mandatory, weight)
-      VALUES ($1, $2, $3, COALESCE($4, true), $5)
+      INSERT INTO tender_eval_criteria (tender_id, category, name, is_mandatory, weight, required_count)
+      VALUES ($1, $2, $3, COALESCE($4, true), $5, $6)
       RETURNING *
-    `, [req.params.id, category, name, is_mandatory, weight || null]);
+    `, [req.params.id, category, name, is_mandatory, weight || null, required_count || null]);
 
     res.status(201).json({ success: true, message: 'Kriteria evaluasi berhasil ditambahkan.', data: result.rows[0] });
   } catch (err) {
@@ -745,6 +745,179 @@ router.patch('/:id/contract/deliverables/:deliverableId', upload.single('documen
 
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Item progres tidak ditemukan.' });
     res.json({ success: true, message: 'Progres pekerjaan berhasil diperbarui.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── RUMUS EVALUASI RESMI (Personil, Peralatan, Sertifikat) ──────────────────
+// Meniru persis fungsi hitungPersonil()/hitungPeralatan()/hitungSertifikat() di
+// eproc/lib/eproc/allfunc.js (kode yang benar-benar dipakai sistem produksi lama).
+
+const FORMULA_CATEGORIES = ['personil', 'peralatan', 'sertifikat_lain'];
+
+// Nilai kesesuaian efektif: S=100, TS=0, selain itu pakai nilai manual (tapi kalau manual
+// diisi persis 0 atau 100, dipaksa jadi 50 - meniru validasi di allfunc.js).
+function resolveSuitabilityValue(suitability, manualValue) {
+  if (suitability === 'S') return 100;
+  if (suitability === 'TS') return 0;
+  const v = Number(manualValue);
+  if (isNaN(v)) return 0;
+  if (v === 0 || v === 100) return 50;
+  return v;
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+// Hitung rasio (0-1) untuk SATU kriteria (mis. satu peran personil / satu jenis alat) berdasarkan
+// item-item yang diajukan vendor untuk kriteria itu.
+function calcCriteriaRatio(category, criteria, items) {
+  const values = items.map(it => resolveSuitabilityValue(it.suitability, it.suitability_value));
+
+  if (category === 'personil') {
+    const requiredCount = Number(criteria.required_count) || 0;
+    const filledCount = items.length;
+    const totalKebutuhan = requiredCount * 100;
+    const totalNilai = values.reduce((a, b) => a + b, 0);
+    if (totalKebutuhan === 0) return 0;
+    if (requiredCount > filledCount) return totalNilai / totalKebutuhan;
+    return totalKebutuhan <= totalNilai ? 1 : totalNilai / totalKebutuhan;
+  }
+
+  if (category === 'peralatan') {
+    const totalNilai = items.reduce((sum, it, i) => {
+      const ownership = it.ownership_factor != null ? Number(it.ownership_factor) : 100;
+      return sum + (values[i] * ownership) / 100;
+    }, 0);
+    return totalNilai >= 100 ? 1 : totalNilai / 100;
+  }
+
+  // sertifikat_lain
+  const totalNilai = values.reduce((a, b) => a + b, 0);
+  return totalNilai >= 100 ? 1 : totalNilai / 100;
+}
+
+// ── GET /api/tenders/:id/eval-category-config — Nilai maksimal per kategori (personil/peralatan/sertifikat) ──
+router.get('/:id/eval-category-config', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM tender_eval_category_config WHERE tender_id = $1', [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/eval-category-config — Set nilai maksimal satu kategori (Pokja) ──
+router.post('/:id/eval-category-config', async (req, res) => {
+  try {
+    const { category, max_score } = req.body;
+    if (!category || max_score === undefined) {
+      return res.status(400).json({ success: false, message: 'category dan max_score wajib diisi.' });
+    }
+    if (!FORMULA_CATEGORIES.includes(category)) {
+      return res.status(400).json({ success: false, message: `Kategori ini tidak pakai rumus otomatis. Pilihan: ${FORMULA_CATEGORIES.join(', ')}.` });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO tender_eval_category_config (tender_id, category, max_score)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (tender_id, category) DO UPDATE SET max_score = EXCLUDED.max_score
+      RETURNING *
+    `, [req.params.id, category, max_score]);
+
+    res.json({ success: true, message: 'Nilai maksimal kategori berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/tenders/:id/eval-score-items/:vendorId — Semua item (personil/alat/sertifikat) milik satu vendor ──
+router.get('/:id/eval-score-items/:vendorId', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT si.*, c.category, c.name AS criteria_name, c.weight, c.required_count
+      FROM tender_eval_score_items si
+      JOIN tender_eval_criteria c ON c.id = si.criteria_id
+      WHERE c.tender_id = $1 AND si.vendor_id = $2
+      ORDER BY c.category ASC, c.order_index ASC, si.created_at ASC
+    `, [req.params.id, req.params.vendorId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/eval-score-items — Tambah satu item (1 personil/1 alat/1 sertifikat) ──
+router.post('/:id/eval-score-items', async (req, res) => {
+  try {
+    const { criteria_id, vendor_id, item_name, suitability, suitability_value, ownership_factor } = req.body;
+    if (!criteria_id || !vendor_id || !item_name) {
+      return res.status(400).json({ success: false, message: 'criteria_id, vendor_id, dan item_name wajib diisi.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO tender_eval_score_items (criteria_id, vendor_id, item_name, suitability, suitability_value, ownership_factor)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [criteria_id, vendor_id, item_name, suitability || null, suitability_value ?? null, ownership_factor ?? null]);
+
+    res.status(201).json({ success: true, message: 'Item berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── DELETE /api/tenders/:id/eval-score-items/:itemId — Hapus satu item ──
+router.delete('/:id/eval-score-items/:itemId', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM tender_eval_score_items WHERE id = $1 RETURNING id', [req.params.itemId]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Item tidak ditemukan.' });
+    res.json({ success: true, message: 'Item berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/tenders/:id/eval-formula-score/:vendorId/:category — Hitung nilai akhir kategori (rumus resmi) ──
+router.get('/:id/eval-formula-score/:vendorId/:category', async (req, res) => {
+  try {
+    const { id: tenderId, vendorId, category } = req.params;
+    if (!FORMULA_CATEGORIES.includes(category)) {
+      return res.status(400).json({ success: false, message: `Kategori ini tidak pakai rumus otomatis. Pilihan: ${FORMULA_CATEGORIES.join(', ')}.` });
+    }
+
+    const criteriaResult = await pool.query(
+      'SELECT * FROM tender_eval_criteria WHERE tender_id = $1 AND category = $2 ORDER BY order_index ASC, created_at ASC',
+      [tenderId, category]
+    );
+    const itemsResult = await pool.query(`
+      SELECT si.* FROM tender_eval_score_items si
+      JOIN tender_eval_criteria c ON c.id = si.criteria_id
+      WHERE c.tender_id = $1 AND c.category = $2 AND si.vendor_id = $3
+    `, [tenderId, category, vendorId]);
+    const configResult = await pool.query(
+      'SELECT max_score FROM tender_eval_category_config WHERE tender_id = $1 AND category = $2',
+      [tenderId, category]
+    );
+
+    const maxScore = configResult.rows.length ? Number(configResult.rows[0].max_score) : 100;
+
+    const breakdown = criteriaResult.rows.map(criteria => {
+      const items = itemsResult.rows.filter(it => it.criteria_id === criteria.id);
+      const ratio = calcCriteriaRatio(category, criteria, items);
+      const weight = Number(criteria.weight) || 0;
+      const contribution = round2(weight * ratio);
+      return { criteria_id: criteria.id, criteria_name: criteria.name, weight, item_count: items.length, ratio: round2(ratio), contribution };
+    });
+
+    const totalProsentase = Math.min(100, round2(breakdown.reduce((sum, b) => sum + b.contribution, 0)));
+    const finalScore = round2((maxScore * totalProsentase) / 100);
+
+    res.json({
+      success: true,
+      data: { category, max_score: maxScore, breakdown, total_prosentase: totalProsentase, final_score: finalScore },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

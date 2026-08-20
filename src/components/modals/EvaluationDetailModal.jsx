@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { useApp, API_BASE } from '../../context/AppContext';
+import FormulaCategorySection from './FormulaCategorySection';
 import clsx from 'clsx';
+
+const FORMULA_CATEGORIES = ['personil', 'peralatan', 'sertifikat_lain'];
 
 const CATEGORIES = [
   { id: 'administrasi',     label: 'Administrasi' },
@@ -139,6 +142,9 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
               ) : grouped.map(cat => (
                 <div key={cat.id}>
                   <h3 className="font-bold text-dpbj-navy text-sm mb-3">{cat.label}</h3>
+                  {FORMULA_CATEGORIES.includes(cat.id) ? (
+                    <FormulaCategorySection tenderId={tenderId} vendorId={vendor.vendor_id} category={cat.id} criteriaList={cat.items} />
+                  ) : (
                   <div className="space-y-2">
                     {cat.items.map(item => {
                       const s = scores[item.criteria_id] || { score: '', notes: '' };
@@ -178,6 +184,7 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
                       );
                     })}
                   </div>
+                  )}
                 </div>
               ))}
 
@@ -207,11 +214,20 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
                   </label>
                   <input
                     type="number"
-                    placeholder="Bobot (opsional)"
+                    placeholder="Bobot % (opsional)"
                     value={newCriteria.weight}
                     onChange={e => setNewCriteria({ ...newCriteria, weight: e.target.value })}
                     className="w-32 text-xs p-1.5 border border-gray-300 rounded-lg"
                   />
+                  {newCriteria.category === 'personil' && (
+                    <input
+                      type="number"
+                      placeholder="Jml orang dibutuhkan"
+                      value={newCriteria.required_count || ''}
+                      onChange={e => setNewCriteria({ ...newCriteria, required_count: e.target.value })}
+                      className="w-36 text-xs p-1.5 border border-gray-300 rounded-lg"
+                    />
+                  )}
                   <button type="submit" disabled={adding} className="btn-secondary text-xs flex items-center gap-1.5 ml-auto disabled:opacity-50">
                     <Plus size={13} /> Tambah
                   </button>
