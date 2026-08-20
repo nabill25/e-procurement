@@ -2,14 +2,33 @@ import { useState, useEffect } from 'react';
 import { useApp, API_BASE } from '../../context/AppContext';
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
+import {
+  SppbjSpkSection, SpmkSection, JaminanSection, SlaSection, MaterialSection,
+  AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection,
+} from './ContractWorkflowSections';
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
+import clsx from 'clsx';
+
+const WORKFLOW_SUBTABS = [
+  { id: 'utama', label: 'Utama' },
+  { id: 'sppbj_spk', label: 'SPPBJ & SPK' },
+  { id: 'spmk', label: 'SPMK' },
+  { id: 'jaminan', label: 'Jaminan' },
+  { id: 'sla', label: 'SLA' },
+  { id: 'material', label: 'Material & Surat Pesanan' },
+  { id: 'addendum', label: 'Addendum' },
+  { id: 'catatan', label: 'Catatan & Dokumen' },
+  { id: 'perubahan', label: 'Perubahan Status' },
+  { id: 'pic', label: 'PIC & Tahap' },
+];
 
 export default function ContractTab({ tenderId, tenderStatus, participants, user }) {
   const { getAuthHeaders } = useApp();
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
+  const [workflowTab, setWorkflowTab] = useState('utama');
   
   const [form, setForm] = useState({
     contract_number: '',
@@ -145,7 +164,21 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
         </div>
       </div>
 
-      {user.role === 'ppk' && (
+      {contract && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border">
+          {WORKFLOW_SUBTABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setWorkflowTab(t.id)}
+              className={clsx('px-3 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-colors', workflowTab === t.id ? 'bg-dpbj-navy text-white' : 'bg-surface text-dpbj-navy hover:bg-gray-200')}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {workflowTab === 'utama' && user.role === 'ppk' && (
         <form onSubmit={handleSubmit} className="border border-border rounded-xl p-5 bg-white shadow-sm space-y-4">
           <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2">Formulir Kontrak (PPK)</h4>
           <div className="grid grid-cols-2 gap-4">
@@ -185,7 +218,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       )}
 
       {/* Tampilan Read-Only untuk Pokja / Admin / Vendor Pemenang */}
-      {contract && (user.role !== 'ppk') && (
+      {workflowTab === 'utama' && contract && (user.role !== 'ppk') && (
         <div className="border border-border rounded-xl bg-surface p-5 space-y-4">
           <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2">Detail Kontrak</h4>
           <div className="grid grid-cols-2 gap-4">
@@ -235,8 +268,36 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
         </div>
       )}
 
+      {workflowTab === 'sppbj_spk' && contract && (
+        <SppbjSpkSection tenderId={tenderId} contract={contract} canEdit={user.role === 'ppk' || user.role === 'admin'} refreshContract={fetchContract} />
+      )}
+      {workflowTab === 'spmk' && contract && (
+        <SpmkSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'jaminan' && contract && (
+        <JaminanSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'sla' && contract && (
+        <SlaSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'material' && contract && (
+        <MaterialSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'addendum' && contract && (
+        <AddendumSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'catatan' && contract && (
+        <NotesRemindersDocsSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} isVendor={isVendorWinner} user={user} />
+      )}
+      {workflowTab === 'perubahan' && contract && (
+        <StatusChangeSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+      )}
+      {workflowTab === 'pic' && contract && (
+        <PicStageSection tenderId={tenderId} contract={contract} canEdit={user.role === 'ppk' || user.role === 'admin'} refreshContract={fetchContract} />
+      )}
+
       {/* Termin pembayaran, sanksi keterlambatan, dan progres pekerjaan */}
-      {contract && (
+      {workflowTab === 'utama' && contract && (
         <>
           <PaymentTermsSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
           <DeliverablesSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
@@ -245,7 +306,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       )}
 
       {/* Kode QR verifikasi keaslian dokumen kontrak (Admin/PPK) */}
-      {contract && (user.role === 'ppk' || user.role === 'admin') && (
+      {workflowTab === 'utama' && contract && (user.role === 'ppk' || user.role === 'admin') && (
         <div className="border border-border rounded-xl p-5 bg-white shadow-sm space-y-3">
           <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2 flex items-center gap-2">
             <QrCode size={16} className="text-dpbj-gold" /> Kode QR Verifikasi Dokumen
@@ -269,7 +330,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       )}
 
       {/* Form Penilaian Kinerja Vendor untuk PPK */}
-      {user.role === 'ppk' && contract?.status === 'completed' && (
+      {workflowTab === 'utama' && user.role === 'ppk' && contract?.status === 'completed' && (
         <div className="border border-border rounded-xl p-5 bg-blue-50/50 shadow-sm space-y-4">
           <h4 className="font-bold text-sm text-blue-900 border-b border-blue-100 pb-2 flex items-center gap-2"><Star size={16} className="text-blue-600"/> Penilaian Kinerja Vendor</h4>
           {existingRating ? (

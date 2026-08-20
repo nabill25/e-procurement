@@ -341,17 +341,22 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 
 - ❌ Oracle ERP integration (`rekanan_oracle`) - **tidak akan dibuat**, ini integrasi ke sistem finansial lama yang sudah tidak dipakai/di luar cakupan
 
-**C. Contracting/Kontrak (23 tabel, prefix `contracting_*`)**
-🟡 Sudah ada `contracts`, `contract_payment_terms`, `contract_penalties`, `contract_deliverables`. Yang BELUM:
-- ⬜ SLA (`contracting_sla`) - sebelumnya sengaja dilewati, sekarang harus dibuat juga untuk 100%
-- ⬜ Surat Pesanan + material (`contracting_surat_pesanan`, `contracting_surat_pesanan_material`) - untuk kontrak jenis pengadaan barang bertahap
-- ⬜ SPMK & proses kontrak bertahap (`contracting_proses`, `contracting_rekanan_proses1/4/5`, `contracting_rekanan_proses1_spmk`) - alur kerja detail kontrak (persiapan → pelaksanaan → serah terima)
-- ⬜ Notifikasi kontrak (`contracting_notifikasi`) - pengingat otomatis (misal kontrak akan berakhir)
-- ⬜ Catatan/monitoring teks bebas (`contracting_catatan`, `contracting_text_monitoring`)
-- ⬜ File kontrak tambahan (`contracting_file`) - beda dari SPK/BAST, lampiran pendukung lain
-- ⬜ Material yang dipakai (`contracting_material`)
-- ⬜ SPPJB - Surat Perjanjian Pemborongan Jasa/Barang (`sppjb`) - varian dokumen kontrak konstruksi
-- 🟡 Master jenis kontrak/pekerjaan/status (`contracting_jenis_kontrak`, `contracting_jenis_pekerjaan`, `contracting_status_kontrak`, `contracting_matrix`, `contracting_matrix_ori`)
+**C. Contracting/Kontrak (23 tabel, prefix `contracting_*`) - selesai 2026-08-21**
+🟡 Sudah ada `contracts`, `contract_payment_terms`, `contract_penalties`, `contract_deliverables`. Sudah dikerjakan (lihat tulisan lengkap "Kelompok C" di bawah):
+- ✅ SPPBJ (Surat Penunjukan Penyedia) & SPK/PKS detail - diperluas langsung ke tabel `contracts`
+- ✅ SPMK (`contract_spmk`)
+- ✅ Jaminan Pelaksanaan (`contract_jaminan`) & Jaminan Pemeliharaan/garansi (`contract_jaminan_pemeliharaan`)
+- ✅ SLA (`contract_sla`) - sebelumnya sengaja dilewati, sekarang sudah dibuat
+- ✅ Material + Surat Pesanan untuk kontrak payung (`contract_materials`, `contract_surat_pesanan`, `contract_surat_pesanan_items`)
+- ✅ Addendum dengan 2 tahap approval (`contract_addendum`)
+- ✅ Catatan bebas teks internal/penyedia (`contract_notes`)
+- ✅ Notifikasi/pengingat kontrak (`contract_reminders`)
+- ✅ Dokumen tambahan selain SPK/BAST (`contract_documents`)
+- ✅ Perubahan status kontrak: Perubahan/Penyesuaian/Kahar/Berakhir/Pemutusan/Kesempatan/Denda (`contract_status_changes`)
+- ✅ SPPJB - Surat Perjanjian (`contract_sppjb`)
+- ✅ PIC per tahap (Persiapan/Pengendali/Penyelesai) dan tahap kontrak (`contracts.stage`)
+- ✅ Penilaian kinerja penyedia dengan 3 tahap approval (PPK/Kasubdit/Unit)
+- ❌ Master jenis kontrak/pekerjaan/status terstruktur (`contracting_jenis_kontrak` dkk) - **tetap teks bebas**, tidak dibuatkan tabel master terpisah karena nilainya cuma dipakai sebagai label, bisa diperluas nanti kalau memang dibutuhkan pengelolaan master jenis kontrak
 
 **D. Katalog/E-Purchasing (11 tabel)**
 🟡 Sudah ada `katalog_items`. Yang BELUM:
@@ -483,3 +488,24 @@ Sudah dicek compile bersih lewat curl ke Vite dev server (HTTP 200, tidak ada "F
 **Frontend**: tab baru "Bidang Usaha" dan "Rekening Koran" di halaman Profil Vendor (`src/components/profile/BidangUsahaTab.jsx`, `RekeningKoranTab.jsx`, cari-dan-pilih dari 2794 kode via pencarian, bukan dropdown penuh). Kategori "Tipe Vendor" dan "Jenis Sertifikat" otomatis muncul di halaman Data Master (reuse komponen generik yang sudah ada). Kategori baru "Vendor Retail" juga di Data Master, komponen `VendorRetailTable` khusus karena datanya lebih detail dari sekadar nama. Section baru "Bidang Usaha yang Disyaratkan" di tab Dokumen & Klarifikasi (`DokumenPaketTab.jsx`) untuk Pokja/PPK/Admin menandai syarat bidang usaha per tender. Form penawaran vendor (`VendorBidForm` di `DetailTenderModal.jsx`) dapat opsi tambahan "Rincian Penawaran per Item" yang bisa dibuka/tutup, opsional (tidak menggantikan alur harga total yang sudah ada, cuma pelengkap). Sekalian diperbaiki bug lama yang ditemukan di file yang sama: `VendorBidForm` masih pakai key localStorage `eproc_token` yang salah (seharusnya `dpbj_token`), jadi upload dokumen penawaran vendor sebenarnya selalu gagal auth sebelum ini.
 
 Sudah dites lewat curl end-to-end (retail CRUD dengan partial update, assign bidang usaha ke vendor, upload rekening koran, submit rincian penawaran dengan verifikasi total otomatis benar 40.000.000 dari 2 item, replace rincian saat vendor kirim ulang), dan dicek compile bersih semua file frontend (HTTP 200 dari Vite, tidak ada error parse, HMR update sukses). Data uji dibersihkan dari Supabase setelah testing (data bidang usaha asli 2794 baris TIDAK dihapus, itu data permanen).
+
+### Kelompok C: Contracting/Kontrak Detail - selesai (2026-08-21)
+
+**Ini kelompok kerja paling besar sejauh ini.** Riset awalnya salah arah: saya kira `contracting_rekanan_json.php` (2716 baris) adalah kode mati karena tidak dipanggil dari `views/main/`. Ternyata SALAH - ada folder terpisah `eproc/application/views/kontrak/` (175 file) yang aktif dipakai lewat controller `kontrak.php` (fungsi `index()` yang load view dinamis dari folder itu berdasarkan URL segment). Setelah ditelusuri lebih dalam (2 agent riset dikerahkan paralel untuk membaca ribuan baris kode), ketahuan fakta sebenarnya:
+- `contracting_rekanan_json.php` **memang terkonfirmasi 100% read-only** (nol operasi insert/update, cuma listing DataTables untuk berbagai halaman per tahap/role) - jadi bukan kode mati, tapi juga bukan tempat logika bisnis.
+- Logika bisnis sesungguhnya (semua insert/update field kontrak) ada di **`contracting_json.php`** (4756 baris, ~65 fungsi), yang dipanggil dari form utama `views/kontrak/contracting_detail.php`. File inilah yang jadi acuan skema, dibaca PENUH (bukan sebagian) lewat kombinasi baca langsung + 1 agent riset tambahan.
+- `contracting_notifikasi_json.php` dan `contracting_penyedia_json.php` juga sudah dibaca penuh (masing-masing kecil, di bawah 300 baris).
+
+**Pelajaran metodologi baru untuk kelompok D-K berikutnya**: kalau sebuah controller tidak ketemu dipanggil dari `views/main/`, JANGAN langsung simpulkan kode mati. Cek dulu apakah ada folder `views/<nama modul>/` terpisah (seperti `views/kontrak/` di sini) yang mungkin dipakai lewat controller dinamis serupa `kontrak.php`. Kelompok Kontrak ternyata punya arsitektur folder sendiri yang beda dari modul-modul lain yang sudah dikerjakan sebelumnya.
+
+**Alur kerja lengkap yang ditemukan** (sistem lama, field CONTRACTINGPROSESID): SPPBJ (Surat Penunjukan Penyedia) → SPMK (Surat Perintah Mulai Kerja) → SPK/PKS atau Surat Perjanjian (SPPJB, untuk kontrak konstruksi) → lalu berjalan lewat 4 tahap: Persiapan (0/1/2) → Pengendalian (3) → Penyelesaian (4/5, termasuk BAST) → Selesai (6). Sistem baru TIDAK meniru 7 kode angka status yang membingungkan itu, cukup pakai kolom teks `contracts.stage` dengan 4 nilai (persiapan/pengendalian/penyelesaian/selesai).
+
+**Perluasan tabel `contracts`** (bukan tabel baru, karena secara konsep 1 baris kontrak = gabungan SPPBJ+SPK dalam sistem lama juga, migrasi `migrations/018_kelompok_c_kontrak_detail.sql`) jadi 82 kolom total, mencakup: field SPPBJ (kode, tanggal, direktur, jaminan pelaksanaan), field SPK/PKS (kode, jenis pekerjaan, pihak 1/2, lingkup pekerjaan, legal), approval manager+PPK+pemeriksa, BAST Hasil Pekerjaan dan BAST Masa Pemeliharaan (2 set kolom terpisah, field asli beda prefix `CR_BAST_PEKERJAAN_*` vs `CR_BAST_MASA_*`), PIC per tahap (persiapan/pengendali/penyelesai), dan penilaian kinerja penyedia (grade + 3 approval independen PPK/Kasubdit/Unit).
+
+**11 tabel anak baru**: `contract_spmk`, `contract_jaminan` (jaminan pelaksanaan + konfirmasi bank), `contract_jaminan_pemeliharaan` (garansi purna kontrak), `contract_sla` (khusus kontrak layanan), `contract_materials` + `contract_surat_pesanan` + `contract_surat_pesanan_items` (untuk Kontrak Payung - istilah "Kontrak Payung/Surat Pesanan" eksplisit ada di komentar kode PHP asli), `contract_addendum` (butuh 2 approval terpisah: Kasubdit dan Penyedia), `contract_notes`, `contract_reminders`, `contract_documents`, `contract_status_changes` (7 jenis perubahan digabung 1 tabel karena semua fungsi asli - `addPerubahanKontrak`, `addKaharKontrak`, dst - punya pola identik: flag+alasan+file opsional), `contract_sppjb`.
+
+**Endpoint baru**: sekitar 40 endpoint baru di `server/routes/tenders.js`, semua nested di bawah `/api/tenders/:id/contract/...` mengikuti pola yang sudah ada. Logika replikasi aturan bisnis asli yang diterapkan persis: addendum otomatis berubah status jadi "selesai" begitu KEDUA approval (Kasubdit dan Penyedia) sudah true (meniru pola `approvalAddendum`+`approvalAddendumPenyedia` di kode asli), catatan kosong ditolak dengan pesan yang sama persis ("Catatan tidak boleh kosong"), submit material pakai pola replace-all (hapus semua lalu insert ulang, meniru `addMaterial()` asli), item surat pesanan otomatis hitung `total = qty × harga_satuan`.
+
+**Frontend**: file baru `src/components/modals/ContractWorkflowSections.jsx` isinya 9 komponen section (SppbjSpkSection, SpmkSection, JaminanSection, SlaSection, MaterialSection, AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection). `ContractTab.jsx` yang sudah ada diubah jadi ber-sub-tab (10 sub-tab: Utama, SPPBJ & SPK, SPMK, Jaminan, SLA, Material & Surat Pesanan, Addendum, Catatan & Dokumen, Perubahan Status, PIC & Tahap) supaya tidak jadi satu halaman scroll raksasa - fitur lama (termin pembayaran, sanksi, progres pekerjaan, kode QR, penilaian bintang) tetap di sub-tab "Utama", tidak dipindah/diubah.
+
+Sudah dites lewat curl end-to-end mencakup semua 40 endpoint (SPPBJ, SPK detail, approval manager/PPK dengan penolakan field yang tidak dikenal, PIC, perpindahan tahap dengan validasi nilai tidak valid, SPMK, SLA, material replace-all, surat pesanan dengan item dan verifikasi total otomatis benar 17.500.000, update status terima item, hapus surat pesanan dengan cascade item, addendum dengan verifikasi logika 2-approval-baru-selesai, catatan kosong ditolak, pengingat, perubahan status dengan validasi jenis tidak dikenal, BAST Hasil, jaminan pelaksanaan+pemeliharaan, SPPJB, dokumen tambahan dengan toggle publish, penilaian kinerja). Semua data uji sudah dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error) untuk `ContractWorkflowSections.jsx` dan `ContractTab.jsx`.
