@@ -233,3 +233,60 @@ Semua 8 endpoint utama sudah dites ulang satu per satu dan jalan normal: `/api/d
 | Vendor | vendor@gmail.com | UIVendor2026! |
 
 Catatan: data di database Supabase saat ini masih sangat sedikit (cuma 1 vendor, belum ada tender/pengajuan/katalog), jadi kebanyakan halaman list akan terlihat kosong sampai ada yang mengisi data lewat form di aplikasi atau lewat seed script tambahan.
+
+## Perbaikan dan temuan tambahan (2026-08-20/21)
+
+Setelah semua modul di atas selesai, pengguna mencoba lewat browser sungguhan dan menemukan beberapa hal:
+
+### Bug: halaman Profil & Kualifikasi Vendor layar putih kalau diakses Admin
+
+Penyebab: menu "Profil & Kualifikasi" (`vendor_profile`) itu khusus untuk role Vendor kelola profil perusahaan sendiri, tapi Admin ikut bisa lihat menu ini (warisan dari logika lama yang di-hardcode). Saat Admin klik, halaman minta data vendor dengan ID akun Admin, yang jelas tidak ada (Admin bukan vendor), dan komponen `SikapTabs.jsx` (Pajak, Pengurus, Tenaga Ahli, Peralatan, Bank, Neraca) langsung crash karena akses `vendor.pajak` dkk padahal `vendor` masih `null` - tidak ada penanganan kondisi ini jadi React langsung blank.
+
+Sudah diperbaiki:
+- `src/pages/VendorProfile.jsx` sekarang menampilkan pesan yang jelas ("Data Vendor Tidak Ditemukan") kalau akun yang login bukan vendor, bukan crash.
+- Semua field di `SikapTabs.jsx` dikasih optional chaining (`vendor?.pajak` dst) sebagai lapis pengaman tambahan.
+- Menu `vendor_profile` sudah dicabut dari akses Admin (baik di database lewat Hak Akses Menu, maupun di aturan bawaan `getDefaultAllowedMenus` di `Sidebar.jsx`). Sekarang cuma role `vendor` yang lihat menu ini.
+
+### Menu "Portal Publik" dibatasi hanya untuk Admin
+
+Sebelumnya semua role bisa lihat tautan ini di sidebar. Pengguna minta dibatasi, sekarang cuma Admin yang lihat (`src/components/layout/Sidebar.jsx`).
+
+### Tombol Login diubah jadi lonjong warna navy
+
+`src/components/modals/LoginModal.jsx`: tombol Login sekarang berlatar navy penuh (bukan cuma garis tepi), bentuknya tetap lonjong (`rounded-full`).
+
+## Tahap ketiga: Struktur Role Lengkap + Multi-Role (fondasi sebelum pengembangan UI/UX) - selesai 2026-08-21
+
+Pengguna bertanya apakah role di sistem baru sudah sama dengan sistem lama, dan menyebut soal "menu multi role" yang muncul saat login di sistem lama. Setelah diriset langsung ke kode PHP sistem lama, ternyata ini temuan besar:
+
+**Sistem lama punya 14 role aktif** (dicek dari data asli tabel `user_type` di `eproc_migrasi.sql`, kolom `aktif='1'`): ADMINISTRATOR, ADMIN VMS, POKJA, ADMINISTRATOR APPROVAL, PENYEDIA, MANAGER PENGADAAN, PENGGUNA, AUDIT, PELAKSANA PENGADAAN, PENGELOLA KONTRAK, APPROVAL VMS, KASUBDIT KONTRAK, PERENCANAAN, PPK. (Ada 10 role lagi yang `aktif='0'`/nonaktif, tidak dimasukkan.)
+
+**Mekanisme "multi role"**: satu akun (`user_login`) bisa terdaftar dengan LEBIH DARI SATU role sekaligus, disimpan di tabel `USER_LOGIN_MULTI` (kode PHP: `eproc/application/models/userloginmulti.php`, view popup-nya: `eproc/application/views/main/user_login_multi.php`). Kalau akun itu punya lebih dari satu role, muncul popup untuk pilih role mana yang mau dipakai untuk sesi itu. Fungsi `excSplitRole()` di `eproc/application/controllers/users_base_json.php` (baris ~1572) yang menjalankan pergantian: menyalin role yang dipilih ke akun utama (`user_login.USER_TYPE_ID`), mencatat riwayatnya di `USER_LOGIN_MULTI_REKAM`, lalu sesi di-refresh (`reloadlocalAuthenticate`). Beberapa role juga punya jenjang (level): Perencanaan punya Staff/Kasi/Kasubdit, Pejabat Pengadaan punya Staff/Kasi, Pengelola Kontrak punya tahap Persiapan/Pengendalian/Penyelesaian dengan level Staff/Kasi.
+
+Sistem baru sebelumnya cuma punya **4 role tetap** (admin/ppk/pokja/vendor), satu akun cuma bisa satu role, tidak ada mekanisme ganti role. Pengguna minta ini dibangun sebagai fondasi SEBELUM mulai pengembangan UI/UX semua role.
+
+### Yang sudah dibangun
+
+**Database** (`migrations/014_struktur_role_lengkap.sql`):
+- `role_definitions` - daftar semua role yang dikenal sistem, sudah diisi 14 role aktif dari sistem lama + 4 role yang sudah dipakai sistem baru (totalnya 14 baris karena admin/ppk/pokja/vendor sudah termasuk yang 14 itu).
+- `user_roles` - role apa saja yang dimiliki satu akun (bisa lebih dari satu baris per akun), ada kolom `level` untuk role yang punya jenjang, dan `is_primary` untuk role utama.
+- `user_role_switch_history` - riwayat tiap kali akun ganti role aktif (setara `USER_LOGIN_MULTI_REKAM`).
+- **Penting**: kolom `users.role` TETAP dipakai sebagai "role yang sedang aktif sekarang", supaya SEMUA kode yang sudah ada di seluruh aplikasi (pengecekan `user.role === 'admin'` dst, ada di puluhan tempat) tetap jalan tanpa perlu ditulis ulang. Yang baru murni soal kemampuan satu akun punya banyak role dan bisa berpindah di antaranya.
+- Data user yang sudah ada otomatis dipindahkan jadi baris `user_roles` (role utama masing-masing), jadi tidak ada yang hilang.
+- Role baru (10 role di luar admin/ppk/pokja/vendor) diberi akses default ke menu Dashboard saja dulu lewat sistem Hak Akses Menu yang sudah ada - **ini sengaja minimal, bukan tebakan hak akses detail**, karena halaman/fitur khusus untuk role-role ini belum dibangun. Admin bisa atur lebih lanjut lewat halaman "Hak Akses Menu" begitu pengguna mulai kembangkan UI/UX untuk role-role tersebut.
+
+**Backend** (`server/routes/auth.js`, `server/routes/users.js` baru):
+- Login (`POST /api/auth/login`) sekarang juga mengembalikan `available_roles` (daftar role yang dimiliki akun itu).
+- `GET /api/auth/my-roles` - daftar role akun yang sedang login.
+- `POST /api/auth/switch-role` - ganti role aktif (mengikuti alur `excSplitRole` di atas: validasi role itu memang dimiliki akun, update `users.role`, catat riwayat, terbitkan token JWT baru).
+- `server/routes/users.js` (baru, mount di `/api/users`): manajemen akun staff internal (bukan vendor) khusus Admin - lihat daftar user + role masing-masing, buat akun staff baru, tambah/cabut role dari suatu akun (tidak bisa cabut role terakhir, minimal harus ada 1).
+
+**Frontend**:
+- `src/context/AppContext.jsx`: state `availableRoles`, `showRoleSwitcher`, fungsi `switchRole()`. Kalau akun yang login punya lebih dari satu role, otomatis tawarkan modal pilih role begitu selesai login (mengikuti perilaku popup di sistem lama).
+- `src/components/modals/RoleSwitcherModal.jsx` (baru): modal pilih/ganti role aktif.
+- `src/components/layout/Sidebar.jsx`: tombol "Ganti Role" muncul di menu Sistem, cuma kalau akun itu punya lebih dari 1 role.
+- `src/pages/UserManagement.jsx` (baru, menu "Manajemen User" khusus Admin): kelola akun staff internal dan role gandanya - ini PERLU dibangun karena sebelumnya tidak ada satupun cara membuat akun staff baru lewat UI (cuma bisa lewat seed script), jadi jadi prasyarat supaya fitur multi-role ini benar-benar bisa dipakai.
+
+Sudah dites lewat API dari ujung ke ujung: login akun lama (harus tetap normal, tidak terganggu) → buat akun staff baru dengan role utama → tambah role kedua → login dengan akun itu (dapat 2 available_roles) → ganti role aktif (token baru langsung reflect role baru) → coba ganti ke role yang tidak dimiliki (ditolak dengan benar) → cabut satu role → coba cabut role terakhir (ditolak, minimal 1 role) → cek riwayat pergantian tersimpan. Semua berhasil, data uji coba sudah dibersihkan.
+
+**Yang BELUM dikerjakan (di luar cakupan "fondasi", ini memang bagian pengembangan UI/UX yang akan dikerjakan pengguna sendiri)**: halaman/fitur khusus untuk 10 role baru (Admin VMS, Administrator Approval, Manager Pengadaan, Pengguna, Audit, Pelaksana Pengadaan, Pengelola Kontrak, Approval VMS, Kasubdit Kontrak, Perencanaan). Fondasinya (role terdaftar, bisa di-assign, bisa dipilih/diganti, bisa diatur menu-nya) sudah siap, tinggal dikembangkan tampilan dan fitur detail per role sesuai kebutuhan.

@@ -18,6 +18,7 @@ import DataMaster from './pages/DataMaster';
 import MenuAccess from './pages/MenuAccess';
 import Inbox from './pages/Inbox';
 import ContentManagement from './pages/ContentManagement';
+import UserManagement from './pages/UserManagement';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -28,6 +29,7 @@ import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
 import DetailTenderModal from './components/modals/DetailTenderModal';
 import LoginModal from './components/modals/LoginModal';
+import RoleSwitcherModal from './components/modals/RoleSwitcherModal';
 
 // Halaman yang menggunakan full public layout (tanpa sidebar/topbar)
 const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify'];
@@ -235,6 +237,7 @@ function AppShell() {
     menu_access: <MenuAccess />,
     inbox: <Inbox />,
     content_management: <ContentManagement />,
+    user_management: <UserManagement />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;
@@ -254,6 +257,7 @@ function AppShell() {
       <SettingsModal isOpen={showSettingsModal} onClose={closeSettingsModal} />
       <DetailPengajuanModal isOpen={!!selectedPengajuan} data={selectedPengajuan} onClose={() => setSelectedPengajuan(null)} />
       <DetailTenderModal isOpen={!!selectedTender} data={selectedTender} onClose={() => setSelectedTender(null)} />
+      <RoleSwitcherModal />
     </div>
   );
 }

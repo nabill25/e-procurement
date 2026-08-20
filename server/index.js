@@ -32,6 +32,7 @@ app.use('/api/menu', require('./routes/menu'));
 app.use('/api/inbox', require('./routes/inbox'));
 app.use('/api/cms', require('./routes/cms'));
 app.use('/api/qr', require('./routes/qr'));
+app.use('/api/users', require('./routes/users'));
 
 // ── Default Route / Health Check ──
 app.get('/api', (req, res) => {

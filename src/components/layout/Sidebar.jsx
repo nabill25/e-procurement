@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2
 } from 'lucide-react';
 import { useApp, API_BASE } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2 };
 
 // Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
@@ -40,7 +40,7 @@ function UILogo() {
 }
 
 export default function Sidebar() {
-  const { activePage, setActivePage, user, logout, openSettingsModal } = useApp();
+  const { activePage, setActivePage, user, logout, openSettingsModal, availableRoles, setShowRoleSwitcher } = useApp();
   const [allowedMenus, setAllowedMenus] = useState(() => getDefaultAllowedMenus(user?.role));
 
   useEffect(() => {
@@ -99,6 +99,12 @@ export default function Sidebar() {
             <button className="sidebar-item w-full text-left text-dpbj-gold/80 hover:text-dpbj-gold" onClick={() => setActivePage('public_home')}>
               <Globe size={17} />
               <span>Portal Publik</span>
+            </button>
+          )}
+          {availableRoles.length > 1 && (
+            <button className="sidebar-item w-full text-left" onClick={() => setShowRoleSwitcher(true)}>
+              <Repeat size={17} className="text-slate-400" />
+              <span>Ganti Role</span>
             </button>
           )}
           <button className="sidebar-item w-full text-left" onClick={openSettingsModal}>

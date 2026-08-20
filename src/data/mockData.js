@@ -238,4 +238,5 @@ export const navItems = [
   { id: 'menu_access', label: 'Hak Akses Menu',   icon: 'Lock' },
   { id: 'inbox',       label: 'Pusat Pesan',       icon: 'Inbox' },
   { id: 'content_management', label: 'Kelola Konten', icon: 'Newspaper' },
+  { id: 'user_management', label: 'Manajemen User', icon: 'Users2' },
 ];

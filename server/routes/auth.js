@@ -87,11 +87,26 @@ router.post('/login', async (req, res) => {
       );
     } catch (_) { /* audit log tidak blok login */ }
 
+    // Ambil semua role yang dimiliki akun ini (mengikuti konsep USER_LOGIN_MULTI di eProc lama:
+    // satu akun bisa punya lebih dari satu role, dan bisa memilih/ganti role aktif)
+    let availableRoles = [];
+    try {
+      const rolesResult = await pool.query(`
+        SELECT ur.role_key, rd.label, ur.level, ur.is_primary
+        FROM user_roles ur
+        JOIN role_definitions rd ON rd.role_key = ur.role_key
+        WHERE ur.user_id = $1
+        ORDER BY ur.is_primary DESC, rd.label ASC
+      `, [user.id]);
+      availableRoles = rolesResult.rows;
+    } catch (_) { /* tabel role multi belum ada / gagal ambil, tidak blok login */ }
+
     return res.json({
       success: true,
       message: 'Login berhasil.',
       token,
       user: payload,
+      available_roles: availableRoles,
     });
 
   } catch (err) {
@@ -193,6 +208,68 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[AUTH ME]', err);
     res.status(500).json({ success: false, message: 'Gagal memverifikasi sesi.' });
+  }
+});
+
+// ── GET /api/auth/my-roles ──────────────────────────────────────────────────────
+// Daftar role yang dimiliki akun yang sedang login (untuk tombol "Ganti Role")
+router.get('/my-roles', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT ur.role_key, rd.label, ur.level, ur.is_primary
+      FROM user_roles ur
+      JOIN role_definitions rd ON rd.role_key = ur.role_key
+      WHERE ur.user_id = $1
+      ORDER BY ur.is_primary DESC, rd.label ASC
+    `, [req.user.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/auth/switch-role ────────────────────────────────────────────────
+// Ganti role aktif untuk akun yang sedang login — mengikuti excSplitRole() di eProc lama:
+// role yang dipilih disalin jadi role aktif di akun utama, dicatat riwayatnya, lalu token baru
+// diterbitkan supaya seluruh aplikasi langsung memakai role baru itu (tanpa perlu logout).
+router.post('/switch-role', requireAuth, async (req, res) => {
+  try {
+    const { role_key } = req.body;
+    if (!role_key) return res.status(400).json({ success: false, message: 'role_key wajib diisi.' });
+
+    // Pastikan role ini memang dimiliki akun ini
+    const owned = await pool.query('SELECT 1 FROM user_roles WHERE user_id = $1 AND role_key = $2', [req.user.id, role_key]);
+    if (!owned.rows.length) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki role tersebut.' });
+    }
+
+    const roleInfo = await pool.query('SELECT label FROM role_definitions WHERE role_key = $1', [role_key]);
+    const roleLabel = roleInfo.rows.length ? roleInfo.rows[0].label : role_key;
+
+    const oldRole = req.user.role;
+
+    await pool.query('UPDATE users SET role = $1, role_label = $2 WHERE id = $3', [role_key, roleLabel, req.user.id]);
+    await pool.query(
+      'INSERT INTO user_role_switch_history (user_id, role_old, role_new) VALUES ($1, $2, $3)',
+      [req.user.id, oldRole, role_key]
+    );
+    await pool.query(
+      `INSERT INTO audit_logs (action, entity_type, description, user_id, is_success) VALUES ('UPDATE', 'User', $1, $2, true)`,
+      [`Ganti role aktif dari ${oldRole} ke ${role_key}`, req.user.id]
+    );
+
+    const result = await pool.query('SELECT id, username, full_name, email FROM users WHERE id = $1', [req.user.id]);
+    const user = result.rows[0];
+
+    const payload = {
+      id: user.id, username: user.username, nama: user.full_name,
+      role: role_key, role_label: roleLabel, email: user.email || '',
+    };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+
+    res.json({ success: true, message: `Role aktif berhasil diganti ke ${roleLabel}.`, token, user: payload });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

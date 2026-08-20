@@ -31,6 +31,8 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null);           // null = belum login
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true); // cek session awal
+  const [availableRoles, setAvailableRoles] = useState([]); // role yang dimiliki akun ini
+  const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
   // State UI
   const [tenders, setTenders] = useState([]);
@@ -71,6 +73,12 @@ export function AppProvider({ children }) {
           setIsAuthenticated(true);
           // Jika halaman adalah public, redirect ke dashboard
           setActivePage(prev => (prev === 'public_home' || !prev ? 'dashboard' : prev));
+
+          // Ambil daftar role yang dimiliki akun ini (untuk tombol "Ganti Role")
+          fetch(`${API_BASE}/auth/my-roles`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(j => { if (j.success) setAvailableRoles(j.data); })
+            .catch(() => {});
         } else {
           // Token invalid atau expired — bersihkan
           localStorage.removeItem('dpbj_token');
@@ -107,9 +115,16 @@ export function AppProvider({ children }) {
       setUser(mappedUser);
       setIsAuthenticated(true);
       setActivePage('dashboard');
+      setAvailableRoles(json.available_roles || []);
 
       // Tambah notifikasi selamat datang
       addNotification('success', 'Login Berhasil', `Selamat datang, ${mappedUser.name}`, 'CheckCircle2', 'text-green-500');
+
+      // Kalau akun ini punya lebih dari satu role, tawarkan untuk pilih role aktif
+      // (mengikuti alur eProc: popup pilih role setelah login kalau akun multi-role)
+      if ((json.available_roles || []).length > 1) {
+        setShowRoleSwitcher(true);
+      }
 
       return { success: true };
     } catch (err) {
@@ -130,6 +145,29 @@ export function AppProvider({ children }) {
       return { success: false, message: 'Tidak dapat terhubung ke server. Coba lagi.' };
     }
   }, []);
+
+  // ── Ganti role aktif (mengikuti alur eProc excSplitRole) ─────────────────────
+  const switchRole = useCallback(async (role_key) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/switch-role`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role_key }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem('dpbj_token', json.token);
+        setUser(mapBackendUser(json.user));
+        setShowRoleSwitcher(false);
+        setActivePage('dashboard');
+        addNotification('success', 'Role Diganti', json.message, 'CheckCircle2', 'text-green-500');
+        return { success: true };
+      }
+      return { success: false, message: json.message };
+    } catch (err) {
+      return { success: false, message: 'Terjadi kesalahan saat mengganti role.' };
+    }
+  }, [addNotification]);
 
   // ── Fungsi logout (mengikuti alur eProc Auth::logout()) ─────────────────────
   const logout = useCallback(async () => {
@@ -207,6 +245,9 @@ export function AppProvider({ children }) {
     isAuthLoading,
     login,
     logout,
+    availableRoles,
+    showRoleSwitcher, setShowRoleSwitcher,
+    switchRole,
     tenders, setTenders,
     requests, setRequests,
     notifications, addNotification, markAllAsRead,
