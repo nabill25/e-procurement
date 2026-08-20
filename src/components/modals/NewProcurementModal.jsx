@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, FileText, Upload, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp, API_BASE } from '../../context/AppContext';
 
 const CATEGORIES = ['Barang', 'Jasa Konsultansi', 'Jasa Konstruksi', 'Jasa Lainnya', 'Barang/Jasa TIK'];
 const BUDGET_SOURCES = ['DIPA', 'BLU', 'PNBP', 'Hibah', 'Lainnya'];
@@ -9,13 +9,15 @@ const UNITS = [
   'FMIPA UI', 'FKUI', 'FEB UI', 'Fakultas Hukum UI', 'FT UI', 'Perpustakaan Pusat UI',
   'Direktorat Operasional', 'DPBJ Universitas Indonesia',
 ];
-const STEPS = ['Informasi Dasar', 'Detail Anggaran', 'Spesifikasi', 'Dokumen'];
+const STEPS = ['Informasi Dasar', 'Detail Anggaran', 'Spesifikasi', 'Analisa Kebutuhan & Pasar', 'Dokumen'];
 
 const INITIAL = {
   title: '', unit_kerja: '', category: '', estimated_value: '',
   budget_source: '', budget_code: '', fiscal_year: '2025',
   quantity: '', unit_of_measure: 'Unit', needed_by_date: '',
   technical_spec: '', description: '',
+  komoditas: '', analisa_kebutuhan: '', analisa_pasar: '',
+  risiko_teridentifikasi: false, risiko_keterangan: '',
 };
 
 function StepIndicator({ steps, current }) {
@@ -67,6 +69,13 @@ export default function NewProcurementModal({ isOpen, onClose }) {
   const [files, setFiles]   = useState({ kak: null, rab: null, nota: null });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [analisaKebutuhanOptions, setAnalisaKebutuhanOptions] = useState([]);
+  const [analisaPasarOptions, setAnalisaPasarOptions] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/master/analisa_kebutuhan`).then(r => r.json()).then(j => { if (j.success) setAnalisaKebutuhanOptions(j.data); }).catch(() => {});
+    fetch(`${API_BASE}/master/analisa_pasar`).then(r => r.json()).then(j => { if (j.success) setAnalisaPasarOptions(j.data); }).catch(() => {});
+  }, []);
 
   const set = (key, val) => {
     setForm(f => ({ ...f, [key]: val }));
@@ -258,8 +267,54 @@ export default function NewProcurementModal({ isOpen, onClose }) {
                 </div>
               )}
 
-              {/* Step 3: Documents */}
+              {/* Step 3: Analisa Kebutuhan & Pasar */}
               {step === 3 && (
+                <div className="space-y-4 animate-fade-in">
+                  <p className="text-xs text-dpbj-navy/70 bg-surface p-3 rounded-lg border border-border">
+                    Analisa ini membantu menentukan strategi pengadaan yang tepat berdasarkan sifat kebutuhan dan kondisi pasar penyedia.
+                  </p>
+
+                  <FormField label="Komoditas / Jenis Barang-Jasa" hint="Sebutkan komoditas spesifik yang dibutuhkan">
+                    <input className="form-input" value={form.komoditas}
+                      onChange={e => set('komoditas', e.target.value)}
+                      placeholder="Contoh: Laptop, Jasa Konsultan IT, dst" />
+                  </FormField>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label="Analisa Kebutuhan">
+                      <select className="form-select" value={form.analisa_kebutuhan} onChange={e => set('analisa_kebutuhan', e.target.value)}>
+                        <option value="">Pilih...</option>
+                        {analisaKebutuhanOptions.map(o => <option key={o.id} value={o.nama}>{o.nama}</option>)}
+                      </select>
+                    </FormField>
+                    <FormField label="Analisa Pasar">
+                      <select className="form-select" value={form.analisa_pasar} onChange={e => set('analisa_pasar', e.target.value)}>
+                        <option value="">Pilih...</option>
+                        {analisaPasarOptions.map(o => <option key={o.id} value={o.nama}>{o.nama}</option>)}
+                      </select>
+                    </FormField>
+                  </div>
+
+                  <FormField label="Identifikasi Risiko">
+                    <label className="flex items-center gap-2 text-sm text-dpbj-navy">
+                      <input type="checkbox" checked={form.risiko_teridentifikasi}
+                        onChange={e => set('risiko_teridentifikasi', e.target.checked)} />
+                      Ada risiko yang teridentifikasi dalam pengadaan ini
+                    </label>
+                  </FormField>
+
+                  {form.risiko_teridentifikasi && (
+                    <FormField label="Keterangan Risiko" hint="Jelaskan risiko yang mungkin timbul dan mitigasinya">
+                      <textarea className="form-input h-24 resize-none" value={form.risiko_keterangan}
+                        onChange={e => set('risiko_keterangan', e.target.value)}
+                        placeholder="Contoh: Keterlambatan pengiriman karena barang impor, mitigasi: pilih vendor dengan stok lokal" />
+                    </FormField>
+                  )}
+                </div>
+              )}
+
+              {/* Step 4: Documents */}
+              {step === 4 && (
                 <div className="space-y-5 animate-fade-in">
                   <p className="text-sm text-dpbj-navy/80">Unggah dokumen pendukung pengajuan (format PDF, max 10MB per file).</p>
 

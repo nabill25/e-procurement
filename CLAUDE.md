@@ -116,8 +116,10 @@ Setelah 7 modul di atas selesai, pengguna bertanya apakah SEMUA modul eproc suda
 1. Evaluasi Tender - **selesai 2026-08-20**
 2. Kualifikasi Vendor (SIKaP) - **selesai 2026-08-20**
 3. Kontrak (termin pembayaran, sanksi, progres pekerjaan) - **selesai 2026-08-20**
-4. RUP/Permohonan Paket (analisa kebutuhan & pasar) - belum dikerjakan
+4. RUP/Permohonan Paket (analisa kebutuhan & pasar) - **selesai 2026-08-20**
 5. Integrasi SAP - **sengaja tetap simulasi**, karena butuh akses/kredensial SAP asli milik UI yang tidak dimiliki, bukan sesuatu yang bisa dibuat "asli" tanpa itu
+
+**Tahap kedua ini sudah selesai semua** (4 dari 4 yang dikerjakan, 1 sengaja tetap simulasi karena keterbatasan akses eksternal, sudah dijelaskan ke pengguna).
 
 ### Kualifikasi Vendor (SIKaP) - lengkapi data yang kurang (selesai 2026-08-20)
 
@@ -128,6 +130,8 @@ Sebelum mengerjakan ini, saya cek dulu halaman Profil & Kualifikasi Vendor yang 
 Yang benar-benar belum ada: **data rekening bank** dan **neraca keuangan**. Ditambahkan dengan cara yang sama persis seperti yang sudah ada (kolom jsonb baru `bank` dan `neraca` di tabel `vendors`, `migrations/010_kualifikasi_vendor_detail.sql`), plus 2 tab baru "Bank" dan "Neraca" di halaman Profil Vendor. Juga ditambahkan 2 pilihan jenis dokumen baru yang belum ada di dropdown ("Sertifikat" dan "Ijin Usaha"), memakai tabel `vendor_documents` yang sudah ada (tidak perlu tabel baru).
 
 **Catatan teknis penting yang ditemukan waktu testing** (bukan bug, tapi gampang salah kalau lupa): endpoint `POST /api/vendors/:id/documents` itu `:id`-nya adalah **users.id** punya vendor (bukan vendors.id / id baris di tabel vendors), karena `vendor_documents.vendor_id` foreign key ke tabel `users`, bukan ke tabel `vendors`. Ini konsisten dengan pola di seluruh aplikasi (vendor_id di tender_participants, katalog_items, dst juga selalu berarti users.id), jadi bukan hal baru, cuma dicatat di sini supaya tidak bingung lagi kalau testing manual.
+
+Sudah dites lewat API: simpan data bank, simpan data neraca, cek data kebaca lagi lewat endpoint qualifications, upload dokumen dengan jenis baru - semua berhasil.
 
 ### Kontrak - termin pembayaran, sanksi, progres pekerjaan (selesai 2026-08-20)
 
@@ -142,7 +146,17 @@ Semua di `migrations/011_kontrak_detail.sql`. Endpoint baru di `server/routes/te
 
 Sudah dites lewat API dari ujung ke ujung: buat kontrak → tambah termin → tandai dibayar → catat sanksi → tambah item progres → update progres jadi 100% (otomatis status "selesai" dan tanggal terima terisi). Semua berhasil.
 
-Sudah dites lewat API: simpan data bank, simpan data neraca, cek data kebaca lagi lewat endpoint qualifications, upload dokumen dengan jenis baru - semua berhasil.
+### RUP/Permohonan Paket - Analisa Kebutuhan & Pasar (selesai 2026-08-20)
+
+Mengikuti tabel `analisa_kebutuhan`, `analisa_pasar`, dan `permohonan_paket_analisa` di sistem lama. Jenis analisa kebutuhan/pasar (cuma daftar nama) ditambahkan sebagai 2 kategori baru di **Data Master** yang sudah ada (`analisa_kebutuhan`, `analisa_pasar` - bukan tabel baru, reuse `master_data`), diisi 3 pilihan awal masing-masing yang lazim dipakai dalam analisa pengadaan pemerintah, admin bisa tambah/ubah lewat halaman Data Master. Field analisa yang sesungguhnya (komoditas, analisa kebutuhan dipilih, analisa pasar dipilih, identifikasi risiko, keterangan risiko) ditambahkan langsung ke tabel `procurement_requests` karena sifatnya satu-ke-satu per pengajuan.
+
+Semua di `migrations/012_rup_analisa.sql`. Form pengajuan (`NewProcurementModal.jsx`) dapat step baru "Analisa Kebutuhan & Pasar" (step ke-4 dari 5, sebelum step Dokumen). Ringkasannya juga muncul di `DetailPengajuanModal.jsx` untuk direview PPK/admin, termasuk tanda peringatan kalau ada risiko yang teridentifikasi.
+
+**Sengaja tidak termasuk**: "Jenis Belanja" dan "Kategori Permohonan" (tabel referensi terpisah tapi di luar cakupan "analisa kebutuhan & pasar" yang diminta), "Matrix Status" (itu tabel konfigurasi alur kerja admin, bukan data analisa), dan "Checklist" (butuh tabel `master_checklist` yang belum ada, cakupan terpisah).
+
+**Bug lama yang ditemukan dan ikut diperbaiki** (bukan bagian dari modul ini, tapi ditemukan waktu testing menyeluruh): endpoint `POST /api/pengajuan` sudah dari awal mengacu ke kolom `budget_code`, `description`, `technical_spec`, `quantity`, `unit_of_measure`, `needed_by_date` di query-nya (dan form frontend-nya juga sudah punya field ini sejak awal), tapi kolom-kolom itu **tidak pernah benar-benar dibuat di database**. Jadi kalau ada yang mengisi pengajuan dengan field-field itu terisi, akan selalu gagal. Sudah diperbaiki lewat `migrations/013_perbaikan_procurement_requests.sql`.
+
+Sudah dites lewat API: buat pengajuan lengkap dengan semua field (termasuk yang tadinya bikin error) sampai berhasil tersimpan dan terbaca lagi dengan benar.
 
 ### Evaluasi Tender - detail per kategori (selesai 2026-08-20)
 

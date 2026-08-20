@@ -87,7 +87,9 @@ router.post('/', upload.fields([{name:'kak', maxCount:1}, {name:'rab', maxCount:
     const { title, unit_kerja, category, estimated_value,
             budget_source, budget_code, fiscal_year,
             description, technical_spec, quantity, unit_of_measure,
-            needed_by_date, requester_id } = req.body;
+            needed_by_date, requester_id,
+            komoditas, analisa_kebutuhan, analisa_pasar,
+            risiko_teridentifikasi, risiko_keterangan } = req.body;
 
     if (!title || !unit_kerja || !estimated_value) {
       return res.status(400).json({ success: false, message: 'title, unit_kerja, estimated_value wajib diisi.' });
@@ -114,12 +116,16 @@ router.post('/', upload.fields([{name:'kak', maxCount:1}, {name:'rab', maxCount:
         (id, request_number, title, unit_kerja, category, estimated_value,
          budget_source, budget_code, fiscal_year, description,
          technical_spec, quantity, unit_of_measure, needed_by_date, requester_id,
-         status, kak_path, rab_path, nota_dinas_path)
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'diajukan', $15, $16, $17)
+         status, kak_path, rab_path, nota_dinas_path,
+         komoditas, analisa_kebutuhan, analisa_pasar, risiko_teridentifikasi, risiko_keterangan)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'diajukan', $15, $16, $17, $18, $19, $20, $21, $22)
     `, [request_number, title, unit_kerja, category||null, estimated_value,
         budget_source||null, budget_code||null, year, description||null,
         technical_spec||null, quantity||null, unit_of_measure||null,
-        needed_by_date||null, validRequesterId, kakPath, rabPath, notaPath]);
+        needed_by_date||null, validRequesterId, kakPath, rabPath, notaPath,
+        komoditas||null, analisa_kebutuhan||null, analisa_pasar||null,
+        risiko_teridentifikasi === 'true' || risiko_teridentifikasi === true,
+        risiko_keterangan||null]);
 
     await pool.query(`INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('CREATE', 'Pengajuan', $1, true)`, [`Pengajuan baru diajukan: ${title}`]);
 

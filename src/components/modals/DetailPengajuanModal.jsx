@@ -96,6 +96,38 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
             </div>
           </div>
 
+          {(data.komoditas || data.analisa_kebutuhan || data.analisa_pasar || data.risiko_teridentifikasi) && (
+            <div className="bg-surface p-4 rounded-xl border border-border">
+              <h3 className="text-sm font-bold text-dpbj-navy mb-3">Analisa Kebutuhan & Pasar</h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {data.komoditas && (
+                  <div>
+                    <p className="text-muted mb-0.5">Komoditas</p>
+                    <p className="font-semibold text-dpbj-navy">{data.komoditas}</p>
+                  </div>
+                )}
+                {data.analisa_kebutuhan && (
+                  <div>
+                    <p className="text-muted mb-0.5">Analisa Kebutuhan</p>
+                    <p className="font-semibold text-dpbj-navy">{data.analisa_kebutuhan}</p>
+                  </div>
+                )}
+                {data.analisa_pasar && (
+                  <div>
+                    <p className="text-muted mb-0.5">Analisa Pasar</p>
+                    <p className="font-semibold text-dpbj-navy">{data.analisa_pasar}</p>
+                  </div>
+                )}
+              </div>
+              {data.risiko_teridentifikasi && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs font-bold text-amber-700 flex items-center gap-1">⚠ Risiko Teridentifikasi</p>
+                  {data.risiko_keterangan && <p className="text-xs text-dpbj-navy mt-1">{data.risiko_keterangan}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Dokumen Pendukung */}
           <div>
             <h3 className="text-sm font-bold text-dpbj-navy mb-3">Dokumen Pendukung</h3>

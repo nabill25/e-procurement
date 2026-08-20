@@ -11,6 +11,8 @@ const CATEGORIES = [
   { id: 'incoterm',       label: 'Incoterm' },
   { id: 'payment_method', label: 'Metode Pembayaran' },
   { id: 'unit_kerja',     label: 'Unit Kerja' },
+  { id: 'analisa_kebutuhan', label: 'Analisa Kebutuhan' },
+  { id: 'analisa_pasar',     label: 'Analisa Pasar' },
 ];
 
 function SimpleMasterTable({ category }) {
