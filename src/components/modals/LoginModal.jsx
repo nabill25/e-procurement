@@ -182,9 +182,9 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2 border border-gray-300 rounded-full text-sm text-dpbj-navy hover:bg-gray-50 transition-colors disabled:opacity-50 active:scale-95"
+              className="flex items-center gap-2 px-5 py-2 bg-dpbj-navy border border-dpbj-navy rounded-full text-sm text-white hover:bg-dpbj-navy-dark transition-colors disabled:opacity-50 active:scale-95 shadow-sm"
             >
-              {isLoading ? <span className="w-3 h-3 border-2 border-dpbj-navy/30 border-t-dpbj-navy rounded-full animate-spin" /> : '➜'}
+              {isLoading ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '➜'}
               Login
             </button>
             <button

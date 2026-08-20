@@ -95,10 +95,12 @@ export default function Sidebar() {
 
         <div className="mt-5 pt-5 border-t border-white/10 animate-fade-in-up stagger-5">
           <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sistem</p>
-          <button className="sidebar-item w-full text-left text-dpbj-gold/80 hover:text-dpbj-gold" onClick={() => setActivePage('public_home')}>
-            <Globe size={17} />
-            <span>Portal Publik</span>
-          </button>
+          {user?.role === 'admin' && (
+            <button className="sidebar-item w-full text-left text-dpbj-gold/80 hover:text-dpbj-gold" onClick={() => setActivePage('public_home')}>
+              <Globe size={17} />
+              <span>Portal Publik</span>
+            </button>
+          )}
           <button className="sidebar-item w-full text-left" onClick={openSettingsModal}>
             <Settings size={17} className="text-slate-400" />
             <span>Pengaturan</span>
