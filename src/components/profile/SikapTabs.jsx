@@ -152,7 +152,8 @@ export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
     { key: 'nama', label: 'Nama Pengurus / Direksi' },
     { key: 'no_ktp', label: 'Nomor KTP / Paspor' },
     { key: 'jabatan', label: 'Jabatan dalam Perusahaan' },
-    { key: 'saham_persen', label: 'Persentase Saham (%)', type: 'number' }
+    { key: 'saham_persen', label: 'Persentase Saham (%)', type: 'number' },
+    { key: 'alamat', label: 'Alamat', fullWidth: true }
   ];
 
   const handleSave = async () => {
@@ -165,7 +166,61 @@ export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
     } catch (e) {}
   };
 
-  return <GenericArrayTab title="Susunan Pengurus & Pemilik Saham" fields={fields} dataArray={data} onSave={handleSave} 
+  return <GenericArrayTab title="Susunan Pengurus & Pemilik Saham" fields={fields} dataArray={data} onSave={handleSave}
+    onUpdateItem={(idx, key, val) => { const d = [...data]; d[idx][key] = val; setData(d); }}
+    onAddItem={() => setData([...data, {}])} onRemoveItem={(idx) => setData(data.filter((_, i) => i !== idx))}
+  />;
+}
+
+export function BankTab({ vendor, getAuthHeaders, refreshData }) {
+  const [data, setData] = useState(vendor.bank || []);
+
+  const fields = [
+    { key: 'nama_bank', label: 'Nama Bank' },
+    { key: 'cabang', label: 'Cabang' },
+    { key: 'no_rekening', label: 'Nomor Rekening' },
+    { key: 'pemilik_rekening', label: 'Nama Pemilik Rekening' }
+  ];
+
+  const handleSave = async () => {
+    try {
+      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ bank: data })
+      });
+      alert('Data Rekening Bank berhasil disimpan.');
+      refreshData();
+    } catch (e) {}
+  };
+
+  return <GenericArrayTab title="Rekening Bank" fields={fields} dataArray={data} onSave={handleSave}
+    onUpdateItem={(idx, key, val) => { const d = [...data]; d[idx][key] = val; setData(d); }}
+    onAddItem={() => setData([...data, {}])} onRemoveItem={(idx) => setData(data.filter((_, i) => i !== idx))}
+  />;
+}
+
+export function NeracaTab({ vendor, getAuthHeaders, refreshData }) {
+  const [data, setData] = useState(vendor.neraca || []);
+
+  const fields = [
+    { key: 'tahun', label: 'Tahun Buku', type: 'number' },
+    { key: 'aktiva', label: 'Total Aktiva (Rp)', type: 'number' },
+    { key: 'pasiva', label: 'Total Pasiva (Rp)', type: 'number' },
+    { key: 'modal', label: 'Modal (Rp)', type: 'number' },
+    { key: 'nama_auditor', label: 'Nama Akuntan Publik / Auditor' },
+    { key: 'kesimpulan_audit', label: 'Kesimpulan Audit', fullWidth: true }
+  ];
+
+  const handleSave = async () => {
+    try {
+      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ neraca: data })
+      });
+      alert('Data Neraca Keuangan berhasil disimpan.');
+      refreshData();
+    } catch (e) {}
+  };
+
+  return <GenericArrayTab title="Neraca Keuangan" fields={fields} dataArray={data} onSave={handleSave}
     onUpdateItem={(idx, key, val) => { const d = [...data]; d[idx][key] = val; setData(d); }}
     onAddItem={() => setData([...data, {}])} onRemoveItem={(idx) => setData(data.filter((_, i) => i !== idx))}
   />;

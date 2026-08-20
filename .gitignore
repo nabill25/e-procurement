@@ -37,3 +37,7 @@ eproc/vmstools/eproc_migrasi_*.tgz
 
 # PHP dependencies (aplikasi lama eproc)
 vendor/
+
+# File yang diunggah pengguna lewat aplikasi baru (dokumen vendor, dst) - bukan source code
+# (folder ini otomatis dibuat lagi oleh server/index.js kalau belum ada)
+server/uploads/

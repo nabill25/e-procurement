@@ -3,7 +3,7 @@ import { useApp, API_BASE } from '../context/AppContext';
 import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
-import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab } from '../components/profile/SikapTabs';
+import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
 
 function IdentityTab({ vendor }) {
   if (!vendor) return null;
@@ -94,6 +94,8 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
               <option value="npwp">NPWP</option>
               <option value="skt">Surat Keterangan Terdaftar (SKT)</option>
               <option value="spt">SPT Tahunan</option>
+              <option value="sertifikat">Sertifikat (ISO, SNI, dll)</option>
+              <option value="ijin_usaha">Ijin Usaha (SIUP, IUJK, dll)</option>
             </select>
           </div>
           <div>
@@ -360,6 +362,18 @@ export default function VendorProfile() {
             >
               Peralatan
             </button>
+            <button
+              onClick={() => setActiveTab('bank')}
+              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bank' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            >
+              Bank
+            </button>
+            <button
+              onClick={() => setActiveTab('neraca')}
+              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'neraca' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            >
+              Neraca
+            </button>
           </div>
 
         <div className="p-6">
@@ -370,6 +384,8 @@ export default function VendorProfile() {
           {activeTab === 'pengurus' && <PengurusTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
           {activeTab === 'ahli' && <TenagaAhliTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
           {activeTab === 'alat' && <PeralatanTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
+          {activeTab === 'bank' && <BankTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
+          {activeTab === 'neraca' && <NeracaTab vendor={vendorData} getAuthHeaders={getAuthHeaders} refreshData={fetchVendorInfo} />}
         </div>
       </div>
     </div>

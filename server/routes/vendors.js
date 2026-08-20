@@ -69,8 +69,8 @@ router.get('/:id', async (req, res) => {
 // ── PUT /api/vendors/:id/profile ──
 router.put('/:id/profile', async (req, res) => {
   try {
-    const { pajak, tenaga_ahli, peralatan, pengurus } = req.body;
-    
+    const { pajak, tenaga_ahli, peralatan, pengurus, bank, neraca } = req.body;
+
     // Bangun set query dinamis jika data dikirim
     const updates = [];
     const values = [];
@@ -91,6 +91,14 @@ router.put('/:id/profile', async (req, res) => {
     if (pengurus !== undefined) {
       updates.push(`pengurus = $${idx++}`);
       values.push(JSON.stringify(pengurus));
+    }
+    if (bank !== undefined) {
+      updates.push(`bank = $${idx++}`);
+      values.push(JSON.stringify(bank));
+    }
+    if (neraca !== undefined) {
+      updates.push(`neraca = $${idx++}`);
+      values.push(JSON.stringify(neraca));
     }
 
     if (updates.length === 0) {
@@ -252,10 +260,10 @@ router.get('/:id/qualifications', async (req, res) => {
   try {
     const docsResult = await pool.query('SELECT * FROM vendor_documents WHERE vendor_id = $1 ORDER BY created_at DESC', [req.params.id]);
     const expResult = await pool.query('SELECT * FROM vendor_experiences WHERE vendor_id = $1 ORDER BY start_date DESC', [req.params.id]);
-    const sikapResult = await pool.query('SELECT pajak, tenaga_ahli, peralatan, pengurus FROM vendors WHERE id = $1', [req.params.id]);
-    
+    const sikapResult = await pool.query('SELECT pajak, tenaga_ahli, peralatan, pengurus, bank, neraca FROM vendors WHERE id = $1', [req.params.id]);
+
     const sikap = sikapResult.rows[0] || {};
-    
+
     res.json({
       success: true,
       data: {
@@ -264,7 +272,9 @@ router.get('/:id/qualifications', async (req, res) => {
         pajak: sikap.pajak || [],
         tenaga_ahli: sikap.tenaga_ahli || [],
         peralatan: sikap.peralatan || [],
-        pengurus: sikap.pengurus || []
+        pengurus: sikap.pengurus || [],
+        bank: sikap.bank || [],
+        neraca: sikap.neraca || []
       }
     });
   } catch (err) {

@@ -114,10 +114,22 @@ Modul lanjutan yang BELUM dikerjakan (bukan bagian dari 7 modul awal, disebutkan
 
 Setelah 7 modul di atas selesai, pengguna bertanya apakah SEMUA modul eproc sudah diterapkan. Jawabannya: kerangka utamanya sudah lengkap dan bisa dipakai dari awal sampai akhir, tapi beberapa bagian masih jauh lebih simpel dibanding sistem lama yang sudah bertahun-tahun dikembangkan. Pengguna minta diperdalam juga, urutan yang disepakati:
 1. Evaluasi Tender - **selesai 2026-08-20**
-2. Kualifikasi Vendor (SIKaP) - belum dikerjakan
+2. Kualifikasi Vendor (SIKaP) - **selesai 2026-08-20**
 3. Kontrak (termin pembayaran, sanksi, SLA) - belum dikerjakan
 4. RUP/Permohonan Paket (analisa kebutuhan & pasar) - belum dikerjakan
 5. Integrasi SAP - **sengaja tetap simulasi**, karena butuh akses/kredensial SAP asli milik UI yang tidak dimiliki, bukan sesuatu yang bisa dibuat "asli" tanpa itu
+
+### Kualifikasi Vendor (SIKaP) - lengkapi data yang kurang (selesai 2026-08-20)
+
+Sebelum mengerjakan ini, saya cek dulu halaman Profil & Kualifikasi Vendor yang sudah ada (`src/pages/VendorProfile.jsx`), ternyata sudah lebih lengkap dari dugaan awal:
+- Dokumen legalitas (Akta, NIB, NPWP, SKT, SPT) sudah bisa diunggah lewat tab "Legalitas" (tabel `vendor_documents`)
+- Pajak, Tenaga Ahli, Peralatan, dan Pengurus sudah ada tab masing-masing (kolom jsonb di tabel `vendors`, lewat komponen reusable `GenericArrayTab` di `src/components/profile/SikapTabs.jsx`)
+
+Yang benar-benar belum ada: **data rekening bank** dan **neraca keuangan**. Ditambahkan dengan cara yang sama persis seperti yang sudah ada (kolom jsonb baru `bank` dan `neraca` di tabel `vendors`, `migrations/010_kualifikasi_vendor_detail.sql`), plus 2 tab baru "Bank" dan "Neraca" di halaman Profil Vendor. Juga ditambahkan 2 pilihan jenis dokumen baru yang belum ada di dropdown ("Sertifikat" dan "Ijin Usaha"), memakai tabel `vendor_documents` yang sudah ada (tidak perlu tabel baru).
+
+**Catatan teknis penting yang ditemukan waktu testing** (bukan bug, tapi gampang salah kalau lupa): endpoint `POST /api/vendors/:id/documents` itu `:id`-nya adalah **users.id** punya vendor (bukan vendors.id / id baris di tabel vendors), karena `vendor_documents.vendor_id` foreign key ke tabel `users`, bukan ke tabel `vendors`. Ini konsisten dengan pola di seluruh aplikasi (vendor_id di tender_participants, katalog_items, dst juga selalu berarti users.id), jadi bukan hal baru, cuma dicatat di sini supaya tidak bingung lagi kalau testing manual.
+
+Sudah dites lewat API: simpan data bank, simpan data neraca, cek data kebaca lagi lewat endpoint qualifications, upload dokumen dengan jenis baru - semua berhasil.
 
 ### Evaluasi Tender - detail per kategori (selesai 2026-08-20)
 
