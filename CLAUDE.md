@@ -358,16 +358,18 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ✅ Penilaian kinerja penyedia dengan 3 tahap approval (PPK/Kasubdit/Unit)
 - ❌ Master jenis kontrak/pekerjaan/status terstruktur (`contracting_jenis_kontrak` dkk) - **tetap teks bebas**, tidak dibuatkan tabel master terpisah karena nilainya cuma dipakai sebagai label, bisa diperluas nanti kalau memang dibutuhkan pengelolaan master jenis kontrak
 
-**D. Katalog/E-Purchasing (11 tabel)**
-🟡 Sudah ada `katalog_items`. Yang BELUM:
-- ⬜ Foto produk (`katalog_foto`) - sekarang cuma 1 `image_url`, seharusnya banyak foto per produk
-- ⬜ Lampiran (`katalog_lampiran`) - dokumen pendukung produk (brosur, spesifikasi)
-- ⬜ Kategori (`katalog_kategori`, `katalog_kategori_rekanan`) - taksonomi kategori produk terstruktur
-- ⬜ Riwayat harga (`katalog_riwayat_harga`) - histori perubahan harga produk
-- ⬜ Bandingkan produk (`katalog_compare`) - fitur compare untuk pembeli
-- ⬜ Laporan katalog (`katalog_laporan`)
-- ⬜ Logistik (`katalog_logistik`) - info pengiriman
-- ⬜ Surat pernyataan (`katalog_surat_pernyataan`)
+**D. Katalog/E-Purchasing (11 tabel) - selesai 2026-08-21**
+🟡 Sudah ada `katalog_items`. Sudah dikerjakan (lihat tulisan lengkap "Kelompok D" di bawah):
+- ✅ Perluasan field produk (merek, model, dimensi, TKDN, garansi, stok, kemasan, status) langsung di `katalog_items`
+- ✅ Foto produk (`katalog_photos`) - banyak foto per produk, sebelumnya cuma 1 `image_url`
+- ✅ Lampiran (`katalog_attachments`) - dokumen pendukung produk (brosur, spesifikasi)
+- ✅ Kategori berjenjang (`katalog_categories`, `katalog_item_categories`) - taksonomi kategori produk terstruktur
+- ✅ Riwayat harga (`katalog_price_history`) - histori perubahan harga produk, auto-tercatat cuma kalau harga BERUBAH
+- ✅ Bandingkan produk (`katalog_compare`) - fitur compare untuk pembeli, maksimal 3 produk per sesi
+- ✅ Laporan katalog (`katalog_reports`)
+- ✅ Logistik (`katalog_logistik`) - ongkos kirim per pengajuan
+- ✅ Keranjang & alur pesanan (`katalog_cart_items`) - **temuan besar**: katalog ternyata toko online mini terhubung ke pengajuan/RUP, bukan sekadar galeri produk (backend selesai, frontend keranjang-nego-pesanan menyusul, lihat catatan di bawah)
+- ❌ Surat pernyataan (`katalog_surat_pernyataan`) - **tidak ditemukan controllernya sama sekali** di sistem lama, kemungkinan tabel yang tidak pernah dipakai
 
 **E. Permohonan Paket / RUP (9 tabel)**
 🟡 Sudah ada `procurement_requests` + field analisa kebutuhan/pasar. Yang BELUM:
@@ -509,3 +511,19 @@ Sudah dites lewat curl end-to-end (retail CRUD dengan partial update, assign bid
 **Frontend**: file baru `src/components/modals/ContractWorkflowSections.jsx` isinya 9 komponen section (SppbjSpkSection, SpmkSection, JaminanSection, SlaSection, MaterialSection, AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection). `ContractTab.jsx` yang sudah ada diubah jadi ber-sub-tab (10 sub-tab: Utama, SPPBJ & SPK, SPMK, Jaminan, SLA, Material & Surat Pesanan, Addendum, Catatan & Dokumen, Perubahan Status, PIC & Tahap) supaya tidak jadi satu halaman scroll raksasa - fitur lama (termin pembayaran, sanksi, progres pekerjaan, kode QR, penilaian bintang) tetap di sub-tab "Utama", tidak dipindah/diubah.
 
 Sudah dites lewat curl end-to-end mencakup semua 40 endpoint (SPPBJ, SPK detail, approval manager/PPK dengan penolakan field yang tidak dikenal, PIC, perpindahan tahap dengan validasi nilai tidak valid, SPMK, SLA, material replace-all, surat pesanan dengan item dan verifikasi total otomatis benar 17.500.000, update status terima item, hapus surat pesanan dengan cascade item, addendum dengan verifikasi logika 2-approval-baru-selesai, catatan kosong ditolak, pengingat, perubahan status dengan validasi jenis tidak dikenal, BAST Hasil, jaminan pelaksanaan+pemeliharaan, SPPJB, dokumen tambahan dengan toggle publish, penilaian kinerja). Semua data uji sudah dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error) untuk `ContractWorkflowSections.jsx` dan `ContractTab.jsx`.
+
+### Kelompok D: Katalog/E-Purchasing Detail - selesai (2026-08-21)
+
+**Temuan besar yang mengubah cakupan**: dugaan awal roadmap (foto, kategori, riwayat harga saja) SALAH. Setelah `katalog_json.php` (~1400 baris) dibaca penuh, ketahuan katalog di sistem lama itu toko online mini yang terhubung ke pengajuan pengadaan (`procurement_requests`), bukan sekadar galeri produk: user browse produk → masukkan ke keranjang (terikat ke satu pengajuan tertentu) → nego harga dengan vendor → checkout dengan ongkos kirim → alur status pesanan 6 tahap (Proses Pemilihan → Negosiasi → Penyedia Setuju → Surat Pesanan → Proses → Dikirim → Diterima) dengan nomor invoice otomatis. Sesuai arahan pengguna, dikerjakan penuh termasuk alur ini di backend.
+
+**Koreksi penting saat riset**: dua controller yang namanya kelihatan seperti fitur katalog (`katalog_offline_json.php`, `katalog_pemerintah_json.php`) TERNYATA BUKAN fitur katalog produk sama sekali - itu upload dokumen untuk metode pengadaan "Pembelian Offline"/"Pembelian Pemerintah" pada modul Purchasing yang beroperasi ke tabel `Paket`/`Purchasingfile`, bukan `Katalog`. Tidak dipakai sebagai acuan migrasi ini. `katalog_validasi_json.php` juga ternyata cuma grid read-only (jumlah katalog per vendor untuk admin), tidak ada logika "validasi" khusus yang butuh tabel baru.
+
+**9 tabel baru** (migrasi `migrations/019_kelompok_d_katalog_detail.sql`), plus perluasan `katalog_items` dengan field produk lengkap (kode produk, merek, model, dimensi P/L/T, TKDN, garansi, stok, kemasan, status): `katalog_photos` (banyak foto), `katalog_attachments` (lampiran), `katalog_categories` (kategori berjenjang, pola sama seperti `bidang_usaha` di kelompok B), `katalog_item_categories` (many-to-many produk-kategori), `katalog_price_history` (riwayat harga - **cuma tercatat kalau harga BENAR-BENAR berubah**, meniru persis logika asli yang membandingkan harga lama vs baru sebelum insert), `katalog_reports` (laporan/komplain dari pengunjung publik, tidak perlu login), `katalog_compare` (bandingkan produk per sesi browser, maksimal 3 seperti validasi asli), `katalog_logistik` (ongkos kirim per pengajuan), `katalog_cart_items` (keranjang dengan status alur pesanan 6 tahap dan invoice otomatis).
+
+**Endpoint baru**: `server/routes/katalog.js` ditulis ulang total (sebelumnya cuma 4 endpoint CRUD sederhana) jadi ~25 endpoint. Logika bisnis yang direplikasi persis dari kode asli: PUT update produk otomatis bandingkan harga lama vs baru dan cuma insert riwayat kalau beda, POST ke keranjang otomatis nambah qty kalau produk yang sama sudah ada di keranjang pengajuan itu (bukan insert baris baru), transisi status pesanan divalidasi ketat (cuma bisa 0→1→2→3→4 dan 5→6, transisi lain ditolak), nomor invoice otomatis dibuat cuma pada transisi status 0 dan 1 (meniru `generateInvoice()` asli).
+
+**Frontend**: `src/components/modals/KatalogDetailModal.jsx` (baru) - modal detail produk lengkap dengan foto, lampiran, kategori, riwayat harga, dan form laporan publik. `src/pages/Katalog.jsx` - form tambah/edit produk diperluas dengan semua field baru plus pemilih kategori (multi-select tombol toggle), tombol Edit khusus pemilik produk, tombol Detail untuk semua orang. Kategori "Kategori Katalog" ditambahkan ke Data Master (`KatalogCategoryTable`, pola pilih induk-kategori sama seperti Unit Kerja).
+
+**Sengaja belum dikerjakan di frontend** (dikonfirmasi ke pengguna dulu sebelum mulai): alur keranjang-negosiasi-checkout-lacak status pesanan yang terikat ke satu pengajuan tertentu. Ini butuh perubahan alur UI yang lebih besar di halaman Katalog (pengguna harus pilih pengajuan dulu sebelum belanja, beda dari keranjang sisi-browser sederhana yang sudah ada sekarang yang langsung checkout ke modul Purchasing terpisah). Backend untuk alur ini SUDAH selesai dan sudah dites lewat curl end-to-end (endpoint `/api/katalog/cart/*`, `/api/katalog/logistik/*`), tinggal disambungkan ke UI kapan saja dibutuhkan.
+
+Sudah dites lewat curl end-to-end (kategori berjenjang, tambah produk dengan field lengkap + kategori, update harga dengan verifikasi riwayat cuma tercatat saat berubah, upload foto+lampiran, filter by kategori, keranjang dengan auto-qty-increment, negosiasi harga + ongkos kirim, alur status pesanan lengkap 0→1→2→3 dengan verifikasi invoice muncul di transisi yang tepat, transisi status tidak valid ditolak, laporan produk publik, compare produk). Semua data uji dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).

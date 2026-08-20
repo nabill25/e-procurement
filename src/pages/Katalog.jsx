@@ -2,16 +2,29 @@ import { useState, useEffect } from 'react';
 import { useApp, API_BASE } from '../context/AppContext';
 import { Search, ShoppingCart, Filter, Plus, Package } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
+import KatalogDetailModal from '../components/modals/KatalogDetailModal';
+
+const EMPTY_FORM = {
+  item_name: '', description: '', price: '', unit: 'Pcs',
+  brand: '', model_type: '', item_code: '',
+  diameter: '', panjang: '', lebar: '', tinggi: '', unit_pengukuran: '',
+  tkdn_persen: '', jenis_produk: '', lama_garansi: '', lama_garansi_satuan: 'Bulan',
+  jumlah_stock: '', jumlah_stock_ready: '', kemasan: '', keterangan_tambahan: '',
+  category_ids: [],
+};
 
 export default function Katalog() {
   const { user, getAuthHeaders, navigateTo } = useApp();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [detailId, setDetailId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   // Modal Tambah Item (Untuk Vendor)
   const [showAddModal, setShowAddModal] = useState(false);
-  const [formData, setFormData] = useState({ item_name: '', description: '', price: '', unit: 'Pcs' });
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   // Keranjang Belanja (Untuk PPK)
   const [cart, setCart] = useState([]);
@@ -19,6 +32,10 @@ export default function Katalog() {
   useEffect(() => {
     fetchItems();
   }, [search]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/katalog/categories/tree`).then(r => r.json()).then(j => { if (j.success) setCategories(j.data); }).catch(() => {});
+  }, []);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -39,17 +56,20 @@ export default function Katalog() {
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...formData, vendor_id: user.id };
-      const res = await fetch(`${API_BASE}/katalog`, {
-        method: 'POST',
+      const payload = { ...formData, vendor_id: user.id, created_by: user.id };
+      const url = editingId ? `${API_BASE}/katalog/${editingId}` : `${API_BASE}/katalog`;
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload)
       });
       const json = await res.json();
       if (json.success) {
-        alert('Produk berhasil ditambahkan ke katalog!');
+        alert(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan ke katalog!');
         setShowAddModal(false);
-        setFormData({ item_name: '', description: '', price: '', unit: 'Pcs' });
+        setEditingId(null);
+        setFormData(EMPTY_FORM);
         fetchItems();
       } else {
         alert('Gagal: ' + json.message);
@@ -57,6 +77,30 @@ export default function Katalog() {
     } catch (err) {
       alert('Error: ' + err.message);
     }
+  };
+
+  const openEdit = async (item) => {
+    const res = await fetch(`${API_BASE}/katalog/${item.id}`, { headers: getAuthHeaders() });
+    const json = await res.json();
+    if (!json.success) return alert('Gagal memuat data produk.');
+    const d = json.data;
+    setFormData({
+      item_name: d.item_name || '', description: d.description || '', price: d.price || '', unit: d.unit || 'Pcs',
+      brand: d.brand || '', model_type: d.model_type || '', item_code: d.item_code || '',
+      diameter: d.diameter || '', panjang: d.panjang || '', lebar: d.lebar || '', tinggi: d.tinggi || '', unit_pengukuran: d.unit_pengukuran || '',
+      tkdn_persen: d.tkdn_persen || '', jenis_produk: d.jenis_produk || '', lama_garansi: d.lama_garansi || '', lama_garansi_satuan: d.lama_garansi_satuan || 'Bulan',
+      jumlah_stock: d.jumlah_stock || '', jumlah_stock_ready: d.jumlah_stock_ready || '', kemasan: d.kemasan || '', keterangan_tambahan: d.keterangan_tambahan || '',
+      category_ids: (d.categories || []).map(c => c.id),
+    });
+    setEditingId(item.id);
+    setShowAddModal(true);
+  };
+
+  const toggleCategory = (catId) => {
+    setFormData(f => ({
+      ...f,
+      category_ids: f.category_ids.includes(catId) ? f.category_ids.filter(id => id !== catId) : [...f.category_ids, catId],
+    }));
   };
 
   const addToCart = (item) => {
@@ -166,25 +210,32 @@ export default function Katalog() {
                 {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-cover" /> : <Package size={40} />}
               </div>
               <div className="p-4 flex flex-col flex-1">
-                <h3 className="font-bold text-dpbj-navy mb-1 line-clamp-2">{item.item_name}</h3>
+                <button onClick={() => setDetailId(item.id)} className="text-left">
+                  <h3 className="font-bold text-dpbj-navy mb-1 line-clamp-2 hover:text-dpbj-gold transition-colors">{item.item_name}</h3>
+                </button>
                 <p className="text-xs text-muted mb-3 flex-1">{item.description}</p>
                 <div className="mt-auto">
                   <p className="text-xs text-muted mb-1">Vendor: <span className="font-semibold text-dpbj-navy">{item.company_name}</span></p>
                   <p className="font-bold text-dpbj-gold text-lg mb-4">{formatRupiah(item.price)} <span className="text-xs text-muted font-normal">/ {item.unit}</span></p>
-                  
-                  {user.role === 'ppk' && (
-                    <button 
-                      onClick={() => addToCart(item)}
-                      className="w-full py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart size={16} /> Tambah
+
+                  <div className="flex gap-2">
+                    <button onClick={() => setDetailId(item.id)} className="flex-1 py-2 bg-surface text-dpbj-navy hover:bg-gray-200 font-semibold text-sm rounded-lg transition-colors border border-border">
+                      Detail
                     </button>
-                  )}
-                  {user.role === 'vendor' && (
-                    <button className="w-full py-2 bg-surface text-dpbj-navy hover:bg-gray-200 font-semibold text-sm rounded-lg transition-colors border border-border">
-                      Edit Produk
-                    </button>
-                  )}
+                    {user.role === 'ppk' && (
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="flex-1 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-2"
+                      >
+                        <ShoppingCart size={16} /> Tambah
+                      </button>
+                    )}
+                    {(user.role === 'vendor' && item.vendor_id === user.id) && (
+                      <button onClick={() => openEdit(item)} className="flex-1 py-2 bg-surface text-dpbj-navy hover:bg-gray-200 font-semibold text-sm rounded-lg transition-colors border border-border">
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -203,41 +254,129 @@ export default function Katalog() {
         </div>
       )}
 
-      {/* Modal Tambah Produk */}
+      {/* Modal Tambah/Edit Produk */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b border-border bg-surface">
-              <h2 className="font-bold text-dpbj-navy">Tambah Produk Katalog</h2>
-              <button onClick={() => setShowAddModal(false)} className="p-1 hover:bg-white rounded"><Package size={18}/></button>
+              <h2 className="font-bold text-dpbj-navy">{editingId ? 'Edit Produk Katalog' : 'Tambah Produk Katalog'}</h2>
+              <button onClick={() => { setShowAddModal(false); setEditingId(null); setFormData(EMPTY_FORM); }} className="p-1 hover:bg-white rounded"><Package size={18}/></button>
             </div>
-            <form onSubmit={handleAddItem} className="p-6 space-y-4">
+            <form onSubmit={handleAddItem} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-semibold text-dpbj-navy mb-1">Nama Produk/Jasa *</label>
                 <input type="text" required className="form-input w-full" value={formData.item_name} onChange={e => setFormData({...formData, item_name: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-dpbj-navy mb-1">Deskripsi Singkat</label>
-                <textarea className="form-input w-full" rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                <textarea className="form-input w-full" rows="2" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-dpbj-navy mb-1">Harga Satuan (Rp) *</label>
-                  <input type="number" required className="form-input w-full" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Harga Satuan (Rp) *</label>
+                  <input type="number" required className="form-input w-full text-sm" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-dpbj-navy mb-1">Satuan *</label>
-                  <input type="text" required className="form-input w-full" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Satuan *</label>
+                  <input type="text" required className="form-input w-full text-sm" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Kode Produk</label>
+                  <input type="text" className="form-input w-full text-sm" value={formData.item_code} onChange={e => setFormData({...formData, item_code: e.target.value})} />
                 </div>
               </div>
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary">Batal</button>
-                <button type="submit" className="btn-primary">Simpan Produk</button>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Merek</label>
+                  <input type="text" className="form-input w-full text-sm" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Model/Tipe</label>
+                  <input type="text" className="form-input w-full text-sm" value={formData.model_type} onChange={e => setFormData({...formData, model_type: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Jenis Produk</label>
+                  <input type="text" className="form-input w-full text-sm" value={formData.jenis_produk} onChange={e => setFormData({...formData, jenis_produk: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Panjang</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.panjang} onChange={e => setFormData({...formData, panjang: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Lebar</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.lebar} onChange={e => setFormData({...formData, lebar: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Tinggi</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.tinggi} onChange={e => setFormData({...formData, tinggi: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Satuan Ukuran</label>
+                  <input type="text" placeholder="cm" className="form-input w-full text-sm" value={formData.unit_pengukuran} onChange={e => setFormData({...formData, unit_pengukuran: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">TKDN (%)</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.tkdn_persen} onChange={e => setFormData({...formData, tkdn_persen: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Lama Garansi</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.lama_garansi} onChange={e => setFormData({...formData, lama_garansi: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Satuan Garansi</label>
+                  <select className="form-input w-full text-sm" value={formData.lama_garansi_satuan} onChange={e => setFormData({...formData, lama_garansi_satuan: e.target.value})}>
+                    <option value="Bulan">Bulan</option>
+                    <option value="Tahun">Tahun</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Kemasan</label>
+                  <input type="text" className="form-input w-full text-sm" value={formData.kemasan} onChange={e => setFormData({...formData, kemasan: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Jumlah Stok</label>
+                  <input type="number" className="form-input w-full text-sm" value={formData.jumlah_stock} onChange={e => setFormData({...formData, jumlah_stock: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-dpbj-navy mb-1">Ketersediaan Stok</label>
+                  <input type="text" placeholder="Ready/Indent" className="form-input w-full text-sm" value={formData.jumlah_stock_ready} onChange={e => setFormData({...formData, jumlah_stock_ready: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-dpbj-navy mb-1">Kategori</label>
+                <div className="flex flex-wrap gap-1.5 border border-gray-300 rounded-lg p-2 max-h-28 overflow-y-auto">
+                  {categories.length === 0 ? <p className="text-xs text-muted">Belum ada kategori. Tambahkan lewat Data Master.</p> : categories.map(cat => (
+                    <button
+                      type="button"
+                      key={cat.id}
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`text-xs px-2.5 py-1 rounded-full border ${formData.category_ids.includes(cat.id) ? 'bg-dpbj-navy text-white border-dpbj-navy' : 'bg-surface text-dpbj-navy border-border'}`}
+                    >
+                      {cat.nama}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-dpbj-navy mb-1">Keterangan Tambahan</label>
+                <textarea className="form-input w-full" rows="2" value={formData.keterangan_tambahan} onChange={e => setFormData({...formData, keterangan_tambahan: e.target.value})}></textarea>
+              </div>
+              <div className="pt-4 flex justify-end gap-3 border-t border-border">
+                <button type="button" onClick={() => { setShowAddModal(false); setEditingId(null); setFormData(EMPTY_FORM); }} className="btn-secondary">Batal</button>
+                <button type="submit" className="btn-primary">{editingId ? 'Simpan Perubahan' : 'Simpan Produk'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <KatalogDetailModal isOpen={!!detailId} onClose={() => setDetailId(null)} katalogId={detailId} />
     </div>
   );
 }

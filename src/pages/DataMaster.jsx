@@ -16,6 +16,7 @@ const CATEGORIES = [
   { id: 'rekanan_tipe',      label: 'Tipe Vendor' },
   { id: 'sertifikat_jenis',  label: 'Jenis Sertifikat' },
   { id: 'vendor_retail',     label: 'Vendor Retail' },
+  { id: 'katalog_kategori',  label: 'Kategori Katalog' },
 ];
 
 function SimpleMasterTable({ category }) {
@@ -389,6 +390,126 @@ function VendorRetailTable() {
   );
 }
 
+function KatalogCategoryTable() {
+  const { getAuthHeaders } = useApp();
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [nama, setNama] = useState('');
+  const [kode, setKode] = useState('');
+  const [parentId, setParentId] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/katalog/categories/tree`);
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) {
+      console.error('Failed to fetch katalog categories:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!nama.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/katalog/categories`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ nama, kode, parent_id: parentId || null }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNama(''); setKode(''); setParentId('');
+        fetchData();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan data.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Hapus kategori ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/katalog/categories/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat menghapus data.');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-surface p-4 rounded-xl border border-border items-end">
+        <div>
+          <label className="text-xs text-muted font-medium">Nama Kategori</label>
+          <input value={nama} onChange={e => setNama(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Kode</label>
+          <input value={kode} onChange={e => setKode(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Induk Kategori (opsional)</label>
+          <select value={parentId} onChange={e => setParentId(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40">
+            <option value="">- Kategori Utama -</option>
+            {data.map(d => <option key={d.id} value={d.id}>{d.nama}</option>)}
+          </select>
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+          <Plus size={16} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Kode</th>
+              <th>Nama</th>
+              <th>Induk</th>
+              <th className="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
+            ) : data.map(row => (
+              <tr key={row.id}>
+                <td className="font-mono text-xs">{row.kode || '-'}</td>
+                <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
+                <td className="text-xs text-muted">{data.find(d => d.id === row.parent_id)?.nama || '-'}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
 
@@ -424,6 +545,8 @@ export default function DataMaster() {
           <UnitKerjaTable />
         ) : activeCategory === 'vendor_retail' ? (
           <VendorRetailTable />
+        ) : activeCategory === 'katalog_kategori' ? (
+          <KatalogCategoryTable />
         ) : (
           <SimpleMasterTable category={activeCategory} />
         )}
