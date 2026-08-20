@@ -10,6 +10,8 @@ import ContractTab from './ContractTab';
 import AanwijzingTab from './AanwijzingTab';
 import NegotiationTab from './NegotiationTab';
 import EvaluationDetailModal from './EvaluationDetailModal';
+import PanitiaTab from './PanitiaTab';
+import DokumenPaketTab from './DokumenPaketTab';
 
 function VendorQualModal({ vendorId, vendorName, onClose }) {
   const { getAuthHeaders } = useApp();
@@ -490,6 +492,14 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
             <button onClick={() => setActiveTab('detail')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'detail' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <FileText size={16} /> Detail Tender
             </button>
+            {['pokja', 'admin', 'ppk'].includes(user.role) && (
+              <button onClick={() => setActiveTab('panitia')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'panitia' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
+                <Users size={16} /> Panitia
+              </button>
+            )}
+            <button onClick={() => setActiveTab('dokumen')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'dokumen' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
+              <FileText size={16} /> Dokumen & Klarifikasi
+            </button>
             <button onClick={() => setActiveTab('peserta')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'peserta' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <Users size={16} /> Peserta & Penawaran
               <span className="bg-surface border border-border text-xs px-2 py-0.5 rounded-full text-dpbj-slate">{participants.length}</span>
@@ -574,6 +584,12 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                   <VendorBidForm tenderId={data.id} onClose={onClose} refreshData={refreshData} />
                 )}
               </div>
+            )}
+            {activeTab === 'panitia' && (
+              <PanitiaTab tenderId={data.id} user={user} getAuthHeaders={getAuthHeaders} />
+            )}
+            {activeTab === 'dokumen' && (
+              <DokumenPaketTab tenderId={data.id} tenderStatus={data.status} participants={participants} user={user} getAuthHeaders={getAuthHeaders} />
             )}
             {activeTab === 'peserta' && (
               <PokjaEvaluationTable tenderId={data.id} tenderStatus={data.status} participants={participants} refreshData={refreshData} />
