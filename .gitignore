@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Kredensial / environment - jangan pernah dikomit
+.env
+.env.*
+!.env.example
+
+# Dump database yang berisi data asli atau belum bisa dipastikan isinya - simpan lokal saja
+*.dump
+eproc/eproc_migrasi.sql
+eproc/dump-eproc_migrasi-*.sql
+database/dump-eproc_migrasi-*.sql
+eproc/vmstools/eproc_migrasi_*.tgz
+
+# PHP dependencies (aplikasi lama eproc)
+vendor/

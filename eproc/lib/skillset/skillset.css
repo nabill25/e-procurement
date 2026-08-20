@@ -1,0 +1,115 @@
+/*body {
+  *font-family: 'Ubuntu', sans-serif;
+  *width:960px;
+}*/
+
+/*p{
+  *color:#525252;
+  *font-size:12px;
+}*/
+
+.skillbar {
+	position:relative;
+	display:block;
+	*margin-bottom:20px;
+	*margin-bottom:5px;
+	margin-bottom:12px;
+
+	width:100%;
+	*height:30px;
+	height:27px;
+	
+	/*background-image: linear-gradient(left, transparent 54px,rgba(50,58,68,1) 54px, rgba(50,58,68,1) 100%);
+    background-image: -webkit-linear-gradient(left, transparent 54px,rgba(50,58,68,1) 54px, rgba(50,58,68,1) 100%);
+    background-image: -moz-linear-gradient(left, transparent 54px,rgba(50,58,68,1) 54px, rgba(50,58,68,1) 100%);
+    background-image: -ms-linear-gradient(left, transparent 54px,rgba(50,58,68,1) 54px, rgba(50,58,68,1) 100%);
+    background-image: -o-linear-gradient(left, transparent 54px,rgba(50,58,68,1) 54px, rgba(50,58,68,1) 100%);
+	*/
+	
+	*background:#323a44;
+	background:rgba(255,255,255,0.2);
+    
+    /*border-radius:3px;
+	-moz-border-radius:3px;
+	-webkit-border-radius:3px;*/
+	-webkit-transition:0.4s linear;
+	-moz-transition:0.4s linear;
+	-ms-transition:0.4s linear;
+	-o-transition:0.4s linear;
+	transition:0.4s linear;
+	-webkit-transition-property:width, background-color;
+	-moz-transition-property:width, background-color;
+	-ms-transition-property:width, background-color;
+	-o-transition-property:width, background-color;
+	transition-property:width, background-color;
+	
+}
+
+.skillbar-title {
+	
+	font-family: 'Open SansSemi Bold';
+	font-size:14px;
+	
+	position:absolute;
+	top:10px;
+	left:-100px;
+	*left:-80px;
+	width:100px;
+	height:5px;
+	line-height:6px;
+	
+	-webkit-border-top-left-radius:3px;
+	-webkit-border-bottom-left-radius:4px;
+	-moz-border-radius-topleft:3px;
+	-moz-border-radius-bottomleft:3px;
+	border-top-left-radius:3px;
+	border-bottom-left-radius:3px;
+}
+
+.skillbar-title span {
+	display:block;
+	
+	-webkit-border-top-left-radius:3px;
+	-webkit-border-bottom-left-radius:3px;
+	-moz-border-radius-topleft:3px;
+	-moz-border-radius-bottomleft:3px;
+	border-top-left-radius:3px;
+	border-bottom-left-radius:3px;
+}
+
+.skillbar-bar {
+	*height:30px;
+	height:27px;
+	width:0px;
+	
+}
+
+.skill-bar-percent {
+	position:absolute;
+	right:-60px;
+	*top:-14px;
+	top:0;
+	font-size:11px;
+	
+	width:60px;
+	*height:30px;
+	height:27px;
+	line-height:30px;
+
+	color:#ffffff;
+	*color:rgba(0, 0, 0, 0.4);
+	
+	*background:cyan;
+	border:1px solid rgba(255,255,255,0.2);
+	text-align:center;
+}
+
+/****/
+.skillbar-bar.efektif {		background:#0f8c20;}
+.skillbar-bar.alpha{		background:#b90404;}
+.skillbar-bar.ijin{			background:#d69302;}
+.skillbar-bar.cuti-tahunan{	background:#d4d103;}
+.skillbar-bar.cuti-besar{	background:#969405;}
+.skillbar-bar.cuti-lain{	background:#605f03;}
+.skillbar-bar.dinas{		background:#2575dc;}
+

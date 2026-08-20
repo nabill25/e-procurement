@@ -1,0 +1,126 @@
+/** SEBELUM LOGIN **/
+#menu-home,
+#menu-cabang,
+#menu-lelang,
+#menu-paket-panel,
+#menu-registrasi,
+#menu-download,
+#menu-berita,
+#menu-kontak,
+
+/** MENU PESERTA **/
+#menu-cabang-login,
+#menu-paket-lelang,
+#menu-pengadaan,
+#menu-paket-panel-master,
+#menu-data-administrasi,
+#menu-data-keuangan,
+#menu-data-teknis,
+#menu-aplikasi,
+
+/** MENU ADMINISTRATOR **/
+#menu-error,
+#menu-sayembara,
+#menu-kurs,
+#menu-kirim-email,
+#menu-daftar-rekanan,
+#menu-master,
+#menu-blacklist,
+#menu-password,
+
+/****/
+#menu-main-menu,
+#menu-purchase-request,
+#menu-berita-master,
+
+/** MENU VALIDATOR **/
+#menu-validasi-rekanan
+{
+	display:block;
+	color:#464545;
+	*color:red;
+	text-decoration:none;
+	text-transform:uppercase;
+	*font-size:12px !important;
+	
+	height:49px;
+	line-height:49px;
+	
+	padding-left:6px;
+	padding-right:6px;
+	
+	margin-top:26px;
+	
+	background: #f8f8f8;
+	/* fallback */ 
+	background-color: #f8f8f8; background: url(images/linear_bg_2.png); background-repeat: repeat-x; 	
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#f8f8f8), to(#dddddd)); 	
+	/* Safari 5.1, Chrome 10+ */
+	background: -webkit-linear-gradient(top, #f8f8f8, #dddddd); 	
+	/* Firefox 3.6+ */
+	background: -moz-linear-gradient(top, #f8f8f8, #dddddd); 	
+	/* IE 10 */
+	background: -ms-linear-gradient(top, #f8f8f8, #dddddd); 	
+	/* Opera 11.10+ */
+	background: -o-linear-gradient(top, #f8f8f8, #dddddd);
+	
+	font-weight:bold !important;
+	
+}
+
+/***************************************************** HOVER **********************************************************************************/
+
+#menu-home:hover,
+#menu-cabang:hover,
+#menu-lelang:hover,
+#menu-paket-panel:hover,
+#menu-registrasi:hover,
+#menu-download:hover,
+#menu-berita:hover,
+#menu-kontak:hover,
+
+/** MENU PESERTA **/
+#menu-cabang-login:hover,
+#menu-paket-lelang:hover,
+#menu-pengadaan:hover,
+#menu-paket-panel-master:hover,
+#menu-data-administrasi:hover,
+#menu-data-keuangan:hover,
+#menu-data-teknis:hover,
+#menu-aplikasi:hover,
+
+/** MENU ADMINISTRATOR **/
+#menu-error:hover,
+#menu-sayembara:hover,
+#menu-kurs:hover,
+#menu-kirim-email:hover,
+#menu-daftar-rekanan:hover,
+#menu-master:hover,
+#menu-blacklist:hover,
+#menu-password:hover,
+
+/****/
+#menu-main-menu:hover,
+#menu-purchase-request:hover,
+#menu-berita-master:hover,
+
+/** MENU VALIDATOR **/
+#menu-validasi-rekanan:hover
+{
+	background: #dddddd;
+	/* fallback */ 
+	background-color: #dddddd; background: url(images/linear_bg_2.png); background-repeat: repeat-x; 	
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#dddddd), to(#f8f8f8)); 	
+	/* Safari 5.1, Chrome 10+ */
+	background: -webkit-linear-gradient(top, #dddddd, #f8f8f8); 	
+	/* Firefox 3.6+ */
+	background: -moz-linear-gradient(top, #dddddd, #f8f8f8); 	
+	/* IE 10 */
+	background: -ms-linear-gradient(top, #dddddd, #f8f8f8); 	
+	/* Opera 11.10+ */
+	background: -o-linear-gradient(top, #dddddd, #f8f8f8);
+}
+
+

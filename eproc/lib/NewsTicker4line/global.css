@@ -1,0 +1,28 @@
+.ticker {
+	width: 100%;
+	height: 40px;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	
+}
+
+#ticker_02 {
+	height: 220px;
+}
+
+.ticker li {
+	
+	padding: 18px 20px;
+	*margin: 0px 5px;
+	
+	background:#FFF;
+	margin-bottom:10px;
+	
+	font-size:16px;
+}
+.ticker li:nth-child(even) {
+	background:#d7e7ff;
+}
+

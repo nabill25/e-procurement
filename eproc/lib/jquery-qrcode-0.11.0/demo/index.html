@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html class="no-js no-browser" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>jQuery.qrcode 0.11.0 · Demo</title>
+    <meta name="description" content="demo for the jQuery plug in jQuery.qrcode (http://larsjung.de/qrcode/)">
+    <meta name="author" content="Lars Jung">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="author" href="http://plus.google.com/106403733398479106535">
+    <link rel="shortcut icon" href="dummy.png" type="image/png">
+    <link rel="apple-touch-icon" href="dummy.png" type="image/png">
+    <link href='http://fonts.googleapis.com/css?family=Ubuntu:400,700' rel='stylesheet'>
+    <link href='styles.css' rel='stylesheet'>
+    <script src="jquery-1.10.2.js"></script>
+    <script src="../jquery.qrcode-0.11.0.js"></script>
+    <script src="ff-range.js"></script>
+    <script src="scripts.js"></script>
+</head>
+
+<body>
+
+<div id="qrcode"></div>
+<script language="javascript">
+$('#qrcode').qrcode({
+    render: 'canvas',
+    minVersion: 6,
+    ecLevel: 'H',
+    left: 0,
+    top: 0,
+    size: 200,
+    fill: '#898989',
+    background: '#ffffff',
+	text: "5c64e45bab0bd821ebc54549341a8ea0de483de99c87cdb36b3af6dacf1f4e82f573b1c12cbb0941c009fc9bc57be361"  ,
+    radius: 50,
+    quiet: 1,
+    mode: 2,
+    mSize: 0.1,
+    mPosX: 0.5,
+    mPosY: 0.5,
+    label: 'EPROC SIGN',
+    fontname: 'Ubuntu',
+    fontcolor: '#898989'
+});	
+</script>        
+</body>
+
+</html>

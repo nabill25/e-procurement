@@ -1,0 +1,278 @@
+#cabang-area-home-inner{
+	background:#248c1f;
+	border:1px solid #1c7817;
+}
+
+/****/
+#tabel-paket-lelang table{
+	border:1px solid #1c7817;
+}
+#tabel-paket-lelang table tr th{
+	background:#248c1f;
+	color:#FFF;
+	
+}
+#tabel-paket-lelang table td{
+	border:1px solid #ddf9da;
+}
+
+
+/****/
+.gelap{
+	background:#ecffea;
+}
+.terang{
+	background:#f4fff3;
+}
+
+/** PAGINATION **/
+
+
+.pagerDRUPAL strong,.pagerDRUPAL a{
+	background:#ecffea;
+	border:1px solid #ddf9da;
+}
+.pagerDRUPAL a:hover{
+	background:#248c1f;
+	color:#FFF;
+}
+.pagerDRUPAL strong{
+	background:#248c1f;
+}
+
+/****/
+#footer {
+	height:124px;
+	margin-bottom:20px;
+	
+	*background: #1c7817;
+	/* fallback */ 
+	background-color: #248c1f; background: url(images/linear_bg_2.png); background-repeat: repeat-x;
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#248c1f), to(#50b14b)); 	
+	/* Safari 5.1, Chrome 10+ */
+	background: -webkit-linear-gradient(top, #248c1f, #50b14b); 	
+	/* Firefox 3.6+ */
+	background: -moz-linear-gradient(top, #248c1f, #50b14b); 	
+	/* IE 10 */
+	background: -ms-linear-gradient(top, #248c1f, #50b14b); 	
+	/* Opera 11.10+ */
+	background: -o-linear-gradient(top, #248c1f, #50b14b);
+
+	margin-left:12px !important;
+	margin-right:12px !important;
+	
+	padding-left:2px;
+}
+.footer-go-top{ margin-right:12px;}
+.footer-copyright{ margin-right:12px;}
+
+/** ANYLINK MENU **/
+.anylinkmenu{
+	background: #248c1f !important;
+	border: 1px solid #1c7817 !important;
+}
+.anylinkmenu ul li a{
+	border-bottom: 1px solid #1c7817 !important;
+}
+
+/****/
+.judul-halaman{
+	background: #50b14b;
+	/* fallback */ 
+	background-color: #248c1f; background: url(images/linear_bg_2.png); background-repeat: repeat-x;
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#50b14b), to(#1c7817)); 	
+	/* Safari 5.1, Chrome 10+ */
+	background: -webkit-linear-gradient(top, #50b14b, #1c7817); 	
+	/* Firefox 3.6+ */
+	background: -moz-linear-gradient(top, #50b14b, #1c7817); 	
+	/* IE 10 */
+	background: -ms-linear-gradient(top, #50b14b, #1c7817); 	
+	/* Opera 11.10+ */
+	background: -o-linear-gradient(top, #50b14b, #1c7817);
+}
+
+/****/
+#pembuat-paket{
+	color:#248c1f;
+	border:1px solid #ddf9da;
+}
+#ket-daftar{
+	color:#248c1f;
+	border:1px solid #ddf9da;
+}
+
+/****/
+.login-head{ background-image:url(../images/login1.png); width: 229px; height: 54px; }
+.login-content,
+.berita-content,
+.visitor-content{
+	background:#f4fff3;
+	border:1px solid #ddf9da;
+	margin-bottom:2px;
+}
+.berita-foot{
+	background:#248c1f;
+}
+
+/****/
+.judul-konten{
+	/* fallback */ 
+	background-color: #FFF; background: url(images/linear_bg_2.png); background-repeat: repeat-x; 	
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#FFF), to(#a9d6a4)); 	
+	/* Safari 5.1, Chrome 10+ */ 
+	background: -webkit-linear-gradient(top, #FFF, #a9d6a4); 	
+	/* Firefox 3.6+ */ 
+	background: -moz-linear-gradient(top, #FFF, #a9d6a4); 	
+	/* IE 10 */ 
+	background: -ms-linear-gradient(top, #FFF, #a9d6a4); 	
+	/* Opera 11.10+ */ 
+	background: -o-linear-gradient(top, #FFF, #a9d6a4);
+	
+	color:#248c1f;
+	
+}
+
+/****/
+td.head-kolom{
+	background:#248c1f;
+	color:#FFF;
+}
+
+/****/
+#nav ul li {
+    color:#333 !important;
+	
+}
+#nav ul li a {
+	color:#248c1f !important;
+}
+
+/****/
+.judul-kolom{ background-color:#248c1f;}
+.judul-kolom3{
+	/* fallback */ 
+	background-color: #ddf9da; background: url(images/linear_bg_2.png); background-repeat: repeat-x; 	
+	/* Safari 4-5, Chrome 1-9 */
+	background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#ddf9da), to(#a9d6a4)); 	
+	/* Safari 5.1, Chrome 10+ */ 
+	background: -webkit-linear-gradient(top, #ddf9da, #a9d6a4); 	
+	/* Firefox 3.6+ */ 
+	background: -moz-linear-gradient(top, #ddf9da, #a9d6a4); 	
+	/* IE 10 */ 
+	background: -ms-linear-gradient(top, #ddf9da, #a9d6a4); 	
+	/* Opera 11.10+ */ 
+	background: -o-linear-gradient(top, #ddf9da, #a9d6a4);
+	
+	color:#333;
+}
+.bg-row-pasal{background-color:#ecffea;}
+
+/****/
+#cabang-inner{
+	background:#FFF url(../images/header-detil-admin.png) top center no-repeat; 
+	color:rgba(255,255,255,0.8);
+	
+}
+
+/****/
+#info-login-inner{
+	border:1px solid #ddf9da;
+	border-width:0px 1px 0px 1px;
+	
+	
+}
+#info-login-inner span:nth-child(1){
+	color:#248c1f; font-weight:bold;
+}
+#info-login-inner span:nth-child(3){
+	color:#248c1f;
+}
+
+/****/
+.header-utama{
+	position:relative; 
+	background:url(../images/header-admin.png); 
+	width:950px; 
+	height:182px;
+}
+
+/****/
+.headcol {
+	background-color:#248c1f !important;
+}
+.headcol1 {
+	background-color:#248c1f !important; 
+}
+
+/****/
+#begron {
+	
+	position:fixed; top:0; left:0; width:100%; height:100%;
+	
+	background:url(../images/bg-admin.png) !important;
+	background-size:100% 100% !important;
+	
+	/*-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;*/
+
+}
+
+/****/
+.severtime{
+	/*margin-top:100px;*/
+	
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	
+	background: url(../images/bg-datetime-admin.png) no-repeat;
+	background-size:100% !important;
+	
+	width:200px;
+	/*height:120px;*/
+	height:400px;
+	padding-top:135px; 
+	padding-left:25px;
+	/*position:fixed;
+	z-index:99;
+	margin-left:-188px;
+	margin-top:-70px;*/
+	
+	text-align:center;
+	
+	font-size:16px; 
+	font-weight:bold; 
+	color:#FFF;
+	text-shadow: none;
+	
+	/** UPDATE 03 OKT 2016 **/
+	position:fixed !important;
+	z-index:99;
+	left:calc(50% - 463px - 200px);
+}
+
+/****/
+.anylinkmenu a:hover{ /*hover background color*/
+	background: #1c7817 !important;
+	color: white;
+}
+
+/****/
+.judul-tahapan-lelang{
+	background:#248c1f; 
+	color:#FFF;
+}
+
+
+
+
+
+
+
+
+

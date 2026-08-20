@@ -1,0 +1,51 @@
+# Version control
+.git
+.git/
+.gitignore
+
+# Environment files (use Docker env vars instead)
+.env
+.env.example
+.env.local
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# PHP vendor (will be installed by Composer during build)
+vendor/
+
+# Build output (will be built during Docker build)
+public/build/
+
+# Development & editor files
+.vscode/
+.idea/
+.DS_Store
+*.log
+Thumbs.db
+
+# Database backups (large files, don't include in image)
+backup/
+*.sql.zip
+*.sql.gz
+dump-*.sql
+eproc_migrasi.sql
+eproc_migrasi.dump
+
+# CI4 writable directories
+writable/logs/*
+writable/cache/*
+writable/session/*
+writable/uploads/*
+
+# CI3 legacy files (not needed in CI4 container)
+application/
+system/
+
+# Docker files
+.docker/
+
+# Tests
+tests/

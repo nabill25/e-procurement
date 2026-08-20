@@ -1,0 +1,114 @@
+.nav {
+	height:100%;
+	left:10px;
+	margin-right:30px;
+	position:fixed;
+	top:0;
+	width:280px;
+	z-index: 300;
+}
+
+.navWrap {
+	background-repeat:no-repeat;
+	height:625px;
+	position:relative;
+	background: top left no-repeat /*url(http://www.twochaps.com/images/img_nav_bg-top.png)*/;
+}
+
+.navBottom {
+	position:relative;
+	height: 100%;
+	background: top left repeat-y /*url(http://www.twochaps.com/images/img_nav_bg-bottom.png)*/;
+}
+
+.main-wider {
+	
+	color:#F0F0F0;
+	/*padding-left:320px;*/
+	margin:0 auto;
+	width:950px;
+	
+	z-index: 2;
+	height: auto;
+}
+
+.logo {
+	padding-top: 45px;
+	position: relative;
+	margin-left: 34px;
+}
+
+
+/*||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*/
+
+	.pageContent {
+	width: 280px;
+}
+	.accordion { list-style-type: none; padding: 0; margin: 0 0 30px; border: 1px solid #17a; border-top: none; border-left: none; }
+	.accordion ul { padding: 0; margin: 0; float: left; display: block; width: 100%; }
+	.accordion li { background: #3cf; cursor: pointer; list-style-type: none; padding: 0; margin: 0; float: left; display: block; width: 100%;}
+	.accordion li.active>a { background: url('close.gif') no-repeat center right; }
+	.accordion li div {
+	padding: 20px;
+	background: #aef;
+	display: block;
+	clear: both;
+	float: left;
+	width: 240px;
+}
+	.accordion a { text-decoration: none; border-bottom: 1px solid #4df; font: bold 1.1em/2em Arial, sans-serif; color: #222; padding: 0 10px; display: block; cursor: pointer; background: url('open.gif') no-repeat center right;}
+	
+	/* Level 2 */
+	.accordion li ul li { background: #7FD2FF; font-size: 0.9em; }
+	
+	/*||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*/
+.main-wider h2 {
+	
+	font-size: .95em;
+	color: #F1EEDC;
+}
+
+.main-wider h3 {
+	
+	font-size: 1.4em;
+	color: #D1D1D1;
+	line-height: 1.3em;
+}
+
+.subHeadlineHolder {
+	margin-bottom: 60px;
+	position: relative;
+	height: auto;
+}
+.HeaderHolder {
+	position: relative;
+	height: auto;
+	z-index: 30;
+	margin-bottom: 15px;
+}
+.clear {
+	margin: 0px;
+	padding: 0px;
+	clear: both;
+	height: 0px;
+}
+.generalBodyText {
+	position:relative;
+	height: auto;
+	font-size: 1.2em;
+	line-height: 1.4em;
+	z-index: 100;
+	color: #EBEBEB;
+}
+.mainFeatureImgBox {
+	position: relative;
+	height: auto;
+}
+.mainFeatureImgFrame {
+	position: relative;
+	height: 220px;
+	width: 235px;
+	background: top left no-repeat url(../images/img_main_feature-bg.png);
+	padding: 14px 0px 0px 16px;
+	margin-bottom: 40px;
+}

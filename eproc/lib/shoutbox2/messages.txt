@@ -1,0 +1,11 @@
+1480919490|aaa|hai|192.168.88.18
+1480919491|aaa|hai|192.168.88.18
+1480919491|aaa|hai|192.168.88.18
+1480919492|aaa|hai|192.168.88.18
+1480919551|okeii|bilang hai|192.168.88.18
+1480920335|||192.168.88.18
+1480924321|abede|Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.|192.168.88.18
+1480924474|abede|Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.|192.168.88.18
+1481628940||fff|192.168.1.107
+1481629026||a|192.168.1.107
+1481629074||a|192.168.1.107

@@ -1,0 +1,9 @@
+.navbar {
+	*position: relative;
+	min-height: 94px;
+	*margin-bottom: 20px;
+	*border: 1px solid transparent;
+}
+.navbar.navbar-default.navbar-fixed-top{
+
+}

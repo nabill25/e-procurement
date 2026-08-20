@@ -1,0 +1,89 @@
+  @font-face {
+	font-family: 'Open SansRegular';
+	src: url('../../../main/fonts/OpenSans-Regular-webfont.eot');
+	src: url('../../../main/fonts/OpenSans-Regular-webfont.eot?#iefix') format('embedded-opentype'),
+	url('../../../main/fonts/OpenSans-Regular-webfont.woff') format('woff'),
+	url('../../../main/fonts/OpenSans-Regular-webfont.ttf') format('truetype'),
+	url('../../../main/fonts/OpenSans-Regular-webfont.svg#Open SansRegular') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+html{
+	height:100%; min-height:100%;
+	
+	/*height: -moz-calc(100% - 10px);
+	height: -webkit-calc(100% - 10px);
+	height: -o-calc(100% - 10px);
+	height: calc(100% - 10px);
+
+	min-height: -moz-calc(100% - 10px);
+	min-height: -webkit-calc(100% - 10px);
+	min-height: -o-calc(100% - 10px);
+	min-height: calc(100% - 10px);*/
+}
+body{
+	margin:0 0;
+}
+
+    #daddy-shoutbox {
+      padding: 10px 20px;
+      background: #4bbad9/*3E5468*/;
+      color: white;
+      
+	  
+	width: -moz-calc(100% - 40px);
+	width: -webkit-calc(100% - 40px);
+	width: -o-calc(100% - 40px);
+	width: calc(100% - 40px);
+	
+	  font-family: 'Open SansRegular';
+      /*font-family: Arial,Helvetica,sans-serif;*/
+      font-size: 14px;
+	  
+    }
+    .shoutbox-list {
+      border-bottom: 1px solid #0289ab;
+      
+      padding: 5px;
+	  
+    }
+    #daddy-shoutbox-list {
+      text-align: left;
+      margin: 0px auto;
+    }
+    #daddy-shoutbox-form {
+      text-align: left;
+      
+    }
+    .shoutbox-list-time {
+      color: #a8e3f4/*8DA2B4*/;
+    }
+    .shoutbox-list-nick {
+      margin-left: 5px;
+      font-weight: bold;
+	  text-transform:uppercase;
+    }
+    .shoutbox-list-message {
+      margin-left: 5px;
+	  text-transform:capitalize;
+    }
+	#daddy-shoutbox input[type = text]{
+		border:1px solid #0289ab;
+		padding:4px 10px;
+	}
+	#daddy-shoutbox input[type = submit]{
+		background:#0289ab;
+		color:#FFF;
+		border:none;
+		padding:3px 10px 4px;
+		font-size:12px;
+		text-transform:uppercase;
+	}
+	#daddy-shoutbox input[type = button]{
+		background:#0289ab;
+		color:#FFF;
+		border:none;
+		padding:3px 10px 4px;
+		font-size:12px;
+		text-transform:uppercase;
+	}

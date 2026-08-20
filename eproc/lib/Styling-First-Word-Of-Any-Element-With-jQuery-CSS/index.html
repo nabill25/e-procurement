@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jQuery First Word Selector Demo</title>
+<link href="http://www.jqueryscript.net/css/jquerysctipttop.css" rel="stylesheet" type="text/css">
+<style>
+body { background-color:#f7f7f7; font-family:'Open Sans'; line-height:160%;}
+.container { margin:150px auto; max-width:640px; font-family:200%;}
+.first-word {
+  color: #F44336;
+  font-family: "Roboto", sans-serif;
+  text-transform: uppercase;
+}
+</style>
+</head>
+
+<body>
+<div id="jquery-script-menu">
+<div class="jquery-script-center">
+<ul>
+<li><a href="http://www.jqueryscript.net/text/Styling-First-Word-Of-Any-Element-With-jQuery-CSS.html">Download This Plugin</a></li>
+<li><a href="http://www.jqueryscript.net/">Back To jQueryScript.Net</a></li>
+</ul>
+<div class="jquery-script-ads"><script type="text/javascript"><!--
+google_ad_client = "ca-pub-2783044520727903";
+/* jQuery_demo */
+google_ad_slot = "2780937993";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script></div>
+<div class="jquery-script-clear"></div>
+</div>
+</div>
+<div class="container">
+<h1 class="st-word">jQuery First Word Selector Demo</h1>
+  <p class="st-word">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis eget mi sit amet erat placerat tempor. Integer rutrum enim nec justo venenatis, eget tempus mauris vulputate. Integer quis magna consequat, scelerisque tortor eu, iaculis elit. Nullam elit massa, faucibus quis porta a, iaculis ut justo. Morbi sit amet ante nec mauris facilisis molestie ut ut tortor. Integer ante tortor, faucibus quis eros sed, imperdiet convallis nunc. Maecenas porttitor pharetra mauris. Nulla at purus finibus dui commodo blandit. Donec aliquet turpis eget mollis interdum. Etiam sollicitudin bibendum ante, et ullamcorper augue. Ut ultrices sem sit amet metus auctor, vel efficitur enim molestie. Sed finibus vitae leo ut dapibus.</p>
+  <p class="st-word">Praesent volutpat maximus diam vel rutrum. In malesuada cursus nisl vitae laoreet. Duis mollis eget velit quis rhoncus. Integer ut sem sit amet erat sagittis pharetra. Donec lobortis, quam vel semper vestibulum, lacus arcu ornare justo, sit amet volutpat mauris arcu nec urna. Vivamus in posuere eros. Pellentesque ac tempus nibh.</p>
+  <p class="st-word">In fringilla nisl ut leo auctor pharetra. Ut sodales nunc non metus vehicula ultrices. Nulla gravida rhoncus risus. Suspendisse commodo, orci quis venenatis facilisis, elit enim egestas urna, ac molestie ligula nisl sit amet urna. Nunc eleifend arcu id orci mattis fringilla. Aliquam nibh metus, dapibus quis felis sit amet, rhoncus ullamcorper tellus. Aenean a hendrerit ex.</p>
+  <p class="st-word">Nunc imperdiet sapien aliquam molestie ornare. Integer id lorem at est mattis vestibulum. Praesent ut sollicitudin augue. Curabitur fringilla faucibus porta. Curabitur dapibus rutrum erat in tristique. Quisque ullamcorper est risus, eget facilisis nibh dapibus et. Pellentesque nec cursus sapien. Sed condimentum mi in nibh finibus, in vehicula mi malesuada. Etiam eget nisi rhoncus, tristique nisl vel, ullamcorper tortor.</p>
+  <p class="st-word">Duis tellus justo, cursus in interdum ac, iaculis nec lacus. Nullam vitae dignissim mauris. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi massa erat, ultrices a sodales in, congue nec nisi. Integer dictum lacus non eleifend tincidunt. Sed ac ligula sit amet est aliquet scelerisque. Mauris eros ex, fermentum vitae vulputate cursus, tristique ac sapien. Ut sollicitudin felis quam, nec congue magna scelerisque non. Mauris magna nulla, posuere a egestas id, luctus in ex. Vestibulum a malesuada mauris. Phasellus efficitur tristique lectus, ac aliquam purus lacinia sed. Phasellus convallis, nulla vel bibendum venenatis, ex sem tempus nunc, vitae ornare ante ante in lacus. Morbi sit amet eros non diam ultricies volutpat. Pellentesque volutpat elementum ultricies. Etiam leo lacus, vehicula et dignissim eu, suscipit in libero.</p>
+</div>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script>
+$(".st-word").each(function() {
+  
+  // Some Vars
+  var elText,
+      openSpan = '<span class="first-word">',
+      closeSpan = '</span>';
+  
+  // Make the text into array
+  elText = $(this).text().split(" ");
+  
+  // Adding the open span to the beginning of the array
+  elText.unshift(openSpan);
+  
+  // Adding span closing after the first word in each sentence
+  elText.splice(2, 0, closeSpan);
+  
+  // Make the array into string 
+  elText = elText.join(" ");
+  
+  // Change the html of each element to style it
+  $(this).html(elText);
+});
+</script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-36251023-1']);
+  _gaq.push(['_setDomainName', 'jqueryscript.net']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+</body>
+</html>

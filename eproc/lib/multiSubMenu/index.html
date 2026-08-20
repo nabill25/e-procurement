@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Untitled Document</title>
+<script type="text/javascript" src="jquery.min.js"></script>
+
+<style>
+a {
+    text-decoration: none;  
+    color: black; 
+}
+
+ul {
+    margin-left: 20px;    
+}
+
+#accordion {
+    margin-left: 0px;   
+}
+
+.active > a {
+    color: red;
+    font-weight: bold;
+}
+
+</style>
+
+<script>
+$(document).ready(function() {
+
+    $('#accordion li').children('ul').hide();
+    //$('.history_heading').parent().addClass('active').find('ul').show();
+
+    $('#accordion a').click(function() {
+
+        $(this).parent().siblings('.active').removeClass('active').find('ul').slideUp('fast');
+
+        if ($(this).parent().hasClass('active')) {
+            $(this).next('ul').slideUp('fast');
+            $(this).parent().removeClass('active');
+        } else {
+            $(this).next('ul').slideDown('fast');
+            $(this).parent().addClass('active');
+        }
+
+    });
+
+});
+</script>
+</head>
+
+<body>
+<ul id="accordion">
+    <li>
+        <a href="#" class="history_heading" rel="history_heading">HOME</a>
+    </li>
+    
+    <li>
+        <a href="#" class="history_heading" rel="history_heading">HISTORY</a>
+        <ul>
+            <li><a href="#">Link One</a>
+                <ul>
+                <li>hai</li>
+                </ul>
+            </li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="geography_heading" rel="geography_heading">GEOGRAPHY</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="neighborhoods_heading" rel="neighborhoods_heading">NEIGHBORHOODS</a>
+        <ul id="neighborhoods_levelone_drop">
+            <li><a href="#" class="arbutus" rel="Tus">Ridge</a>
+                <ul>
+                    <li><a href="#" class="local_news" rel="local_news">Local News</a></li>
+                    <li><a href="#" class="local_events" rel="local_events">Local Events</a></li>
+                    <li><a href="#" class="local_projects" rel="local_projects">Local Projects</a></li>
+                    <li><a href="#" class="neighborhood_services" rel="neighborhood_services">Neighborhood Services</a></li>
+                    <li><a href="#" class="area_information" rel="area_information">Area Information</a></li>
+                    <li><a href="#" class="photo_gallery" rel="area_information">Photo Gallery</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Park</a>
+                <ul>
+                    <li><a href="#" class="local_news" rel="local_news">Local News</a></li>
+                    <li><a href="#" class="local_events" rel="local_events">Local Events</a></li>
+                    <li><a href="#" class="local_projects" rel="local_projects">Local Projects</a></li>
+                    <li><a href="#" class="neighborhood_services" rel="neighborhood_services">Neighborhood Services</a></li>
+                    <li><a href="#" class="area_information" rel="area_information">Area Information</a></li>
+                    <li><a href="#" class="photo_gallery" rel="area_information">Photo Gallery</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Downtown</a></li>
+            <li><a href="#">Downtown Eastside</a></li>
+            <li><a href="#">Dun-South</a></li>
+            <li><a href="#">Park</a></li>
+            <li><a href="#">Faw</a></li>
+            <li><a href="#">Randview-Woods</a></li>
+            <li><a href="#">Stings-Sunrise</a></li>
+            <li><a href="#">Ton-Cedar</a></li>
+            <li><a href="#">Risdale</a></li>
+            <li><a href="#">Karney</a></li>
+            <li><a href="#">Park</a></li>
+            <li><a href="#">Silano</a></li>
+            <li><a href="#">Pole</a></li>
+            <li><a href="#">Leasant</a></li>
+            <li><a href="#">Oak</a></li>
+            <li><a href="#">Frew</a></li>
+            <li><a href="#">Rile</a></li>
+            <li><a href="#">Shaughn</a></li>
+            <li><a href="#">Bambie</a></li>
+            <li><a href="#">Cona</a></li>
+            <li><a href="#">Sunset</a></li>
+            <li><a href="#">Fraser</a></li>
+            <li><a href="#">Wes</a></li>
+            <li><a href="#">Point</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="things_to_do_heading" rel="things_to_do_heading">THINGS TO DO</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="moving" rel="moving_heading">MOVING</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="population_heading" rel="population_heading">POPULATION</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="weather_heading" rel="weather_heading">WEATHER</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="education_heading" rel="education_heading">EDUCATION</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    
+    <li>
+        <a href="#" class="health_heading" rel="health_heading">HEALTH</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+    <li>
+        <a href="#" class="cemetery_heading" rel="cemetery_heading">CEMETERY</a>
+        <ul>
+            <li><a href="#">Link One</a></li>
+            <li><a href="#">Link Two</a></li>
+            <li><a href="#">Link Three</a></li>
+            <li><a href="#">Link Four</a></li>
+            <li><a href="#">Link Five</a></li>
+        </ul>
+    </li>
+</ul>
+
+</body>
+</html>
