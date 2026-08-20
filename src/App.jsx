@@ -15,6 +15,7 @@ import AuditLog from './pages/AuditLog';
 import Katalog from './pages/Katalog';
 import Purchasing from './pages/Purchasing';
 import DataMaster from './pages/DataMaster';
+import MenuAccess from './pages/MenuAccess';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -225,6 +226,7 @@ function AppShell() {
     katalog: <Katalog />,
     purchasing: <Purchasing />,
     master_data: <DataMaster />,
+    menu_access: <MenuAccess />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;

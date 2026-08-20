@@ -1,12 +1,24 @@
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock
 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp, API_BASE } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock };
+
+// Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
+// misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
+// TIDAK PERNAH kosong/rusak hanya karena satu request API gagal.
+function getDefaultAllowedMenus(role) {
+  if (role === 'admin') return navItems.map(item => item.id);
+  if (role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing'];
+  if (role === 'pokja') return ['dashboard', 'tender', 'vendor', 'blacklist'];
+  if (role === 'vendor') return ['dashboard', 'tender', 'blacklist', 'vendor_profile', 'katalog', 'purchasing'];
+  return ['dashboard'];
+}
 
 function UILogo() {
   return (
@@ -27,6 +39,28 @@ function UILogo() {
 
 export default function Sidebar() {
   const { activePage, setActivePage, user, logout, openSettingsModal } = useApp();
+  const [allowedMenus, setAllowedMenus] = useState(() => getDefaultAllowedMenus(user?.role));
+
+  useEffect(() => {
+    let cancelled = false;
+    // Mulai dari aturan bawaan dulu (supaya sidebar langsung terisi, tidak nunggu network)
+    setAllowedMenus(getDefaultAllowedMenus(user?.role));
+
+    if (!user?.role) return;
+
+    fetch(`${API_BASE}/menu/${user.role}`)
+      .then(res => res.json())
+      .then(json => {
+        // Kalau server kasih data hak akses menu, PAKAI itu. Kalau gagal/kosong, tetap
+        // pakai aturan bawaan di atas (sudah ke-set duluan), jadi sidebar tidak pernah blank.
+        if (!cancelled && json.success && json.data.length > 0) {
+          setAllowedMenus(json.data.map(m => m.menu_key));
+        }
+      })
+      .catch(() => { /* biarkan pakai aturan bawaan */ });
+
+    return () => { cancelled = true; };
+  }, [user?.role]);
 
   return (
     <aside className="sidebar-bg w-64 flex-shrink-0 flex flex-col h-screen sticky top-0 z-40 border-r border-white/5">
@@ -39,13 +73,7 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest animate-fade-in">Menu Utama</p>
         {navItems
-          .filter(item => {
-            if (user?.role === 'admin') return true;
-            if (user?.role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing'].includes(item.id);
-            if (user?.role === 'pokja') return ['dashboard', 'tender', 'vendor', 'blacklist'].includes(item.id);
-            if (user?.role === 'vendor') return ['dashboard', 'tender', 'blacklist', 'vendor_profile', 'katalog', 'purchasing'].includes(item.id);
-            return ['dashboard'].includes(item.id); // fallback
-          })
+          .filter(item => allowedMenus.includes(item.id))
           .map(({ id, label, icon }, index) => {
             const Icon = iconMap[icon];
             const isActive = activePage === id;

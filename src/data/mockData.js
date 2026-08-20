@@ -235,4 +235,5 @@ export const navItems = [
   { id: 'vendor_profile', label: 'Profil & Kualifikasi', icon: 'ShieldCheck' },
   { id: 'audit',     label: 'Audit & Dokumen',    icon: 'ShieldCheck' },
   { id: 'master_data', label: 'Data Master',      icon: 'Database' },
+  { id: 'menu_access', label: 'Hak Akses Menu',   icon: 'Lock' },
 ];
