@@ -110,6 +110,25 @@ Semua 7 modul yang disepakati di awal (Blacklist, Negosiasi, Data Master, Hak Ak
 
 Modul lanjutan yang BELUM dikerjakan (bukan bagian dari 7 modul awal, disebutkan waktu bahas modul Konten/CMS, baru dikerjakan kalau memang diminta): Banner (kelola gambar carousel halaman utama) dan Kebijakan (halaman kebijakan publik).
 
+## Tahap kedua: memperdalam modul yang sudah ada tapi masih lebih simpel dari sistem lama
+
+Setelah 7 modul di atas selesai, pengguna bertanya apakah SEMUA modul eproc sudah diterapkan. Jawabannya: kerangka utamanya sudah lengkap dan bisa dipakai dari awal sampai akhir, tapi beberapa bagian masih jauh lebih simpel dibanding sistem lama yang sudah bertahun-tahun dikembangkan. Pengguna minta diperdalam juga, urutan yang disepakati:
+1. Evaluasi Tender - **selesai 2026-08-20**
+2. Kualifikasi Vendor (SIKaP) - belum dikerjakan
+3. Kontrak (termin pembayaran, sanksi, SLA) - belum dikerjakan
+4. RUP/Permohonan Paket (analisa kebutuhan & pasar) - belum dikerjakan
+5. Integrasi SAP - **sengaja tetap simulasi**, karena butuh akses/kredensial SAP asli milik UI yang tidak dimiliki, bukan sesuatu yang bisa dibuat "asli" tanpa itu
+
+### Evaluasi Tender - detail per kategori (selesai 2026-08-20)
+
+Sebelumnya sistem baru cuma punya 1 skor gabungan (`technical_score` di `tender_participants`). Sekarang ditambah sistem evaluasi per kategori yang lebih detail, mengikuti pola sistem lama (tabel `paket_eval_*` dan `rekanan_eval_*`), lewat tabel baru `tender_eval_criteria` (kriteria per tender per kategori: administrasi, teknis, harga, kualifikasi, personil, peralatan, sertifikat lain, pengalaman, syarat pendaftaran) dan `tender_eval_scores` (skor per vendor per kriteria) di `migrations/009_evaluasi_detail.sql`.
+
+**Catatan penting soal batasan yang disengaja**: beberapa kategori di sistem lama (terutama "pengalaman" dan "personil") punya rumus penilaian yang sangat spesifik, sepertinya mengikuti aturan resmi pengadaan pemerintah (LKPP) - ada kolom-kolom seperti `bp_nilai`, `nk1_rp`, `nk2_rpmin/rpmax` di tabel `paket_eval_pengalaman` yang jelas mengikuti rumus resmi tertentu. **Rumus itu TIDAK ditiru** karena tidak ada dokumen resmi acuannya di project ini, dan saya tidak mau menebak-nebak rumus yang berkaitan dengan kepatuhan pengadaan (bisa berakibat serius kalau salah). Sebagai gantinya, semua kategori evaluasi memakai cara yang sama: Pokja bikin daftar kriteria, lalu nilai tiap vendor secara manual per kriteria (skor + catatan + memenuhi syarat/tidak). Kalau nanti pengguna punya dokumen resmi rumusnya, tabel ini sudah siap dipakai, tinggal ditambahkan logika hitung otomatisnya.
+
+Cara pakai: di detail tender, tab "Peserta & Penawaran", ada tombol baru "Evaluasi Detail" per vendor (muncul saat tender di tahap evaluasi/pemenang) yang membuka `EvaluationDetailModal.jsx`. Ini terpisah dan TIDAK menggantikan alur skor/LULUS/GUGUR yang sudah ada sebelumnya (yang menentukan pemenang) - evaluasi detail ini sifatnya pendukung/pencatatan detail saja.
+
+Sudah dites lewat API: tambah kriteria, simpan skor, update skor (replace bukan duplikat), hapus kriteria - semua berhasil.
+
 ## Data sensitif yang HARUS dijaga
 
 Ditemukan beberapa hal sensitif di dalam project ini. Aturan mainnya:

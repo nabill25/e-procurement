@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins } from 'lucide-react';
+import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig, methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
@@ -9,6 +9,7 @@ import ObjectionsTab from './ObjectionsTab';
 import ContractTab from './ContractTab';
 import AanwijzingTab from './AanwijzingTab';
 import NegotiationTab from './NegotiationTab';
+import EvaluationDetailModal from './EvaluationDetailModal';
 
 function VendorQualModal({ vendorId, vendorName, onClose }) {
   const { getAuthHeaders } = useApp();
@@ -313,6 +314,11 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
                     <button onClick={() => setEvaluating({ ...evaluating, viewQual: p })} className="text-[10px] text-blue-600 hover:underline font-semibold flex items-center gap-1">
                       <FileText size={10} /> Lihat Kualifikasi
                     </button>
+                    {(tenderStatus === 'evaluasi' || tenderStatus === 'pemenang') && (
+                      <button onClick={() => setEvaluating({ ...evaluating, viewEvalDetail: p })} className="text-[10px] text-dpbj-gold hover:underline font-semibold flex items-center gap-1 mt-1">
+                        <ClipboardCheck size={10} /> Evaluasi Detail
+                      </button>
+                    )}
                     {p.is_winner && (
                       <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                         <Award size={10} /> PEMENANG
@@ -379,6 +385,14 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
       )}
       {evaluating?.viewQual && (
         <VendorQualModal vendorId={evaluating.viewQual.vendor_id} vendorName={evaluating.viewQual.company_name} onClose={() => setEvaluating({ ...evaluating, viewQual: null })} />
+      )}
+      {evaluating?.viewEvalDetail && (
+        <EvaluationDetailModal
+          isOpen={!!evaluating.viewEvalDetail}
+          tenderId={tenderId}
+          vendor={evaluating.viewEvalDetail}
+          onClose={() => setEvaluating({ ...evaluating, viewEvalDetail: null })}
+        />
       )}
     </div>
   );

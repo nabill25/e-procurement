@@ -381,6 +381,90 @@ router.post('/:id/negotiation/:vendorId/finalize', async (req, res) => {
   }
 });
 
+// ── GET /api/tenders/:id/eval-criteria — Daftar kriteria evaluasi tender (dikelompokkan kategori) ──
+router.get('/:id/eval-criteria', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM tender_eval_criteria WHERE tender_id = $1 ORDER BY category ASC, order_index ASC, created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/eval-criteria — Pokja tambah kriteria evaluasi baru ──
+router.post('/:id/eval-criteria', async (req, res) => {
+  try {
+    const { category, name, is_mandatory, weight } = req.body;
+    if (!category || !name) return res.status(400).json({ success: false, message: 'category dan name wajib diisi.' });
+
+    const result = await pool.query(`
+      INSERT INTO tender_eval_criteria (tender_id, category, name, is_mandatory, weight)
+      VALUES ($1, $2, $3, COALESCE($4, true), $5)
+      RETURNING *
+    `, [req.params.id, category, name, is_mandatory, weight || null]);
+
+    res.status(201).json({ success: true, message: 'Kriteria evaluasi berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── DELETE /api/tenders/:id/eval-criteria/:criteriaId — Hapus kriteria evaluasi ──
+router.delete('/:id/eval-criteria/:criteriaId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM tender_eval_criteria WHERE id = $1 AND tender_id = $2 RETURNING id',
+      [req.params.criteriaId, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Kriteria tidak ditemukan.' });
+    res.json({ success: true, message: 'Kriteria evaluasi berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/tenders/:id/eval-scores/:vendorId — Skor evaluasi detail satu vendor ──
+router.get('/:id/eval-scores/:vendorId', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.id AS criteria_id, c.category, c.name, c.is_mandatory, c.weight,
+             s.meets_requirement, s.score, s.notes
+      FROM tender_eval_criteria c
+      LEFT JOIN tender_eval_scores s ON s.criteria_id = c.id AND s.vendor_id = $2
+      WHERE c.tender_id = $1
+      ORDER BY c.category ASC, c.order_index ASC, c.created_at ASC
+    `, [req.params.id, req.params.vendorId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/eval-scores — Pokja simpan/ubah skor satu kriteria untuk satu vendor ──
+router.post('/:id/eval-scores', async (req, res) => {
+  try {
+    const { criteria_id, vendor_id, meets_requirement, score, notes, scored_by } = req.body;
+    if (!criteria_id || !vendor_id) {
+      return res.status(400).json({ success: false, message: 'criteria_id dan vendor_id wajib diisi.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO tender_eval_scores (criteria_id, vendor_id, meets_requirement, score, notes, scored_by)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (criteria_id, vendor_id)
+      DO UPDATE SET meets_requirement = EXCLUDED.meets_requirement, score = EXCLUDED.score,
+                     notes = EXCLUDED.notes, scored_by = EXCLUDED.scored_by
+      RETURNING *
+    `, [criteria_id, vendor_id, meets_requirement, score || null, notes || null, scored_by || null]);
+
+    res.json({ success: true, message: 'Skor berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/tenders/:id/aanwijzing — Chat Aanwijzing ──
 router.get('/:id/aanwijzing', async (req, res) => {
   try {
