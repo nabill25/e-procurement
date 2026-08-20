@@ -285,6 +285,7 @@ export default function VendorProfile() {
   const [activeTab, setActiveTab] = useState('identitas');
   const [vendorData, setVendorData] = useState(null);
   const [qualifications, setQualifications] = useState({ documents: [], experiences: [] });
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchVendorInfo = async () => {
     try {
@@ -293,6 +294,8 @@ export default function VendorProfile() {
       if (json.success) setVendorData(json.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -310,6 +313,26 @@ export default function VendorProfile() {
     fetchVendorInfo();
     fetchQualifications();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white p-10 rounded-2xl shadow-sm border border-border text-center text-sm text-muted animate-fade-in">
+        Memuat profil vendor...
+      </div>
+    );
+  }
+
+  if (!vendorData) {
+    return (
+      <div className="bg-white p-10 rounded-2xl shadow-sm border border-border text-center animate-fade-in">
+        <h2 className="text-lg font-bold text-dpbj-navy mb-2">Data Vendor Tidak Ditemukan</h2>
+        <p className="text-sm text-muted max-w-md mx-auto">
+          Akun Anda tidak terdaftar sebagai vendor/penyedia, jadi halaman ini tidak dapat menampilkan profil kualifikasi.
+          Halaman ini hanya berlaku untuk akun dengan peran Vendor.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

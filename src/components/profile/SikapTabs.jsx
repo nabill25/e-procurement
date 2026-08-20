@@ -62,7 +62,7 @@ function GenericArrayTab({ title, fields, dataArray, onSave, onUpdateItem, onAdd
 }
 
 export function PajakTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.pajak || []);
+  const [data, setData] = useState(vendor?.pajak || []);
 
   const fields = [
     { key: 'jenis_pajak', label: 'Jenis Pajak (Misal: SPT Tahunan 2023)' },
@@ -88,7 +88,7 @@ export function PajakTab({ vendor, getAuthHeaders, refreshData }) {
 }
 
 export function TenagaAhliTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.tenaga_ahli || []);
+  const [data, setData] = useState(vendor?.tenaga_ahli || []);
 
   const fields = [
     { key: 'nama', label: 'Nama Tenaga Ahli' },
@@ -116,7 +116,7 @@ export function TenagaAhliTab({ vendor, getAuthHeaders, refreshData }) {
 }
 
 export function PeralatanTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.peralatan || []);
+  const [data, setData] = useState(vendor?.peralatan || []);
 
   const fields = [
     { key: 'nama_alat', label: 'Nama Peralatan / Fasilitas' },
@@ -146,7 +146,7 @@ export function PeralatanTab({ vendor, getAuthHeaders, refreshData }) {
 }
 
 export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.pengurus || []);
+  const [data, setData] = useState(vendor?.pengurus || []);
 
   const fields = [
     { key: 'nama', label: 'Nama Pengurus / Direksi' },
@@ -173,7 +173,7 @@ export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
 }
 
 export function BankTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.bank || []);
+  const [data, setData] = useState(vendor?.bank || []);
 
   const fields = [
     { key: 'nama_bank', label: 'Nama Bank' },
@@ -199,7 +199,7 @@ export function BankTab({ vendor, getAuthHeaders, refreshData }) {
 }
 
 export function NeracaTab({ vendor, getAuthHeaders, refreshData }) {
-  const [data, setData] = useState(vendor.neraca || []);
+  const [data, setData] = useState(vendor?.neraca || []);
 
   const fields = [
     { key: 'tahun', label: 'Tahun Buku', type: 'number' },

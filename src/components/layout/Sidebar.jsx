@@ -13,7 +13,9 @@ const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, 
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
 // TIDAK PERNAH kosong/rusak hanya karena satu request API gagal.
 function getDefaultAllowedMenus(role) {
-  if (role === 'admin') return navItems.map(item => item.id);
+  // "vendor_profile" (Profil & Kualifikasi Vendor) sengaja dikecualikan dari Admin:
+  // halaman itu untuk vendor kelola profil perusahaan sendiri, bukan untuk Admin.
+  if (role === 'admin') return navItems.map(item => item.id).filter(id => id !== 'vendor_profile');
   if (role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing'];
   if (role === 'pokja') return ['dashboard', 'tender', 'vendor', 'blacklist'];
   if (role === 'vendor') return ['dashboard', 'tender', 'blacklist', 'vendor_profile', 'katalog', 'purchasing'];
