@@ -17,6 +17,9 @@ const CATEGORIES = [
   { id: 'sertifikat_jenis',  label: 'Jenis Sertifikat' },
   { id: 'vendor_retail',     label: 'Vendor Retail' },
   { id: 'katalog_kategori',  label: 'Kategori Katalog' },
+  { id: 'jenis_belanja',     label: 'Jenis Belanja' },
+  { id: 'analisa_kategori',  label: 'Kategori Analisa' },
+  { id: 'master_checklist',  label: 'Checklist Pengajuan' },
 ];
 
 function SimpleMasterTable({ category }) {
@@ -510,6 +513,122 @@ function KatalogCategoryTable() {
   );
 }
 
+function MasterChecklistTable() {
+  const { user, getAuthHeaders } = useApp();
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [nama, setNama] = useState('');
+  const [paketJenis, setPaketJenis] = useState('');
+  const [wajib, setWajib] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/pengajuan/master/checklist`, { headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) {
+      console.error('Failed to fetch master checklist:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!nama.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/pengajuan/master/checklist`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ nama, paket_jenis: paketJenis || null, wajib, created_by: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNama(''); setPaketJenis(''); setWajib(false);
+        fetchData();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan data.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Hapus item checklist ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/pengajuan/master/checklist/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat menghapus data.');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-surface p-4 rounded-xl border border-border items-end">
+        <div>
+          <label className="text-xs text-muted font-medium">Nama Item Checklist</label>
+          <input value={nama} onChange={e => setNama(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Jenis Paket (opsional)</label>
+          <input value={paketJenis} onChange={e => setPaketJenis(e.target.value)} placeholder="mis. barang, jasa" className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-dpbj-navy">
+          <input type="checkbox" checked={wajib} onChange={e => setWajib(e.target.checked)} /> Wajib
+        </label>
+        <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+          <Plus size={16} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Jenis Paket</th>
+              <th>Wajib</th>
+              <th className="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
+            ) : data.map(row => (
+              <tr key={row.id}>
+                <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
+                <td className="text-xs text-muted">{row.paket_jenis || 'Semua'}</td>
+                <td className="text-xs">{row.wajib ? <span className="text-red-500 font-semibold">Wajib</span> : '-'}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
 
@@ -547,6 +666,8 @@ export default function DataMaster() {
           <VendorRetailTable />
         ) : activeCategory === 'katalog_kategori' ? (
           <KatalogCategoryTable />
+        ) : activeCategory === 'master_checklist' ? (
+          <MasterChecklistTable />
         ) : (
           <SimpleMasterTable category={activeCategory} />
         )}

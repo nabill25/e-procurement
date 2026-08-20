@@ -371,13 +371,13 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ✅ Keranjang & alur pesanan (`katalog_cart_items`) - **temuan besar**: katalog ternyata toko online mini terhubung ke pengajuan/RUP, bukan sekadar galeri produk (backend selesai, frontend keranjang-nego-pesanan menyusul, lihat catatan di bawah)
 - ❌ Surat pernyataan (`katalog_surat_pernyataan`) - **tidak ditemukan controllernya sama sekali** di sistem lama, kemungkinan tabel yang tidak pernah dipakai
 
-**E. Permohonan Paket / RUP (9 tabel)**
-🟡 Sudah ada `procurement_requests` + field analisa kebutuhan/pasar. Yang BELUM:
-- ⬜ File analisa (`permohonan_paket_analisa_file`) - lampiran dokumen analisa
-- ⬜ Approval berjenjang + revisi (`permohonan_paket_approval`, `permohonan_paket_approval_revisi`) - sekarang cuma 1 tahap approve/reject, seharusnya berjenjang dengan riwayat revisi
-- ⬜ Checklist kelengkapan (`permohonan_paket_checklist`) - butuh `master_checklist`
-- 🟡 Master jenis belanja & kategori (`permohonan_paket_analisa_jenis_belanja`, `permohonan_paket_analisa_kategori`)
-- ⬜ Import dari SIRUP (`import_sirup`) - integrasi ke sistem resmi LKPP, butuh akses API SIRUP asli (sama seperti SAP, tidak bisa dibuat "asli" tanpa akses eksternal)
+**E. Permohonan Paket / RUP (9 tabel) - selesai 2026-08-21**
+🟡 Sudah ada `procurement_requests` + field analisa kebutuhan/pasar. Sudah dikerjakan (lihat tulisan lengkap "Kelompok E" di bawah):
+- ✅ File analisa (`procurement_request_files`) - lampiran dokumen analisa, termasuk field tanda tangan elektronik (esign)
+- ✅ Approval berjenjang + revisi (`procurement_request_approvals`, `procurement_request_revisions`) - satu baris approval per approver (bukan cuma 1 status tunggal), plus riwayat revisi dengan catatan+file dikirim balik ke pengaju
+- ✅ Checklist kelengkapan (`procurement_request_checklist` + `master_checklist`) - master checklist difilter per jenis paket, digabung dengan status centang tiap pengajuan
+- ✅ Master jenis belanja & kategori (`jenis_belanja`, `analisa_kategori`) - reuse `master_data` yang sudah ada
+- ❌ Import dari SIRUP (`import_sirup`) - **tetap simulasi**, integrasi ke sistem resmi LKPP, butuh akses API SIRUP asli (sama seperti SAP, tidak bisa dibuat "asli" tanpa akses eksternal, sudah disepakati sebelumnya)
 
 **F. Data Master (bertebaran, sekitar 25 tabel)**
 🟡 Sudah ada sebagian di Data Master (bank, mata_uang, negara, satuan, incoterm, payment_method, analisa_kebutuhan, analisa_pasar, unit_kerja_master). Yang BELUM ditambahkan sebagai kategori Data Master:
@@ -527,3 +527,15 @@ Sudah dites lewat curl end-to-end mencakup semua 40 endpoint (SPPBJ, SPK detail,
 **Sengaja belum dikerjakan di frontend** (dikonfirmasi ke pengguna dulu sebelum mulai): alur keranjang-negosiasi-checkout-lacak status pesanan yang terikat ke satu pengajuan tertentu. Ini butuh perubahan alur UI yang lebih besar di halaman Katalog (pengguna harus pilih pengajuan dulu sebelum belanja, beda dari keranjang sisi-browser sederhana yang sudah ada sekarang yang langsung checkout ke modul Purchasing terpisah). Backend untuk alur ini SUDAH selesai dan sudah dites lewat curl end-to-end (endpoint `/api/katalog/cart/*`, `/api/katalog/logistik/*`), tinggal disambungkan ke UI kapan saja dibutuhkan.
 
 Sudah dites lewat curl end-to-end (kategori berjenjang, tambah produk dengan field lengkap + kategori, update harga dengan verifikasi riwayat cuma tercatat saat berubah, upload foto+lampiran, filter by kategori, keranjang dengan auto-qty-increment, negosiasi harga + ongkos kirim, alur status pesanan lengkap 0→1→2→3 dengan verifikasi invoice muncul di transisi yang tepat, transisi status tidak valid ditolak, laporan produk publik, compare produk). Semua data uji dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).
+
+### Kelompok E: Permohonan Paket/RUP Detail - selesai (2026-08-21)
+
+**Metodologi**: sesuai roadmap CLAUDE.md yang sudah spesifik (bukan riset ulang dari nol seperti kelompok C/D), cakupan kelompok E memang sudah jelas sejak awal: file analisa, approval berjenjang+revisi, checklist. Controller terkait (`permohonan_paket_approval_json.php`, `permohonan_paket_checklist_json.php`) dibaca penuh dan dikonfirmasi aktif dipanggil dari `views/main/`. Dua file besar lain (`permohonan_paket_json.php`, `permohonan_paket_usulan_json.php`, gabungan >5800 baris) TIDAK dijadikan acuan karena isinya alur pembuatan RUP dari awal yang sudah tercakup oleh `procurement_requests` yang ada sekarang - di luar cakupan "sisa pekerjaan" yang didefinisikan roadmap.
+
+**Tabel baru** (migrasi `migrations/020_kelompok_e_rup_detail.sql`): `procurement_request_files` (file analisa + field esign), `procurement_request_approvals` (approval berjenjang - **catatan penting**: field asli cuma `approved`+`approved_by` per baris, jadi "berjenjang" di sini artinya BISA ADA LEBIH DARI SATU approval per pengajuan oleh approver berbeda, bukan alur level bertingkat formal seperti yang mungkin terbayang - ini sesuai persis dengan struktur tabel asli, bukan ditambah-tambah), `procurement_request_revisions` (catatan+file revisi), `master_checklist` (checklist master dengan filter jenis paket+metode pemilihan+flag wajib), `procurement_request_checklist` (centang per pengajuan). Kategori baru `jenis_belanja` dan `analisa_kategori` di `master_data` yang sudah ada (kedua tabel asli cuma referensi nama sederhana, tidak perlu tabel baru).
+
+**Endpoint baru** di `server/routes/pengajuan.js` (~10 endpoint) dan `server/routes/master.js` (2 kategori baru). Logika yang direplikasi persis dari kode asli: approval pakai upsert (`ON CONFLICT ... DO UPDATE`) supaya satu approver yang approve ulang meng-update baris lamanya, bukan bikin duplikat (meniru pola `selectByParams` lalu cek `countRow()` di kode asli); endpoint checklist pengajuan mengambil SEMUA item `master_checklist` yang relevan (difilter jenis paket) lalu digabung dengan status centang yang sudah ada, supaya item yang belum pernah dicentang tetap muncul di daftar (bukan cuma yang sudah ada baris di database); kirim revisi otomatis mengubah `procurement_requests.status` jadi `'revisi'`.
+
+**Frontend**: `src/components/modals/DetailPengajuanModal.jsx` dapat 3 section baru (`ChecklistSection`, `FileAnalisaSection`, `RevisionHistorySection`) plus tombol "Minta Revisi" di tahap verifikasi berkas admin (sebelumnya cuma ada Tolak/Terima, sekarang ada opsi tengah untuk minta perbaikan tanpa langsung menolak). Kategori "Checklist Pengajuan" ditambahkan ke Data Master (`MasterChecklistTable`) untuk admin kelola daftar item checklist master, plus "Jenis Belanja" dan "Kategori Analisa" (pakai komponen generik yang sudah ada).
+
+Sudah dites lewat curl end-to-end (master checklist dengan filter jenis paket, upload file analisa + update esign, checklist merge antara master dan status tercentang, approval oleh 2 approver berbeda dengan verifikasi upsert saat approver sama approve ulang, kirim revisi dengan verifikasi status pengajuan otomatis berubah jadi 'revisi', kategori master data baru). Semua data uji dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).
