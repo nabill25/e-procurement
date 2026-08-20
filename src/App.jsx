@@ -22,6 +22,7 @@ import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
 import RegistrasiVendor from './pages/RegistrasiVendor';
+import QrVerify from './pages/QrVerify';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -29,7 +30,7 @@ import DetailTenderModal from './components/modals/DetailTenderModal';
 import LoginModal from './components/modals/LoginModal';
 
 // Halaman yang menggunakan full public layout (tanpa sidebar/topbar)
-const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist'];
+const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify'];
 
 // Loading screen saat cek session awal
 function AuthLoadingScreen() {
@@ -51,6 +52,7 @@ function PublicNav({ activePage, navigateTo, onLoginClick }) {
     { label: 'Home', id: 'public_home' },
     { label: 'Tender', id: 'public_tender' },
     { label: 'Daftar Hitam', id: 'public_blacklist' },
+    { label: 'Cek Dokumen', id: 'public_qr_verify' },
     { label: 'Kontak Kami', id: 'kontak' },
     { label: 'Registrasi', id: 'registrasi' },
     { label: 'Login', id: 'login' },
@@ -150,6 +152,7 @@ function PublicFooter() {
 function AppShell() {
   const {
     activePage, setActivePage,
+    qrVerifyCode,
     isAuthLoading,
     showNewProcurementModal, closeNewProcurementModal,
     showSettingsModal, closeSettingsModal,
@@ -186,6 +189,7 @@ function AppShell() {
     const publicContent = {
       public_tender: <PublicTenderPage onNavigateHome={() => navigateTo('public_home')} />,
       public_blacklist: <Blacklist onNavigateHome={() => navigateTo('public_home')} />,
+      public_qr_verify: <QrVerify initialCode={qrVerifyCode} onNavigateHome={() => navigateTo('public_home')} />,
       kontak: <KontakKami onNavigateHome={() => navigateTo('public_home')} />,
       registrasi: <RegistrasiVendor onNavigateHome={() => navigateTo('public_home')} onLoginClick={() => setShowLogin(true)} />,
     };

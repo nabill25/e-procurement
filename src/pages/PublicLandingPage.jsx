@@ -94,6 +94,7 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
     { label: 'Home', id: 'public_home' },
     { label: 'Tender', id: 'public_tender' },
     { label: 'Daftar Hitam', id: 'public_blacklist' },
+    { label: 'Cek Dokumen', id: 'public_qr_verify' },
     { label: 'Kontak Kami', id: 'kontak' },
     { label: 'Registrasi', id: 'registrasi' },
     { label: 'Login', id: 'login' },

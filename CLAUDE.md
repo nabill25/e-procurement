@@ -103,16 +103,12 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 
 - **Konten/CMS - Berita & FAQ** (selesai 2026-08-20): `server/routes/cms.js`, tabel `cms_news` + `cms_faq` (`migrations/007_konten_cms.sql`), halaman admin baru `src/pages/ContentManagement.jsx` ("Kelola Konten" di sidebar), tampil otomatis di halaman utama publik (`PublicLandingPage.jsx`, komponen `NewsAndFaqSection`, section ini otomatis sembunyi kalau belum ada berita/FAQ yang dipublikasikan). **Sengaja tidak termasuk** "Banner" (carousel hero yang sudah ada di halaman utama sengaja tidak diubah, sudah bagus dan jalan baik pakai data sendiri) dan "Kebijakan" (belum dibuat, bisa ditambahkan lagi kalau memang dibutuhkan).
 
-Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
-1. ~~Blacklist~~ - **selesai**
-2. ~~Negosiasi~~ - **selesai**
-3. ~~Data Master~~ - **selesai**
-4. ~~Manajemen hak akses berbasis menu~~ - **selesai**
-5. ~~Chat/shoutbox dan sistem pengaduan (inbox complain)~~ - **selesai**
-6. ~~Konten/CMS (Berita & FAQ)~~ - **selesai** (Banner dan Kebijakan sengaja belum dikerjakan, lihat catatan di atas)
-7. **Validasi QR**
+- **Validasi QR** (selesai 2026-08-20): sistem lama sebenarnya **tidak pernah menyelesaikan** fitur ini (controller-nya kosong, tidak ada tampilannya sama sekali), jadi dibangun berdasarkan struktur tabel `qr_validasi` yang ada (maksud aslinya: cek keaslian dokumen resmi lewat kode QR). `server/routes/qr.js`, tabel `qr_validations` (`migrations/008_validasi_qr.sql`). Ditambahkan dependency baru **`qrcode`** (npm package) di `server/package.json` untuk bikin gambar QR asli, sebelumnya tidak ada. Tombol "Buat Kode QR" ada di tab Kontrak pada detail tender (`ContractTab.jsx`, khusus role admin/PPK setelah kontrak dibuat). Halaman publik baru `src/pages/QrVerify.jsx` ("Cek Dokumen" di menu publik) untuk masukkan kode manual, ATAU otomatis kebuka & langsung tercek kalau link `http://localhost:5173/verify/KODE` dibuka langsung (misal dari hasil pindai kamera HP) - ini pakai pengecekan `window.location.pathname` sederhana di `AppContext.jsx`, BUKAN library routing (react-router), supaya tidak mengubah cara kerja navigasi yang sudah ada. **Catatan untuk nanti kalau sudah waktunya deploy sungguhan**: server hosting production perlu diatur supaya path seperti `/verify/KODE` tetap mengarah ke `index.html` (fallback SPA), kalau tidak nanti muncul halaman 404 dari server saat link itu dibuka langsung (bukan dari dalam aplikasi). Sekarang di `npm run dev` ini otomatis jalan karena Vite dev server memang begitu perilakunya.
+- Ketemu juga bug lama yang tidak berhubungan dengan tugas ini: `ContractTab.jsx` sebelumnya pakai ikon `CheckCircle2` tanpa di-import, jadi bisa bikin halaman Kontrak error kalau dokumen SPK/BAST sudah pernah diunggah. Sudah ikut diperbaiki.
 
-Catatan: menyamakan SEMUA modul di atas 1:1 adalah pekerjaan besar (skala berbulan-bulan, bukan sekali kerja). Dikerjakan satu per satu sesuai urutan di atas, dan pengguna dikabari tiap satu modul selesai supaya bisa dicoba dulu sebelum lanjut ke modul berikutnya.
+Semua 7 modul yang disepakati di awal (Blacklist, Negosiasi, Data Master, Hak Akses Menu, Pengaduan, Konten/CMS, Validasi QR) **sudah selesai** per 2026-08-20. Setiap modul sudah dites sendiri (bukan cuma nulis kode) sebelum dilaporkan selesai: lewat API langsung (curl) untuk backend, dan lewat permintaan ke dev server Vite untuk memastikan file frontend tidak error kompilasi.
+
+Modul lanjutan yang BELUM dikerjakan (bukan bagian dari 7 modul awal, disebutkan waktu bahas modul Konten/CMS, baru dikerjakan kalau memang diminta): Banner (kelola gambar carousel halaman utama) dan Kebijakan (halaman kebijakan publik).
 
 ## Data sensitif yang HARUS dijaga
 

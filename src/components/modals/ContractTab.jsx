@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp, API_BASE } from '../../context/AppContext';
-import { Download, Award, ShieldCheck, Star } from 'lucide-react';
+import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
 
@@ -17,6 +17,8 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
   });
   const [files, setFiles] = useState({ spk: null, bast: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [qrData, setQrData] = useState(null);
+  const [generatingQr, setGeneratingQr] = useState(false);
 
   const fetchContract = async () => {
     try {
@@ -91,6 +93,30 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       alert(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGenerateQr = async () => {
+    setGeneratingQr(true);
+    try {
+      const res = await fetch(`${API_BASE}/qr/generate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          source_type: 'kontrak',
+          tender_id: tenderId,
+          vendor_id: winner?.vendor_id,
+          info: `Kontrak ${form.contract_number || ''} - ${winner?.company_name || ''}`,
+          created_by: user.id,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) setQrData(json.data);
+      else alert('Gagal membuat kode QR: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat membuat kode QR.');
+    } finally {
+      setGeneratingQr(false);
     }
   };
 
@@ -205,6 +231,30 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       {!contract && user.role !== 'ppk' && (
         <div className="p-6 text-center text-sm text-muted bg-surface rounded-xl border border-border">
           Belum ada data kontrak yang diunggah oleh PPK.
+        </div>
+      )}
+
+      {/* Kode QR verifikasi keaslian dokumen kontrak (Admin/PPK) */}
+      {contract && (user.role === 'ppk' || user.role === 'admin') && (
+        <div className="border border-border rounded-xl p-5 bg-white shadow-sm space-y-3">
+          <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2 flex items-center gap-2">
+            <QrCode size={16} className="text-dpbj-gold" /> Kode QR Verifikasi Dokumen
+          </h4>
+          <p className="text-xs text-muted">Buat kode QR supaya siapapun bisa memindai dan memastikan dokumen kontrak ini asli.</p>
+          {qrData ? (
+            <div className="flex items-center gap-4 bg-surface p-4 rounded-xl">
+              <img src={qrData.qr_image} alt="Kode QR" className="w-28 h-28 rounded-lg border border-border bg-white" />
+              <div>
+                <p className="text-xs text-muted">Kode:</p>
+                <p className="font-mono font-bold text-dpbj-navy text-sm tracking-wider">{qrData.qr_code}</p>
+                <p className="text-[10px] text-muted mt-2 break-all">{qrData.verify_url}</p>
+              </div>
+            </div>
+          ) : (
+            <button onClick={handleGenerateQr} disabled={generatingQr} className="btn-secondary flex items-center gap-2 disabled:opacity-50">
+              <QrCode size={14} /> {generatingQr ? 'Membuat...' : 'Buat Kode QR'}
+            </button>
+          )}
         </div>
       )}
 

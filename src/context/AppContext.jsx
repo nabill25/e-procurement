@@ -16,8 +16,18 @@ export function getAuthHeaders() {
 // ── User default (fallback demo jika tidak ada koneksi backend) ──
 const DEFAULT_DEMO_USER = mockUsers[0];
 
+// ── Deep-link: buka /verify/KODE langsung ke halaman verifikasi QR ──
+// (misalnya saat kode QR di dokumen dipindai lewat kamera HP)
+function getDeepLinkFromUrl() {
+  const match = window.location.pathname.match(/^\/verify\/([A-Za-z0-9]+)$/);
+  if (match) return { page: 'public_qr_verify', code: match[1].toUpperCase() };
+  return { page: 'public_home', code: null };
+}
+const initialDeepLink = getDeepLinkFromUrl();
+
 export function AppProvider({ children }) {
-  const [activePage, setActivePage] = useState('public_home');
+  const [activePage, setActivePage] = useState(initialDeepLink.page);
+  const [qrVerifyCode] = useState(initialDeepLink.code);
   const [user, setUser] = useState(null);           // null = belum login
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true); // cek session awal
@@ -191,6 +201,7 @@ export function AppProvider({ children }) {
 
   const value = {
     activePage, setActivePage,
+    qrVerifyCode,
     user, setUser,
     isAuthenticated,
     isAuthLoading,
