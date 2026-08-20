@@ -314,19 +314,19 @@ Jadi ini **BUKAN** proyek "bikin sistem baru yang lebih simpel", ini proyek **mi
 Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum ada sama sekali
 
 **A. Tender/Paket (49 tabel, prefix `paket_*` + `paket` sendiri)**
-🟡 Inti sudah ada (`tenders`, `tender_participants`, `tender_eval_criteria/scores`, `tender_aanwijzing_chats`, `tender_objections`, `tender_negotiation_chats`). Yang BELUM ada sebagai fitur tersendiri:
-- ⬜ Dokumen tender (`paket_dokumen`, `paket_dokumen_backup`, `paket_dokumen_download`) - upload/download dokumen pengadaan resmi (beda dari dokumen penawaran vendor)
-- ⬜ Panitia/Pokja per paket (`paket_panitia`, `paket_panitia_backup`, `paket_panitia_sk`, `panitia`, `sk_panitia`) - penunjukan anggota panitia + SK
-- ⬜ Pembukaan penawaran 2 tahap (`paket_pembukaan_validasi`, `paket_pembukaankedua_validasi`) - untuk metode 2 sampul/2 tahap
-- ⬜ Pernyataan minat / pra-kualifikasi (`paket_pernyataan_minat`)
-- ⬜ Klarifikasi (`paket_klarifikasi`) - beda dari aanwijzing
-- ⬜ Reschedule tahapan dengan riwayat (`paket_tahap_reschedule`) - sekarang cuma ubah status, belum ada riwayat reschedule
-- ⬜ Peringkat pemenang & cadangan (`paket_pemenang_peringkat`)
-- ⬜ Template & jenis master (`paket_jenis`, `paket_metode_evaluasi`, `paket_metode_kualifikasi`, `paket_metode_lelang`, `paket_kriteria_eval`, `evaluasi_jenis`, `matrix_evaluasi`)
-- ⬜ Pakta integritas (`paket_pakta_integritas`)
-- ⬜ Pihak lain / sub-kontraktor (`paket_pihak_lain`)
-- ⬜ Template penilaian (`paket_penilaian_template`) - beda dari `vendor_ratings` yang sudah ada
-- 🟡 Bidang usaha per paket (`paket_bidang_usaha`) - butuh master `bidang_usaha` dulu
+🟡 Inti sudah ada (`tenders`, `tender_participants`, `tender_eval_criteria/scores`, `tender_aanwijzing_chats`, `tender_objections`, `tender_negotiation_chats`). Sudah dikerjakan (lihat tulisan lengkap "Kelompok A" di bawah):
+- ✅ Dokumen tender (`tender_documents`) - upload/download dokumen pengadaan resmi (beda dari dokumen penawaran vendor)
+- ✅ Panitia/Pokja per paket (`tender_panitia`) + SK Panitia master roster (`sk_panitia` + `panitia`) - penunjukan anggota panitia, ketua, kunci tim, validasi pemenang oleh panitia
+- ✅ Pembukaan penawaran 2 tahap (`tender_pembukaan_validasi`, kolom `tahap`) - untuk metode 2 sampul/2 tahap
+- ✅ Pernyataan minat / pra-kualifikasi (`tender_pernyataan_minat`)
+- ✅ Klarifikasi dokumen formal + tanggapan aanwijzing (`tender_klarifikasi_dokumen`) - beda dari chat aanwijzing yang sudah ada, plus undangan klarifikasi resmi (`tender_undangan_klarifikasi`)
+- ✅ Peringkat pemenang & cadangan (`tender_pemenang_peringkat`)
+- ✅ Pakta integritas (`tender_pakta_integritas`)
+- ✅ Pihak lain / sub-kontraktor (`tender_pihak_lain`)
+- ⬜ Reschedule tahapan dengan riwayat (`paket_tahap_reschedule`) - sekarang cuma ubah status, belum ada riwayat reschedule - **belum dikerjakan, lanjut nanti**
+- ⬜ Template & jenis master (`paket_jenis`, `paket_metode_evaluasi`, `paket_metode_kualifikasi`, `paket_metode_lelang`, `paket_kriteria_eval`, `evaluasi_jenis`, `matrix_evaluasi`) - **belum dikerjakan, lanjut nanti**
+- ⬜ Template penilaian (`paket_penilaian_template`) - beda dari `vendor_ratings` yang sudah ada - **belum dikerjakan, lanjut nanti**
+- 🟡 Bidang usaha per paket (`paket_bidang_usaha`) - butuh master `bidang_usaha` dulu - **belum dikerjakan, lanjut nanti**
 
 **B. Vendor/Rekanan (41 tabel, prefix `rekanan_*` + `rekanan` sendiri)**
 🟡 Inti sudah ada (`vendors` + kolom jsonb pajak/pengurus/tenaga_ahli/peralatan/bank/neraca + `vendor_documents` + `vendor_experiences` + `vendor_ratings`). Yang BELUM ada sebagai fitur/tabel tersendiri:
@@ -434,3 +434,25 @@ Tabel baru: `tender_eval_category_config` (nilai maksimal per kategori per tende
 **Sudah diverifikasi dengan hitungan manual sebelum dipakai** (bukan cuma dites jalan, tapi dicek angkanya benar): 3 skenario dihitung tangan dulu (personil dengan kekurangan orang, peralatan sewa, sertifikat lengkap), lalu dibandingkan hasil API-nya - ketiganya cocok persis dengan hitungan manual.
 
 Frontend: `src/components/modals/FormulaCategorySection.jsx` (baru), disambungkan ke `EvaluationDetailModal.jsx` - kategori Personil/Peralatan/Sertifikat Lain otomatis tampil pakai UI item-based (tambah item + rumus otomatis), kategori lain tetap pakai skor manual seperti sebelumnya.
+
+### Kelompok A: Tender/Paket Detail - backend selesai (2026-08-21), frontend menyusul
+
+**Metodologi yang dipakai** (sesuai pelajaran dari kelompok J): sebelum bikin tabel apapun, semua controller PHP terkait dibaca penuh dulu (`paket_dokumen_json.php`, `paket_panitia_json.php`, `sk_panitia_json.php`, `paket_pernyataan_minat_json.php`, `paket_pemenang_peringkat_json.php`, `paket_pakta_integritas_json.php`, `paket_pihak_lain_json.php`, `paket_pembukaan_validasi_json.php`, `paket_pembukaan_kedua_validasi_json.php`, `klarifikasi_chat_json.php`, `paket_undangan_klarifikasi_json.php`), lalu dicek dengan grep ke `eproc/application/views/main/*.php` bahwa semuanya benar-benar dipanggil dari halaman aktif (bukan folder backup). Semua 11 controller terkonfirmasi aktif dipakai.
+
+**Tabel baru** (migrasi `migrations/016_kelompok_a_paket_detail.sql`):
+- `tender_documents` - dokumen resmi tender (jenis: lelang/kualifikasi/aritmatika/laporan), beda dari dokumen penawaran vendor yang sudah ada di `tender_participants.document_path`.
+- `sk_panitia` + `panitia` - master roster SK (surat keputusan) pembentukan panitia per unit kerja, dengan daftar anggotanya. Ini terpisah dari penugasan panitia ke satu paket tertentu.
+- `tender_panitia` - penugasan panitia (dari roster atau input manual) ke satu paket, dengan flag ketua, status kunci tim (`locked`), dan kolom validasi pemenang oleh panitia (`validasi_pemenang` + catatan) - ini langkah persetujuan TAMBAHAN sebelum pemenang final diumumkan, terpisah dari `tender_participants.is_winner` yang merupakan penetapan awal oleh PPK/Pokja.
+- `tender_pernyataan_minat` - surat kuasa/pernyataan minat rekanan saat mendaftar paket, termasuk upload file kuasa.
+- `tender_pakta_integritas` - validasi pakta integritas per paket, bisa oleh rekanan maupun panitia (kolom `jenis`).
+- `tender_pihak_lain` - user login lain yang diberi akses lihat ke suatu paket (misal auditor tambahan).
+- `tender_pembukaan_validasi` - validasi pembukaan sampul penawaran, kolom `tahap` (1=sampul pertama, 2=sampul kedua) menggabungkan dua controller lama (`paket_pembukaan_validasi_json` dan `paket_pembukaan_kedua_validasi_json`) jadi satu tabel yang lebih rapi.
+- `tender_klarifikasi_dokumen` - dokumen klarifikasi formal dari rekanan + tanggapan aanwijzing dari panitia (pola parent-child lewat `parent_id`), beda dari `tender_aanwijzing_chats` yang sudah ada (itu chat realtime, ini dokumen resmi).
+- `tender_undangan_klarifikasi` - undangan klarifikasi resmi ke vendor (jadwal, tempat, peserta). Di sistem lama fitur ini otomatis kirim email; di sistem baru field `email` disimpan tapi pengiriman email belum diimplementasikan (perlu SMTP config, menyusul).
+- `tender_pemenang_peringkat` - urutan peringkat pemenang + cadangan per paket (bisa lebih dari 1 baris per paket, beda dari `is_winner` yang cuma tandai 1 pemenang utama).
+
+**Endpoint baru** di `server/routes/tenders.js` (semua sudah dites lewat curl dengan data tender sungguhan, lalu data uji dibersihkan): dokumen tender (`GET/POST/DELETE /:id/documents`), SK panitia master (`GET/POST/PUT/DELETE /master/sk-panitia`, `POST /master/sk-panitia/:skId/lampiran`), panitia per paket (`GET/POST/DELETE /:id/panitia`, `PATCH /:id/panitia/lock`, `PATCH /:id/panitia/:panitiaId/validasi-pemenang`), pernyataan minat (`GET/POST /:id/pernyataan-minat`), pakta integritas (`GET/POST /:id/pakta-integritas`), pihak lain (`GET/POST/DELETE /:id/pihak-lain`), pembukaan penawaran (`GET/POST /:id/pembukaan`), klarifikasi dokumen + tanggapan (`GET/POST/DELETE /:id/klarifikasi-dokumen`, `POST /:id/klarifikasi-dokumen/:docId/tanggapan`), undangan klarifikasi (`GET/POST /:id/undangan-klarifikasi`), peringkat pemenang (`GET/POST/DELETE /:id/peringkat-pemenang`).
+
+**Perangkap route ordering yang ditemukan dan diperbaiki sendiri**: rute `/master/sk-panitia` awalnya ditaruh di akhir file, SETELAH `router.get('/:id', ...)` yang sudah ada dari awal. Karena Express mencocokkan rute berurutan dari atas, `GET /api/tenders/master/sk-panitia` akan salah tertangkap sebagai `GET /:id` dengan `id="master"`. Sudah dipindah ke sebelum rute `/:id` dan dites ulang, berhasil. Pelajaran untuk kelompok B-K berikutnya: setiap kali menambah endpoint dengan path literal (bukan berisi tender_id) di file yang sudah punya `/:id`, harus ditaruh SEBELUM rute `/:id` itu.
+
+**Belum dikerjakan dari kelompok A**: halaman/komponen React (frontend) untuk semua fitur di atas - sejauh ini baru backend + database. Juga 4 sub-fitur yang sengaja ditunda (lihat daftar di atas): reschedule tahapan dengan riwayat, tabel master jenis/metode (paket_jenis dst), template penilaian, dan bidang usaha per paket (butuh master bidang_usaha lebih dulu, direncanakan dikerjakan bareng kelompok B karena bidang_usaha juga dipakai vendor).

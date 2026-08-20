@@ -77,6 +77,108 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── SK PANITIA (master roster, terpisah dari data master.js karena spesifik ke tender workflow) ──
+// Ditaruh sebelum route GET /:id supaya "master" tidak ketangkap sebagai :id.
+router.get('/master/sk-panitia', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM sk_panitia ORDER BY created_at DESC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/master/sk-panitia/:skId', async (req, res) => {
+  try {
+    const sk = await pool.query('SELECT * FROM sk_panitia WHERE id = $1', [req.params.skId]);
+    if (!sk.rows.length) return res.status(404).json({ success: false, message: 'SK Panitia tidak ditemukan.' });
+    const members = await pool.query('SELECT * FROM panitia WHERE sk_panitia_id = $1 ORDER BY is_ketua DESC, nama ASC', [req.params.skId]);
+    res.json({ success: true, data: { ...sk.rows[0], members: members.rows } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/master/sk-panitia', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { unit_kerja, nomor_sk, tanggal_sk, pejabat_penetap, pejabat_penetap_nip, tanggal_mulai, tanggal_akhir, status, members } = req.body;
+    if (!unit_kerja) return res.status(400).json({ success: false, message: 'unit_kerja diperlukan.' });
+    await client.query('BEGIN');
+    const sk = await client.query(`
+      INSERT INTO sk_panitia (unit_kerja, nomor_sk, tanggal_sk, pejabat_penetap, pejabat_penetap_nip, tanggal_mulai, tanggal_akhir, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+    `, [unit_kerja, nomor_sk || null, tanggal_sk || null, pejabat_penetap || null, pejabat_penetap_nip || null, tanggal_mulai || null, tanggal_akhir || null, status !== false]);
+    if (Array.isArray(members)) {
+      for (const m of members) {
+        if (!m.nama) continue;
+        await client.query(`
+          INSERT INTO panitia (sk_panitia_id, nip, nama, jabatan, is_ketua)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [sk.rows[0].id, m.nip || null, m.nama, m.jabatan || null, !!m.is_ketua]);
+      }
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, data: sk.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.put('/master/sk-panitia/:skId', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { unit_kerja, nomor_sk, tanggal_sk, pejabat_penetap, pejabat_penetap_nip, tanggal_mulai, tanggal_akhir, status, members } = req.body;
+    await client.query('BEGIN');
+    const sk = await client.query(`
+      UPDATE sk_panitia SET unit_kerja=$1, nomor_sk=$2, tanggal_sk=$3, pejabat_penetap=$4, pejabat_penetap_nip=$5,
+        tanggal_mulai=$6, tanggal_akhir=$7, status=$8, updated_at=CURRENT_TIMESTAMP
+      WHERE id = $9 RETURNING *
+    `, [unit_kerja, nomor_sk || null, tanggal_sk || null, pejabat_penetap || null, pejabat_penetap_nip || null, tanggal_mulai || null, tanggal_akhir || null, status !== false, req.params.skId]);
+    if (Array.isArray(members)) {
+      await client.query('DELETE FROM panitia WHERE sk_panitia_id = $1', [req.params.skId]);
+      for (const m of members) {
+        if (!m.nama) continue;
+        await client.query(`
+          INSERT INTO panitia (sk_panitia_id, nip, nama, jabatan, is_ketua)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [req.params.skId, m.nip || null, m.nama, m.jabatan || null, !!m.is_ketua]);
+      }
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, data: sk.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/master/sk-panitia/:skId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM sk_panitia WHERE id = $1', [req.params.skId]);
+    res.json({ success: true, message: 'SK Panitia berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/master/sk-panitia/:skId/lampiran', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
+    const result = await pool.query(`
+      UPDATE sk_panitia SET file_sk = $1, file_path = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *
+    `, [req.file.originalname, req.file.filename, req.params.skId]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/tenders/:id — Detail satu tender ──
 router.get('/:id', async (req, res) => {
   try {
@@ -918,6 +1020,397 @@ router.get('/:id/eval-formula-score/:vendorId/:category', async (req, res) => {
       success: true,
       data: { category, max_score: maxScore, breakdown, total_prosentase: totalProsentase, final_score: finalScore },
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// KELOMPOK A - Detail Paket/Tender
+// (dokumen tender, panitia, SK panitia, pernyataan minat, pakta integritas,
+// pihak lain, pembukaan penawaran, klarifikasi, peringkat pemenang)
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── DOKUMEN TENDER ──
+router.get('/:id/documents', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT d.*, u.full_name AS uploaded_by_name
+      FROM tender_documents d
+      LEFT JOIN users u ON d.uploaded_by = u.id
+      WHERE d.tender_id = $1
+      ORDER BY d.created_at DESC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/documents', upload.single('file'), async (req, res) => {
+  try {
+    const { document_type, name, notes, uploaded_by } = req.body;
+    if (!document_type || !req.file) {
+      return res.status(400).json({ success: false, message: 'document_type dan file diperlukan.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO tender_documents (tender_id, document_type, name, file_path, file_size, notes, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+    `, [req.params.id, document_type, name || req.file.originalname, req.file.filename, req.file.size, notes || null, uploaded_by || null]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/documents/:docId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_documents WHERE id = $1 AND tender_id = $2', [req.params.docId, req.params.id]);
+    res.json({ success: true, message: 'Dokumen berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PANITIA PER PAKET ──
+router.get('/:id/panitia', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM tender_panitia WHERE tender_id = $1 ORDER BY is_ketua DESC, nama ASC',
+      [req.params.id]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Penugasan panitia ke paket, biasanya diambil massal dari roster SK panitia (bisa juga input manual).
+router.post('/:id/panitia', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { members, created_by } = req.body;
+    if (!Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({ success: false, message: 'Daftar anggota panitia diperlukan.' });
+    }
+    await client.query('BEGIN');
+    const lockCheck = await client.query('SELECT locked FROM tender_panitia WHERE tender_id = $1 LIMIT 1', [req.params.id]);
+    if (lockCheck.rows.length && lockCheck.rows[0].locked) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Tim panitia sudah dikunci, tidak bisa diubah.' });
+    }
+    await client.query('DELETE FROM tender_panitia WHERE tender_id = $1', [req.params.id]);
+    for (const m of members) {
+      await client.query(`
+        INSERT INTO tender_panitia (tender_id, nip, nama, jabatan, is_ketua, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [req.params.id, m.nip || null, m.nama, m.jabatan || null, !!m.is_ketua, created_by || null]);
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Panitia berhasil ditugaskan.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/:id/panitia/:panitiaId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_panitia WHERE id = $1 AND tender_id = $2', [req.params.panitiaId, req.params.id]);
+    res.json({ success: true, message: 'Anggota panitia berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.patch('/:id/panitia/lock', async (req, res) => {
+  try {
+    await pool.query('UPDATE tender_panitia SET locked = true WHERE tender_id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Tim panitia berhasil dikunci.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Validasi pemenang oleh panitia (approve/reject), langkah tambahan sebelum pemenang final diumumkan.
+router.patch('/:id/panitia/:panitiaId/validasi-pemenang', async (req, res) => {
+  try {
+    const { validasi, catatan } = req.body;
+    if (!['setuju', 'tolak'].includes(validasi)) {
+      return res.status(400).json({ success: false, message: 'validasi harus setuju atau tolak.' });
+    }
+    if (validasi === 'tolak' && !catatan) {
+      return res.status(400).json({ success: false, message: 'Catatan wajib diisi jika menolak.' });
+    }
+    const result = await pool.query(`
+      UPDATE tender_panitia SET validasi_pemenang = $1, validasi_pemenang_catatan = $2
+      WHERE id = $3 AND tender_id = $4 RETURNING *
+    `, [validasi, catatan || null, req.params.panitiaId, req.params.id]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PERNYATAAN MINAT ──
+router.get('/:id/pernyataan-minat/:vendorId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM tender_pernyataan_minat WHERE tender_id = $1 AND vendor_id = $2',
+      [req.params.id, req.params.vendorId]
+    );
+    res.json({ success: true, data: result.rows[0] || null });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/pernyataan-minat', upload.single('penerima_kuasa_file'), async (req, res) => {
+  try {
+    const { vendor_id, nama, jabatan, alamat, telepon, email, penerima_kuasa, penerima_kuasa_jabatan, penerima_kuasa_ktp } = req.body;
+    if (!vendor_id) return res.status(400).json({ success: false, message: 'vendor_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_pernyataan_minat
+        (tender_id, vendor_id, nama, jabatan, alamat, telepon, email, penerima_kuasa, penerima_kuasa_jabatan, penerima_kuasa_ktp, penerima_kuasa_file)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *
+    `, [req.params.id, vendor_id, nama || null, jabatan || null, alamat || null, telepon || null, email || null,
+        penerima_kuasa || null, penerima_kuasa_jabatan || null, penerima_kuasa_ktp || null, req.file ? req.file.filename : null]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PAKTA INTEGRITAS ──
+router.get('/:id/pakta-integritas', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.*, u.full_name AS user_name
+      FROM tender_pakta_integritas p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.tender_id = $1
+      ORDER BY p.created_at DESC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/pakta-integritas', async (req, res) => {
+  try {
+    const { user_id, kode, jenis, created_by } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, message: 'user_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_pakta_integritas (tender_id, user_id, kode, jenis, created_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (tender_id, user_id, jenis) DO UPDATE SET kode = EXCLUDED.kode, created_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [req.params.id, user_id, kode || null, jenis || 'REKANAN', created_by || null]);
+    res.json({ success: true, message: 'Validasi pakta integritas berhasil.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PIHAK LAIN ──
+router.get('/:id/pihak-lain', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pl.*, u.full_name, u.email, u.role_label
+      FROM tender_pihak_lain pl
+      JOIN users u ON pl.user_id = u.id
+      WHERE pl.tender_id = $1 AND pl.status = true
+      ORDER BY u.full_name ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/pihak-lain', async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, message: 'user_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_pihak_lain (tender_id, user_id, status)
+      VALUES ($1, $2, true)
+      ON CONFLICT (tender_id, user_id) DO UPDATE SET status = true
+      RETURNING *
+    `, [req.params.id, user_id]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/pihak-lain/:userId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_pihak_lain WHERE tender_id = $1 AND user_id = $2', [req.params.id, req.params.userId]);
+    res.json({ success: true, message: 'Pihak lain berhasil dihapus dari paket ini.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PEMBUKAAN PENAWARAN (sampul 1 dan sampul 2) ──
+router.get('/:id/pembukaan/:tahap', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pv.*, u.full_name AS user_name
+      FROM tender_pembukaan_validasi pv
+      JOIN users u ON pv.user_id = u.id
+      WHERE pv.tender_id = $1 AND pv.tahap = $2
+      ORDER BY pv.created_at ASC
+    `, [req.params.id, req.params.tahap]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/pembukaan', async (req, res) => {
+  try {
+    const { user_id, kode, jenis, tahap } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, message: 'user_id diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_pembukaan_validasi (tender_id, user_id, kode, jenis, tahap)
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
+    `, [req.params.id, user_id, kode || null, jenis || null, tahap || 1]);
+    res.json({ success: true, message: 'Validasi pembukaan berhasil.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── KLARIFIKASI DOKUMEN (dokumen formal, terpisah dari chat aanwijzing) ──
+router.get('/:id/klarifikasi-dokumen', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT k.*, u.full_name AS vendor_name
+      FROM tender_klarifikasi_dokumen k
+      LEFT JOIN users u ON k.vendor_id = u.id
+      WHERE k.tender_id = $1
+      ORDER BY k.created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Vendor upload dokumen klarifikasi.
+router.post('/:id/klarifikasi-dokumen', upload.single('file'), async (req, res) => {
+  try {
+    const { vendor_id, nama, notes, created_by } = req.body;
+    if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_klarifikasi_dokumen (tender_id, nama, file_path, file_size, notes, vendor_id, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+    `, [req.params.id, nama || 'Dokumen Klarifikasi', req.file.filename, req.file.size, notes || null, vendor_id || null, created_by || null]);
+    res.json({ success: true, message: 'Dokumen klarifikasi berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Panitia balas dengan dokumen tanggapan aanwijzing (parent_id = dokumen yang ditanggapi).
+router.post('/:id/klarifikasi-dokumen/:docId/tanggapan', upload.single('file'), async (req, res) => {
+  try {
+    const { notes, created_by } = req.body;
+    if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
+    const result = await pool.query(`
+      INSERT INTO tender_klarifikasi_dokumen (tender_id, nama, file_path, file_size, notes, parent_id, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
+    `, [req.params.id, 'Dokumen Tanggapan Aanwijzing', req.file.filename, req.file.size, notes || null, req.params.docId, created_by || null]);
+    res.json({ success: true, message: 'Tanggapan berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/klarifikasi-dokumen/:docId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_klarifikasi_dokumen WHERE id = $1 AND tender_id = $2', [req.params.docId, req.params.id]);
+    res.json({ success: true, message: 'Dokumen klarifikasi berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── UNDANGAN KLARIFIKASI (jadwal pertemuan resmi ke vendor) ──
+router.get('/:id/undangan-klarifikasi', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT uk.*, u.full_name AS vendor_name, u.email AS vendor_email
+      FROM tender_undangan_klarifikasi uk
+      JOIN users u ON uk.vendor_id = u.id
+      WHERE uk.tender_id = $1
+      ORDER BY uk.tanggal_undangan DESC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/undangan-klarifikasi', async (req, res) => {
+  try {
+    const { vendor_id, tanggal_undangan, jam, peserta, pelaksanaan, tempat, keterangan, created_by } = req.body;
+    if (!vendor_id || !tanggal_undangan) {
+      return res.status(400).json({ success: false, message: 'vendor_id dan tanggal_undangan diperlukan.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO tender_undangan_klarifikasi (tender_id, vendor_id, tanggal_undangan, jam, peserta, pelaksanaan, tempat, keterangan, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+    `, [req.params.id, vendor_id, tanggal_undangan, jam || null, peserta || null, pelaksanaan || null, tempat || null, keterangan || null, created_by || null]);
+    res.json({ success: true, message: 'Undangan klarifikasi berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PERINGKAT PEMENANG (urutan pemenang utama + cadangan) ──
+router.get('/:id/peringkat-pemenang', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pp.*, u.full_name AS vendor_name
+      FROM tender_pemenang_peringkat pp
+      JOIN users u ON pp.vendor_id = u.id
+      WHERE pp.tender_id = $1
+      ORDER BY pp.peringkat ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/peringkat-pemenang', async (req, res) => {
+  try {
+    const { vendor_id, peringkat, keterangan, created_by } = req.body;
+    if (!vendor_id || !peringkat) {
+      return res.status(400).json({ success: false, message: 'vendor_id dan peringkat diperlukan.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO tender_pemenang_peringkat (tender_id, vendor_id, peringkat, keterangan, created_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (tender_id, peringkat) DO UPDATE SET vendor_id = EXCLUDED.vendor_id, keterangan = EXCLUDED.keterangan
+      RETURNING *
+    `, [req.params.id, vendor_id, peringkat, keterangan || null, created_by || null]);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/:id/peringkat-pemenang/:rankId', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM tender_pemenang_peringkat WHERE id = $1 AND tender_id = $2', [req.params.rankId, req.params.id]);
+    res.json({ success: true, message: 'Data peringkat berhasil dihapus.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
