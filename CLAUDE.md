@@ -101,13 +101,15 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 
 - **Pengaduan / Pusat Pesan** (selesai 2026-08-20): form "Kontak Kami" yang sebelumnya cuma tampilan (pesan hilang begitu saja saat dikirim) sekarang benar-benar tersimpan - `server/routes/inbox.js`, tabel `inbox_messages` + `inbox_categories` (`migrations/006_modul_pengaduan.sql`), halaman admin baru `src/pages/Inbox.jsx` ("Pusat Pesan" di sidebar) untuk baca dan balas pesan. `src/pages/KontakKami.jsx` sudah disambungkan ke `POST /api/inbox`.
 
+- **Konten/CMS - Berita & FAQ** (selesai 2026-08-20): `server/routes/cms.js`, tabel `cms_news` + `cms_faq` (`migrations/007_konten_cms.sql`), halaman admin baru `src/pages/ContentManagement.jsx` ("Kelola Konten" di sidebar), tampil otomatis di halaman utama publik (`PublicLandingPage.jsx`, komponen `NewsAndFaqSection`, section ini otomatis sembunyi kalau belum ada berita/FAQ yang dipublikasikan). **Sengaja tidak termasuk** "Banner" (carousel hero yang sudah ada di halaman utama sengaja tidak diubah, sudah bagus dan jalan baik pakai data sendiri) dan "Kebijakan" (belum dibuat, bisa ditambahkan lagi kalau memang dibutuhkan).
+
 Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
 1. ~~Blacklist~~ - **selesai**
 2. ~~Negosiasi~~ - **selesai**
 3. ~~Data Master~~ - **selesai**
 4. ~~Manajemen hak akses berbasis menu~~ - **selesai**
 5. ~~Chat/shoutbox dan sistem pengaduan (inbox complain)~~ - **selesai**
-6. **Konten/CMS** (berita, FAQ, kebijakan): kemungkinan besar masih statis di frontend, belum ada backend-nya
+6. ~~Konten/CMS (Berita & FAQ)~~ - **selesai** (Banner dan Kebijakan sengaja belum dikerjakan, lihat catatan di atas)
 7. **Validasi QR**
 
 Catatan: menyamakan SEMUA modul di atas 1:1 adalah pekerjaan besar (skala berbulan-bulan, bukan sekali kerja). Dikerjakan satu per satu sesuai urutan di atas, dan pengguna dikabari tiap satu modul selesai supaya bisa dicoba dulu sebelum lanjut ke modul berikutnya.

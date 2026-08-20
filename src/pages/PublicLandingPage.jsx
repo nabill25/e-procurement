@@ -1,7 +1,72 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, Briefcase, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Briefcase, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import LiveClock from '../components/common/LiveClock';
 import logoUIFull from '../assets/logo-ui-full.png';
+import { API_BASE } from '../context/AppContext';
+
+function NewsAndFaqSection() {
+  const [news, setNews] = useState([]);
+  const [faqs, setFaqs] = useState([]);
+  const [openFaq, setOpenFaq] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/cms/news`).then(res => res.json()).then(json => {
+      if (json.success) setNews(json.data.slice(0, 3));
+    }).catch(() => {});
+    fetch(`${API_BASE}/cms/faq`).then(res => res.json()).then(json => {
+      if (json.success) setFaqs(json.data);
+    }).catch(() => {});
+  }, []);
+
+  if (news.length === 0 && faqs.length === 0) return null;
+
+  return (
+    <section className="py-12 px-6 bg-white">
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
+        {news.length > 0 && (
+          <div>
+            <h2 className="font-serif font-bold text-dpbj-navy text-2xl mb-6 flex items-center gap-2">
+              <Newspaper size={22} className="text-dpbj-gold" /> Berita & Pengumuman
+            </h2>
+            <div className="space-y-4">
+              {news.map(item => (
+                <div key={item.id} className="p-4 bg-surface rounded-xl border border-gray-100">
+                  <p className="font-bold text-dpbj-navy text-sm">{item.title}</p>
+                  <p className="text-xs text-gray-600 mt-1 line-clamp-3">{item.content}</p>
+                  <p className="text-[10px] text-gray-400 mt-2">{new Date(item.created_at).toLocaleDateString('id-ID')}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {faqs.length > 0 && (
+          <div>
+            <h2 className="font-serif font-bold text-dpbj-navy text-2xl mb-6 flex items-center gap-2">
+              <HelpCircle size={22} className="text-dpbj-gold" /> Pertanyaan Umum
+            </h2>
+            <div className="space-y-2">
+              {faqs.map(item => (
+                <div key={item.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setOpenFaq(openFaq === item.id ? null : item.id)}
+                    className="w-full flex items-center justify-between gap-3 p-4 text-left bg-surface hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="font-semibold text-dpbj-navy text-sm">{item.question}</span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform shrink-0 ${openFaq === item.id ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openFaq === item.id && (
+                    <p className="p-4 text-xs text-gray-600 leading-relaxed border-t border-gray-100">{item.answer}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const slides = [
   {
@@ -252,6 +317,8 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
           </div>
         </div>
       </section>
+
+      <NewsAndFaqSection />
 
       {/* Contact Quick Info */}
       <section className="py-12 px-6 bg-surface">

@@ -237,4 +237,5 @@ export const navItems = [
   { id: 'master_data', label: 'Data Master',      icon: 'Database' },
   { id: 'menu_access', label: 'Hak Akses Menu',   icon: 'Lock' },
   { id: 'inbox',       label: 'Pusat Pesan',       icon: 'Inbox' },
+  { id: 'content_management', label: 'Kelola Konten', icon: 'Newspaper' },
 ];
