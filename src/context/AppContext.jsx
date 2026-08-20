@@ -146,29 +146,6 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // ── Ganti role aktif (mengikuti alur eProc excSplitRole) ─────────────────────
-  const switchRole = useCallback(async (role_key) => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/switch-role`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ role_key }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        localStorage.setItem('dpbj_token', json.token);
-        setUser(mapBackendUser(json.user));
-        setShowRoleSwitcher(false);
-        setActivePage('dashboard');
-        addNotification('success', 'Role Diganti', json.message, 'CheckCircle2', 'text-green-500');
-        return { success: true };
-      }
-      return { success: false, message: json.message };
-    } catch (err) {
-      return { success: false, message: 'Terjadi kesalahan saat mengganti role.' };
-    }
-  }, [addNotification]);
-
   // ── Fungsi logout (mengikuti alur eProc Auth::logout()) ─────────────────────
   const logout = useCallback(async () => {
     const token = localStorage.getItem('dpbj_token');
@@ -206,6 +183,29 @@ export function AppProvider({ children }) {
   const markAllAsRead = useCallback(() => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
+
+  // ── Ganti role aktif (mengikuti alur eProc excSplitRole) ─────────────────────
+  const switchRole = useCallback(async (role_key) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/switch-role`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role_key }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem('dpbj_token', json.token);
+        setUser(mapBackendUser(json.user));
+        setShowRoleSwitcher(false);
+        setActivePage('dashboard');
+        addNotification('success', 'Role Diganti', json.message, 'CheckCircle2', 'text-green-500');
+        return { success: true };
+      }
+      return { success: false, message: json.message };
+    } catch (err) {
+      return { success: false, message: 'Terjadi kesalahan saat mengganti role.' };
+    }
+  }, [addNotification]);
 
   // ── Tambah pengajuan baru ────────────────────────────────────────────────────
   const addRequest = useCallback(async (requestData) => {
