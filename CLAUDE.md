@@ -379,9 +379,16 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ✅ Master jenis belanja & kategori (`jenis_belanja`, `analisa_kategori`) - reuse `master_data` yang sudah ada
 - ❌ Import dari SIRUP (`import_sirup`) - **tetap simulasi**, integrasi ke sistem resmi LKPP, butuh akses API SIRUP asli (sama seperti SAP, tidak bisa dibuat "asli" tanpa akses eksternal, sudah disepakati sebelumnya)
 
-**F. Data Master (bertebaran, sekitar 25 tabel)**
-🟡 Sudah ada sebagian di Data Master (bank, mata_uang, negara, satuan, incoterm, payment_method, analisa_kebutuhan, analisa_pasar, unit_kerja_master). Yang BELUM ditambahkan sebagai kategori Data Master:
-- ⬜ `akta_type`, `bidang_usaha`, `direktorat`, `dokumen_template` + `dokumen_template_rekanan`, `ijin_usaha` (jenis izin), `komoditas`, `kurs`, `master_checklist`, `master_dokumen_template` + `upload`, `master_pengaturan` (pengaturan sistem umum), `metode` + `metode_tahap` + `metode_tahap_panel`, `pendidikan`, `region`, `tanggal_merah` (hari libur)
+**F. Data Master (bertebaran, sekitar 25 tabel) - selesai 2026-08-21**
+🟡 Sudah ada sebagian di Data Master (bank, mata_uang, negara, satuan, incoterm, payment_method, analisa_kebutuhan, analisa_pasar, unit_kerja_master, rekanan_tipe, sertifikat_jenis, vendor_retail, katalog_kategori, jenis_belanja, analisa_kategori, master_checklist - ini semua sudah ditambahkan di kelompok B/D/E sebelumnya). Sudah ditambahkan (lihat tulisan lengkap "Kelompok F" di bawah):
+- ✅ `dokumen_template` + `dokumen_template_rekanan` + `master_dokumen_template`/`upload` - digabung jadi satu tabel `document_templates` (field `target` bedakan internal/rekanan, 3 sistem lama yang tumpang tindih disatukan)
+- ✅ `ijin_usaha` (jenis izin usaha), `pendidikan` (jenjang pendidikan) - reuse `master_data`
+- ✅ `master_pengaturan` (pengaturan sistem umum, khusus notifikasi dokumen expired)
+- ✅ `tanggal_merah` (hari libur)
+- ✅ `region` (wilayah administratif) - **kerangka tabel berjenjang dibuat, tapi cuma diisi 38 provinsi resmi**, kabupaten/kota/kecamatan/kelurahan kosong karena sumber data aslinya (INDOWILAYAH2023) TIDAK ADA di database yang dimiliki, beda dari data KBLI kelompok B yang lengkap tersedia
+- ❌ `akta_type` - **tidak dibuat**, controllernya (`akta_type_json.php`) tidak pernah dipanggil dari manapun (kode mati, dicek ke seluruh folder views termasuk backup)
+- ❌ `komoditas`, `kurs` - **tidak dibuat**, tidak ada controllernya sama sekali di sistem lama (kemungkinan tabel yang tidak pernah benar-benar dipakai)
+- ❌ `direktorat`, `metode_tahap`, `metode_tahap_panel` - **belum dibuat**, fungsinya (`metode_json.php`) ternyata isinya kalkulasi tanggal/kalender kompleks terkait `paket_jenis`/`paket_metode_lelang` (master data tender yang sengaja ditunda dari kelompok A), bukan data referensi sederhana - akan digarap bareng kelompok A lanjutan kalau memang dibutuhkan
 
 **G. Auth/User (sudah dikerjakan sebagian besar di fondasi multi-role)**
 ✅ `user_type`→`role_definitions`, `tbl_m_menu`→`menu_items`, `tbl_m_menu_akses`→`menu_role_access` semua sudah ada. Yang BELUM:
@@ -539,3 +546,25 @@ Sudah dites lewat curl end-to-end (kategori berjenjang, tambah produk dengan fie
 **Frontend**: `src/components/modals/DetailPengajuanModal.jsx` dapat 3 section baru (`ChecklistSection`, `FileAnalisaSection`, `RevisionHistorySection`) plus tombol "Minta Revisi" di tahap verifikasi berkas admin (sebelumnya cuma ada Tolak/Terima, sekarang ada opsi tengah untuk minta perbaikan tanpa langsung menolak). Kategori "Checklist Pengajuan" ditambahkan ke Data Master (`MasterChecklistTable`) untuk admin kelola daftar item checklist master, plus "Jenis Belanja" dan "Kategori Analisa" (pakai komponen generik yang sudah ada).
 
 Sudah dites lewat curl end-to-end (master checklist dengan filter jenis paket, upload file analisa + update esign, checklist merge antara master dan status tercentang, approval oleh 2 approver berbeda dengan verifikasi upsert saat approver sama approve ulang, kirim revisi dengan verifikasi status pengajuan otomatis berubah jadi 'revisi', kategori master data baru). Semua data uji dibersihkan dari Supabase. Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).
+
+### Kelompok F: Data Master Lanjutan - selesai (2026-08-21)
+
+**Metodologi**: semua controller terkait dibaca dulu (`ijin_usaha_json.php`, `region_json.php`, `pendidikan_json.php`, `master_tanggal_json.php`, `dokumen_template_json.php`, `dokumen_template_rekanan_json.php`, `metode_json.php`, `master_pengaturan_json.php`, `master_backup_json.php`, `master_dokumen_template_upload.php`), semua dicek aktif dipanggil dari `views/main/`.
+
+**Koreksi dari daftar awal roadmap**:
+- `akta_type` **dikeluarkan** - controllernya (`akta_type_json.php`) ternyata TIDAK PERNAH dipanggil dari manapun sama sekali (dicek ke seluruh folder views termasuk backup), kode mati murni.
+- `komoditas` dan `kurs` **dikeluarkan** - setelah `ls` langsung ke folder controllers, TIDAK ADA controller untuk keduanya sama sekali. Kemungkinan besar tabel yang pernah dibuat di skema tapi fiturnya tidak pernah jadi dipakai.
+- `metode_json.php` isinya BUKAN data referensi sederhana seperti dugaan - fungsinya kalkulasi kalender rekening koran (`get_bulan_rekening_koran*`, murni matematika tanggal, bukan tabel) dan query matriks tahapan tender yang terikat ke `paket_jenis`/`paket_metode_lelang` (master data tender yang sudah sengaja ditunda sejak kelompok A). Jadi `direktorat`/`metode_tahap`/`metode_tahap_panel` **belum dikerjakan** di kelompok ini, disatukan nanti dengan lanjutan kelompok A kalau memang dibutuhkan.
+- `master_backup_json.php` ternyata fitur backup-download seluruh database (operasi sistem admin, bukan data domain) - **tidak relevan** untuk migrasi data master.
+
+**Temuan penting soal data wilayah Indonesia**: field `region` di roadmap awal saya kira cuma dropdown provinsi/kota sederhana. Setelah dicek `region_json.php`, ternyata itu terhubung ke tabel `INDOWILAYAH2023` yang punya 4 tingkat (provinsi → kabupaten/kota → kecamatan → kelurahan) - dataset resmi pemerintah yang besar. Sudah dicek langsung ke `eproc_migrasi.sql`, tabel `INDOWILAYAH2023` **TIDAK ADA di dalamnya sama sekali** (beda dari data KBLI/bidang usaha di kelompok B yang datanya lengkap tersedia). Karena ini data alamat administratif resmi yang berisiko kalau dikarang sendiri, dikonfirmasi ke pengguna dan disepakati: kerangka tabel berjenjang tetap dibuat, tapi cuma diisi 38 nama provinsi resmi Indonesia (data publik yang stabil dan sudah pasti benar), level di bawahnya (kab/kota, kecamatan, kelurahan) dikosongkan sampai ada sumber data resmi yang bisa diimpor - sama seperti perlakuan terhadap integrasi SAP dan SIRUP sebelumnya (dicatat sebagai keterbatasan, bukan dipaksa dibuat).
+
+**3 sistem template dokumen yang tumpang tindih disatukan**: sistem lama punya `dokumen_template`+`dokumen_template_rekanan` (template untuk internal vs rekanan, dari `dokumen_template_json.php`/`dokumen_template_rekanan_json.php`) DAN `master_dokumen_template`+`master_dokumen_template_upload` (dari `master_dokumen_template_upload.php`) - dicek isinya sama-sama "file template yang bisa diunduh", cuma beda controller karena ditulis di waktu berbeda. Di sistem baru digabung jadi satu tabel `document_templates` dengan kolom `target` ('internal'/'rekanan') alih-alih 4 tabel terpisah yang isinya tumpang tindih.
+
+**Tabel baru** (migrasi `migrations/021_kelompok_f_data_master_lanjutan.sql`): `document_templates`, `holidays` (hari libur, replace-all pattern meniru `add()` asli), `app_settings` (pengaturan sistem, cuma 1 baris untuk notifikasi dokumen expired, di-seed otomatis lewat migrasi), `regions` (wilayah berjenjang, diisi 38 provinsi). Kategori baru `ijin_usaha` dan `pendidikan` reuse `master_data` yang sudah ada.
+
+**Endpoint baru** di `server/routes/master.js` (~15 endpoint: document-templates, holidays, settings, regions).
+
+**Frontend**: 3 komponen tabel baru di Data Master (`DocumentTemplateTable`, `HolidayTable`, `RegionTable`) plus 2 kategori reuse (`ijin_usaha`, `pendidikan`). `RegionTable` punya alur pilih-provinsi-dulu-baru-kelola-turunannya, dengan catatan peringatan di UI bahwa data di bawah provinsi memang belum ada dan perlu diisi manual/nanti dari sumber resmi.
+
+Sudah dites lewat curl end-to-end (upload template dokumen dengan filter target, hari libur replace-all, pengaturan sistem get+update, daftar 38 provinsi, tambah wilayah anak di bawah provinsi tertentu, kategori ijin_usaha/pendidikan). Semua data uji dibersihkan dari Supabase (38 provinsi TIDAK dihapus, itu data permanen). Frontend dicek compile bersih (HTTP 200, HMR update sukses tanpa error).
