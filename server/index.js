@@ -27,6 +27,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/katalog',   require('./routes/katalog'));
 app.use('/api/purchasing', require('./routes/purchasing'));
 app.use('/api/blacklist', require('./routes/blacklist'));
+app.use('/api/master', require('./routes/master'));
 
 // ── Default Route / Health Check ──
 app.get('/api', (req, res) => {

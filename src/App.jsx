@@ -14,6 +14,7 @@ import Blacklist from './pages/Blacklist';
 import AuditLog from './pages/AuditLog';
 import Katalog from './pages/Katalog';
 import Purchasing from './pages/Purchasing';
+import DataMaster from './pages/DataMaster';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -223,6 +224,7 @@ function AppShell() {
     audit: <AuditLog />,
     katalog: <Katalog />,
     purchasing: <Purchasing />,
+    master_data: <DataMaster />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;

@@ -234,4 +234,5 @@ export const navItems = [
   { id: 'blacklist', label: 'Daftar Hitam',       icon: 'AlertTriangle' },
   { id: 'vendor_profile', label: 'Profil & Kualifikasi', icon: 'ShieldCheck' },
   { id: 'audit',     label: 'Audit & Dokumen',    icon: 'ShieldCheck' },
+  { id: 'master_data', label: 'Data Master',      icon: 'Database' },
 ];

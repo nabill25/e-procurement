@@ -96,11 +96,12 @@ Sudah ada API dan halaman untuk (walaupun kedalaman fiturnya kemungkinan masih l
 - Dashboard, Audit log - `server/routes/dashboard.js`, `audit.js`
 - **Blacklist** (selesai 2026-08-20): list publik + tambah manual - `server/routes/blacklist.js`, tabel `blacklist` (`migrations/002_tabel_blacklist.sql`), halaman `src/pages/Blacklist.jsx`. Aksi "Blokir Vendor" di halaman Vendor (`vendors.js` PATCH `/:id/block`) sekarang otomatis bikin entri di tabel `blacklist` juga, jadi dua fitur ini sudah tersambung.
 - **Negosiasi** (selesai 2026-08-20): chat tawar-menawar harga antara Pokja/PPK dan vendor pemenang, plus tombol sepakati/gagalkan oleh Pokja/PPK - endpoint baru di `server/routes/tenders.js` (`GET/POST /:id/negotiation/:vendorId`, `POST /:id/negotiation/:vendorId/finalize`), kolom baru `negotiated_price`/`negotiation_status` di tabel `tender_participants`, tabel baru `tender_negotiation_chats` (`migrations/003_modul_negosiasi.sql`), komponen `src/components/modals/NegotiationTab.jsx` disambungkan sebagai tab baru "Negosiasi" di `DetailTenderModal.jsx` (muncul begitu tender sudah masuk tahap "pemenang" ke atas, ambil vendor pemenang otomatis dari data peserta).
+- **Data Master** (selesai 2026-08-20): halaman admin baru untuk kelola data referensi (Bank, Mata Uang, Negara, Satuan, Incoterm, Metode Pembayaran, Unit Kerja) - `server/routes/master.js`, tabel `master_data` (kategori disimpan di kolom `category`, satu tabel untuk semua kategori sederhana yang bentuknya sama) dan `unit_kerja_master` (tabel sendiri karena datanya lebih detail) di `migrations/004_data_master.sql`, halaman `src/pages/DataMaster.jsx`, menu baru "Data Master" di sidebar (khusus role admin).
 
 Yang **belum ada sama sekali** di sistem baru (dicek dari daftar route yang benar-benar ada, bukan tebakan), urutan prioritas pengerjaan yang disepakati dengan pengguna:
 1. ~~Blacklist~~ - **selesai**
 2. ~~Negosiasi~~ - **selesai**
-3. **Data Master** (bank, mata uang, negara, satuan, dst): belum ada CRUD di backend
+3. ~~Data Master~~ - **selesai**
 4. **Manajemen hak akses berbasis menu**: sistem baru masih pakai role tetap (admin/ppk/pokja/vendor) yang di-hardcode, belum ada sistem menu dinamis seperti `tbl_m_menu`/`tbl_m_menu_akses` di sistem lama
 5. **Chat/shoutbox dan sistem pengaduan (inbox complain)**
 6. **Konten/CMS** (berita, FAQ, kebijakan): kemungkinan besar masih statis di frontend, belum ada backend-nya

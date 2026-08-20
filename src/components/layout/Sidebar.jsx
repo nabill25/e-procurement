@@ -1,12 +1,12 @@
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database };
 
 function UILogo() {
   return (
