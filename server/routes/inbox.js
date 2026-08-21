@@ -53,6 +53,73 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── GET /api/inbox/complain-types — Daftar subjek komplain terstruktur (dropdown publik) ──
+// Didefinisikan sebelum /:id supaya path literal "meta" tidak ketiban rute /:id
+router.get('/meta/complain-types', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM inbox_complain_types WHERE is_active = true ORDER BY name ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── CRUD Kategori Komplain & Penerima Default (Admin) ──
+router.post('/meta/complain-types', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Nama subjek komplain wajib diisi.' });
+    const result = await pool.query(
+      'INSERT INTO inbox_complain_types (name, description) VALUES ($1, $2) RETURNING *',
+      [name, description || null]
+    );
+    res.status(201).json({ success: true, message: 'Subjek komplain berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/meta/complain-types/:id', async (req, res) => {
+  try {
+    await pool.query('UPDATE inbox_complain_types SET is_active = false WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Subjek komplain berhasil dinonaktifkan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/meta/complain-recipients', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM inbox_complain_recipients WHERE is_active = true ORDER BY email ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/meta/complain-recipients', async (req, res) => {
+  try {
+    const { email, keterangan } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email penerima wajib diisi.' });
+    const result = await pool.query(
+      'INSERT INTO inbox_complain_recipients (email, keterangan) VALUES ($1, $2) RETURNING *',
+      [email, keterangan || null]
+    );
+    res.status(201).json({ success: true, message: 'Penerima komplain berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/meta/complain-recipients/:id', async (req, res) => {
+  try {
+    await pool.query('UPDATE inbox_complain_recipients SET is_active = false WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Penerima komplain berhasil dinonaktifkan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/inbox/:id — Detail pesan + balasannya ──
 router.get('/:id', async (req, res) => {
   try {
@@ -80,9 +147,11 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /api/inbox — Kirim pesan/pengaduan baru (Publik, dari form Kontak Kami) ──
+// complain_type_id opsional: kalau diisi, berarti pesan ini komplain terstruktur (subjek
+// dipilih dari daftar inbox_complain_types), mengikuti pola INBOX_COMPLAIN_TYPE di eProc lama
 router.post('/', upload.single('attachment'), async (req, res) => {
   try {
-    const { category_id, subject, content, sender_name, sender_email, sender_phone } = req.body;
+    const { category_id, subject, content, sender_name, sender_email, sender_phone, complain_type_id } = req.body;
 
     if (!subject || !content || !sender_name || !sender_email) {
       return res.status(400).json({ success: false, message: 'Nama, email, subyek, dan pesan wajib diisi.' });
@@ -91,10 +160,10 @@ router.post('/', upload.single('attachment'), async (req, res) => {
     const attachment_path = req.file ? `/uploads/${req.file.filename}` : null;
 
     const result = await pool.query(`
-      INSERT INTO inbox_messages (category_id, subject, content, attachment_path, sender_name, sender_email, sender_phone)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO inbox_messages (category_id, subject, content, attachment_path, sender_name, sender_email, sender_phone, complain_type_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
-    `, [category_id || null, subject, content, attachment_path, sender_name, sender_email, sender_phone || null]);
+    `, [category_id || null, subject, content, attachment_path, sender_name, sender_email, sender_phone || null, complain_type_id || null]);
 
     res.status(201).json({ success: true, message: 'Pesan berhasil dikirim. Terima kasih, kami akan merespons segera.', data: result.rows[0] });
   } catch (err) {

@@ -25,6 +25,8 @@ const CATEGORIES = [
   { id: 'document_templates', label: 'Template Dokumen' },
   { id: 'holidays',          label: 'Hari Libur' },
   { id: 'regions',           label: 'Wilayah' },
+  { id: 'complain_types',      label: 'Subjek Komplain' },
+  { id: 'complain_recipients', label: 'Penerima Komplain' },
 ];
 
 function SimpleMasterTable({ category }) {
@@ -990,6 +992,170 @@ function RegionTable() {
   );
 }
 
+function ComplainTypeTable() {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-types`);
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) { console.error(err); } finally { setIsLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-types`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ name, description }),
+      });
+      const json = await res.json();
+      if (json.success) { setName(''); setDescription(''); fetchData(); }
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Nonaktifkan subjek komplain ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-types/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menghapus data.'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-end bg-surface p-3 rounded-xl">
+        <div className="flex-1">
+          <label className="block text-[11px] font-semibold text-muted mb-1">Nama Subjek</label>
+          <input value={name} onChange={e => setName(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg" placeholder="mis. Keterlambatan Proses Tender" />
+        </div>
+        <div className="flex-1">
+          <label className="block text-[11px] font-semibold text-muted mb-1">Keterangan</label>
+          <input value={description} onChange={e => setDescription(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg" placeholder="Opsional" />
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary flex items-center gap-1 disabled:opacity-50">
+          <Plus size={14} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead><tr><th>Nama</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Memuat...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Belum ada data.</td></tr>
+            ) : data.map(d => (
+              <tr key={d.id}>
+                <td className="text-sm font-medium text-dpbj-navy">{d.name}</td>
+                <td className="text-xs text-muted">{d.description || '-'}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ComplainRecipientTable() {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [keterangan, setKeterangan] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients`);
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) { console.error(err); } finally { setIsLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email, keterangan }),
+      });
+      const json = await res.json();
+      if (json.success) { setEmail(''); setKeterangan(''); fetchData(); }
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Nonaktifkan penerima komplain ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menghapus data.'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row sm:items-end bg-surface p-3 rounded-xl">
+        <div className="flex-1">
+          <label className="block text-[11px] font-semibold text-muted mb-1">Email Penerima</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg" placeholder="komplain@dpbj.ui.ac.id" />
+        </div>
+        <div className="flex-1">
+          <label className="block text-[11px] font-semibold text-muted mb-1">Keterangan</label>
+          <input value={keterangan} onChange={e => setKeterangan(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg" placeholder="Opsional" />
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary flex items-center gap-1 disabled:opacity-50">
+          <Plus size={14} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead><tr><th>Email</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Memuat...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Belum ada data.</td></tr>
+            ) : data.map(d => (
+              <tr key={d.id}>
+                <td className="text-sm font-medium text-dpbj-navy">{d.email}</td>
+                <td className="text-xs text-muted">{d.keterangan || '-'}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
 
@@ -1035,6 +1201,10 @@ export default function DataMaster() {
           <HolidayTable />
         ) : activeCategory === 'regions' ? (
           <RegionTable />
+        ) : activeCategory === 'complain_types' ? (
+          <ComplainTypeTable />
+        ) : activeCategory === 'complain_recipients' ? (
+          <ComplainRecipientTable />
         ) : (
           <SimpleMasterTable category={activeCategory} />
         )}

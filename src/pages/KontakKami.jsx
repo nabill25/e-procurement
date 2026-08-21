@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Home } from 'lucide-react';
 import { API_BASE } from '../context/AppContext';
 
@@ -68,12 +68,26 @@ export default function KontakKami({ onNavigateHome }) {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
   const [sending, setSending] = useState(false);
+  const [isComplain, setIsComplain] = useState(false);
+  const [complainTypes, setComplainTypes] = useState([]);
+  const [complainTypeId, setComplainTypeId] = useState('');
+
+  useEffect(() => {
+    fetch(`${API_BASE}/inbox/meta/complain-types`)
+      .then(res => res.json())
+      .then(json => { if (json.success) setComplainTypes(json.data); })
+      .catch(() => {});
+  }, []);
 
   const validate = () => {
     const e = {};
     if (!form.nama.trim()) e.nama = 'Nama wajib diisi';
     if (!form.email.trim()) e.email = 'Email wajib diisi';
-    if (!form.subyek.trim()) e.subyek = 'Subyek wajib diisi';
+    if (isComplain) {
+      if (!complainTypeId) e.subyek = 'Subjek komplain wajib dipilih';
+    } else if (!form.subyek.trim()) {
+      e.subyek = 'Subyek wajib diisi';
+    }
     if (!form.pesan.trim()) e.pesan = 'Pesan wajib diisi';
     if (!captchaOk) e.captcha = 'Kode keamanan belum terverifikasi';
     setErrors(e);
@@ -85,6 +99,9 @@ export default function KontakKami({ onNavigateHome }) {
     if (!validate()) return;
     setSending(true);
     try {
+      const subjectValue = isComplain
+        ? (complainTypes.find(c => c.id === complainTypeId)?.name || 'Komplain')
+        : form.subyek;
       const res = await fetch(`${API_BASE}/inbox`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,8 +109,9 @@ export default function KontakKami({ onNavigateHome }) {
           sender_name: form.nama,
           sender_email: form.email,
           sender_phone: form.telpon,
-          subject: form.subyek,
+          subject: subjectValue,
           content: form.pesan,
+          complain_type_id: isComplain ? complainTypeId : undefined,
         }),
       });
       const json = await res.json();
@@ -114,6 +132,8 @@ export default function KontakKami({ onNavigateHome }) {
     setCaptchaOk(false);
     setErrors({});
     setSubmitted(false);
+    setIsComplain(false);
+    setComplainTypeId('');
   };
 
   return (
@@ -165,12 +185,35 @@ export default function KontakKami({ onNavigateHome }) {
                 />
               </div>
               <div>
-                <label className="form-label">Subyek <span className="text-red-500">*</span></label>
-                <input
-                  value={form.subyek}
-                  onChange={e => setForm(f => ({ ...f, subyek: e.target.value }))}
-                  className={`form-input ${errors.subyek ? 'border-red-300 bg-red-50' : ''}`}
-                />
+                <label className="flex items-center gap-2 text-xs text-muted mb-2 cursor-pointer">
+                  <input type="checkbox" checked={isComplain} onChange={e => setIsComplain(e.target.checked)} />
+                  Ini adalah komplain/pengaduan resmi
+                </label>
+
+                {isComplain ? (
+                  <>
+                    <label className="form-label">Subjek Komplain <span className="text-red-500">*</span></label>
+                    <select
+                      value={complainTypeId}
+                      onChange={e => setComplainTypeId(e.target.value)}
+                      className={`form-input ${errors.subyek ? 'border-red-300 bg-red-50' : ''}`}
+                    >
+                      <option value="">Pilih subjek komplain...</option>
+                      {complainTypes.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <label className="form-label">Subyek <span className="text-red-500">*</span></label>
+                    <input
+                      value={form.subyek}
+                      onChange={e => setForm(f => ({ ...f, subyek: e.target.value }))}
+                      className={`form-input ${errors.subyek ? 'border-red-300 bg-red-50' : ''}`}
+                    />
+                  </>
+                )}
                 {errors.subyek && <p className="text-xs text-red-500 mt-1">{errors.subyek}</p>}
               </div>
               <div>

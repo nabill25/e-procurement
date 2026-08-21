@@ -1,6 +1,56 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User, MessageCircle } from 'lucide-react';
+import { Send, User, MessageCircle, UserCheck, CheckCircle2 } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
+
+// Panel konfirmasi kehadiran sesi aanwijzing (meniru fitur PESAN='CONFIRMED' di PHPSHOUTBOX eProc lama)
+function KonfirmasiKehadiran({ tenderId, user, getAuthHeaders }) {
+  const [confirmations, setConfirmations] = useState([]);
+  const [confirming, setConfirming] = useState(false);
+  const isVendor = user.role === 'vendor';
+  const alreadyConfirmed = confirmations.some(c => c.user_id === user.id);
+
+  const fetchConfirmations = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/aanwijzing/confirmations`, { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (data.success) setConfirmations(data.data);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { fetchConfirmations(); }, [tenderId]);
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/aanwijzing/confirm`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ user_id: user.id }),
+      });
+      const data = await res.json();
+      if (data.success) fetchConfirmations();
+      else alert(data.message);
+    } catch { alert('Gagal konfirmasi kehadiran.'); } finally { setConfirming(false); }
+  };
+
+  return (
+    <div className="p-3 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 text-xs text-emerald-800">
+        <UserCheck size={15} />
+        <span className="font-semibold">{confirmations.length} peserta konfirmasi hadir</span>
+      </div>
+      {isVendor && (
+        alreadyConfirmed ? (
+          <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+            <CheckCircle2 size={13} /> Anda sudah konfirmasi hadir
+          </span>
+        ) : (
+          <button onClick={handleConfirm} disabled={confirming} className="text-[11px] font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-full hover:bg-emerald-700 disabled:opacity-50">
+            {confirming ? 'Memproses...' : 'Konfirmasi Hadir'}
+          </button>
+        )
+      )}
+    </div>
+  );
+}
 
 export default function AanwijzingTab({ tenderId, user, getAuthHeaders }) {
   const [chats, setChats] = useState([]);
@@ -15,7 +65,7 @@ export default function AanwijzingTab({ tenderId, user, getAuthHeaders }) {
       });
       const data = await res.json();
       if (data.success) {
-        setChats(data.data);
+        setChats(data.data.filter(c => !c.is_confirmation));
       }
     } catch (err) {
       console.error(err);
@@ -71,7 +121,9 @@ export default function AanwijzingTab({ tenderId, user, getAuthHeaders }) {
           <p className="text-xs text-muted">Forum tanya jawab antara Pokja dan Vendor Terdaftar.</p>
         </div>
       </div>
-      
+
+      <KonfirmasiKehadiran tenderId={tenderId} user={user} getAuthHeaders={getAuthHeaders} />
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
         {chats.length === 0 ? (
           <div className="h-full flex items-center justify-center text-sm text-gray-400 italic">

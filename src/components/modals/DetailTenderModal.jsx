@@ -12,6 +12,7 @@ import NegotiationTab from './NegotiationTab';
 import EvaluationDetailModal from './EvaluationDetailModal';
 import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
+import GeneralChatModal from './GeneralChatModal';
 
 function VendorQualModal({ vendorId, vendorName, onClose }) {
   const [qual, setQual] = useState(null);
@@ -294,8 +295,9 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
   );
 }
 
-function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshData }) {
+function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshData, user }) {
   const [evaluating, setEvaluating] = useState(null);
+  const [chatWith, setChatWith] = useState(null);
   
   const handleSaveEvaluation = async (vendorId, isPassed) => {
     const data = evaluating[vendorId];
@@ -373,6 +375,9 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
                         <ClipboardCheck size={10} /> Evaluasi Detail
                       </button>
                     )}
+                    <button onClick={() => setChatWith(p)} className="text-[10px] text-blue-600 hover:underline font-semibold flex items-center gap-1 mt-1">
+                      <MessageCircle size={10} /> Chat dengan Vendor
+                    </button>
                     {p.is_winner && (
                       <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                         <Award size={10} /> PEMENANG
@@ -446,6 +451,16 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
           tenderId={tenderId}
           vendor={evaluating.viewEvalDetail}
           onClose={() => setEvaluating({ ...evaluating, viewEvalDetail: null })}
+        />
+      )}
+      {chatWith && (
+        <GeneralChatModal
+          tenderId={tenderId}
+          vendorId={chatWith.vendor_id}
+          vendorName={chatWith.company_name}
+          jenisChat="umum"
+          user={user}
+          onClose={() => setChatWith(null)}
         />
       )}
     </div>
@@ -644,7 +659,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
               <DokumenPaketTab tenderId={data.id} tenderStatus={data.status} participants={participants} user={user} getAuthHeaders={getAuthHeaders} />
             )}
             {activeTab === 'peserta' && (
-              <PokjaEvaluationTable tenderId={data.id} tenderStatus={data.status} participants={participants} refreshData={refreshData} />
+              <PokjaEvaluationTable tenderId={data.id} tenderStatus={data.status} participants={participants} refreshData={refreshData} user={user} />
             )}
             {activeTab === 'aanwijzing' && (
               <AanwijzingTab tenderId={data.id} user={user} getAuthHeaders={getAuthHeaders} />

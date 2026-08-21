@@ -604,6 +604,117 @@ router.post('/:id/aanwijzing', async (req, res) => {
   }
 });
 
+// ── GET /api/tenders/:id/aanwijzing/confirmations — Daftar vendor yang konfirmasi hadir ──
+// Meniru PESAN='CONFIRMED' di PHPSHOUTBOX eProc lama
+router.get('/:id/aanwijzing/confirmations', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.id, a.user_id, a.created_at, u.full_name AS user_name, v.company_name
+      FROM tender_aanwijzing_chats a
+      JOIN users u ON a.user_id = u.id
+      LEFT JOIN vendors v ON v.user_id = a.user_id
+      WHERE a.tender_id = $1 AND a.is_confirmation = true
+      ORDER BY a.created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/tenders/:id/aanwijzing/confirm — Vendor konfirmasi hadir sesi aanwijzing ──
+router.post('/:id/aanwijzing/confirm', async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ success: false, message: 'user_id diperlukan.' });
+
+    const existing = await pool.query(
+      `SELECT id FROM tender_aanwijzing_chats WHERE tender_id = $1 AND user_id = $2 AND is_confirmation = true`,
+      [req.params.id, user_id]
+    );
+    if (existing.rows.length) {
+      return res.status(409).json({ success: false, message: 'Anda sudah konfirmasi hadir sebelumnya.' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO tender_aanwijzing_chats (tender_id, user_id, message, is_confirmation)
+      VALUES ($1, $2, 'Konfirmasi hadir sesi aanwijzing', true)
+      RETURNING *
+    `, [req.params.id, user_id]);
+
+    res.status(201).json({ success: true, message: 'Kehadiran berhasil dikonfirmasi.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── CHAT UMUM PER PAKET (padanan CHATSHOUTBOX eProc lama) ──
+// Dipakai untuk chat 1-ke-1 panitia<->vendor di berbagai konteks (jenis_chat), TERPISAH dari
+// chat aanwijzing (broadcast satu ruang) dan chat negosiasi (sudah ada endpoint sendiri).
+
+// GET /api/tenders/:id/general-chat/:vendorId?jenis=umum
+router.get('/:id/general-chat/:vendorId', async (req, res) => {
+  try {
+    const jenis = req.query.jenis || 'umum';
+
+    // Tandai pesan yang bukan dari pengguna yang sedang membuka jadi terbaca DULU,
+    // supaya hasil SELECT setelahnya sudah mencerminkan status is_read yang terbaru
+    if (req.query.reader_id) {
+      await pool.query(
+        `UPDATE tender_general_chats SET is_read = true
+         WHERE tender_id = $1 AND vendor_id = $2 AND jenis_chat = $3 AND user_id != $4 AND is_read = false`,
+        [req.params.id, req.params.vendorId, jenis, req.query.reader_id]
+      );
+    }
+
+    const result = await pool.query(`
+      SELECT c.*, u.full_name AS user_name, u.role
+      FROM tender_general_chats c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.tender_id = $1 AND c.vendor_id = $2 AND c.jenis_chat = $3
+      ORDER BY c.created_at ASC
+    `, [req.params.id, req.params.vendorId, jenis]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/tenders/:id/general-chat/:vendorId
+router.post('/:id/general-chat/:vendorId', async (req, res) => {
+  try {
+    const { user_id, message, jenis_chat, file_path } = req.body;
+    if (!user_id || !message) {
+      return res.status(400).json({ success: false, message: 'user_id dan message diperlukan.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO tender_general_chats (tender_id, vendor_id, user_id, jenis_chat, message, file_path)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [req.params.id, req.params.vendorId, user_id, jenis_chat || 'umum', message, file_path || null]);
+
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/tenders/:id/general-chat-unread/:userId — badge notifikasi (jumlah pesan belum dibaca lintas vendor)
+router.get('/:id/general-chat-unread/:userId', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT vendor_id, jenis_chat, COUNT(*) AS unread
+      FROM tender_general_chats
+      WHERE tender_id = $1 AND is_read = false AND user_id != $2
+      GROUP BY vendor_id, jenis_chat
+    `, [req.params.id, req.params.userId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/tenders/:id/objections — Daftar sanggahan ──
 router.get('/:id/objections', async (req, res) => {
   try {
