@@ -4,6 +4,7 @@ const { pool } = require('../db');
 const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
+const { logActivity } = require('../lib/activityLog');
 
 // ── Konfigurasi Multer ──
 const storage = multer.diskStorage({
@@ -140,7 +141,9 @@ router.post('/', upload.fields([{name:'kak', maxCount:1}, {name:'rab', maxCount:
 router.post('/:id/submit', async (req, res) => {
   try {
     const { id } = req.params;
+    const { user_id } = req.body;
     await pool.query("UPDATE procurement_requests SET status = 'diajukan' WHERE id = $1 AND status = 'draft'", [id]);
+    logActivity({ procurementRequestId: id, posisi: 'Pengajuan Disubmit', flow: 'permohonan', userId: user_id, ip: req.ip });
     res.json({ success: true, message: 'Pengajuan disubmit.' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
@@ -149,7 +152,7 @@ router.post('/:id/submit', async (req, res) => {
 router.post('/:id/review', async (req, res) => {
   try {
     const { id } = req.params;
-    const { admin_notes, is_docs_complete } = req.body;
+    const { admin_notes, is_docs_complete, user_id } = req.body;
 
     const result = await pool.query('SELECT * FROM procurement_requests WHERE id = $1', [id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Not found' });
@@ -162,12 +165,14 @@ router.post('/:id/review', async (req, res) => {
     if (!is_docs_complete) {
       // Jika dokumen belum lengkap, bisa ditolak atau dikembalikan
       await pool.query("UPDATE procurement_requests SET status = 'ditolak', admin_notes = $1 WHERE id = $2", [admin_notes, id]);
+      logActivity({ procurementRequestId: id, posisi: 'Verifikasi Berkas Ditolak', keterangan: admin_notes, flow: 'permohonan', userId: user_id, ip: req.ip });
       return res.json({ success: true, message: 'Pengajuan ditolak karena dokumen tidak lengkap.' });
     }
 
     await pool.query("UPDATE procurement_requests SET status = 'proses_review', admin_notes = $1, is_docs_complete = $2 WHERE id = $3", [admin_notes, is_docs_complete, id]);
-    
+
     await pool.query(`INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'Pengajuan', $1, true)`, [`Admin mereview dokumen pengajuan: ${p.title}`]);
+    logActivity({ procurementRequestId: id, posisi: 'Verifikasi Berkas Lengkap', flow: 'permohonan', userId: user_id, ip: req.ip });
 
     res.json({ success: true, message: 'Dokumen lengkap. Pengajuan masuk ke tahap Review Akhir.' });
   } catch (err) {
@@ -179,6 +184,7 @@ router.post('/:id/review', async (req, res) => {
 router.post('/:id/approve', async (req, res) => {
   try {
     const { id } = req.params;
+    const { user_id } = req.body;
     const result = await pool.query('SELECT * FROM procurement_requests WHERE id = $1', [id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Pengajuan tidak ditemukan.' });
     const p = result.rows[0];
@@ -201,8 +207,11 @@ router.post('/:id/approve', async (req, res) => {
       `, [p.id, tenderNumber, p.title, p.category, p.estimated_value]);
       
       await conn.query(`INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'Pengajuan', $1, true)`, [`Pengajuan di-ACC menjadi Tender: ${p.title}`]);
-      
+
       await conn.query('COMMIT');
+
+      logActivity({ procurementRequestId: id, posisi: 'Pengajuan Disetujui (ACC)', keterangan: `Paket tender ${tenderNumber} dibuat otomatis`, flow: 'permohonan', userId: user_id, ip: req.ip });
+
       res.json({ success: true, message: 'Pengajuan berhasil di-ACC dan Paket Tender Draft telah dibuat.' });
     } catch (e) {
       await conn.query('ROLLBACK');
@@ -410,6 +419,22 @@ router.post('/:id/checklist', async (req, res) => {
       RETURNING *
     `, [req.params.id, master_checklist_id, !!approved, notes || null, created_by || null]);
     res.json({ success: true, message: 'Checklist berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/pengajuan/:id/activity-log — Timeline rekam jejak pengajuan (padanan REKAM_JEJAK eProc lama) ──
+router.get('/:id/activity-log', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.*, u.full_name AS user_name
+      FROM tender_activity_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE a.procurement_request_id = $1
+      ORDER BY a.created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

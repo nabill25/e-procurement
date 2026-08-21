@@ -4,6 +4,7 @@ const { pool } = require('../db');
 const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
+const { logActivity } = require('../lib/activityLog');
 
 // ── Konfigurasi Multer ──
 const storage = multer.diskStorage({
@@ -250,12 +251,18 @@ router.patch('/:id/status', async (req, res) => {
 // ── PATCH /api/tenders/:id/stage — Update tahapan tender (Oleh Pokja) ──
 router.patch('/:id/stage', async (req, res) => {
   try {
-    const { status } = req.body; // status baru
+    const { status, user_id } = req.body; // status baru
     const allowed = ['draft','pengumuman','pendaftaran','penawaran','evaluasi','pemenang','selesai','dibatalkan'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ success: false, message: 'Tahapan tender tidak valid.' });
     }
     await pool.query('UPDATE tenders SET status = $1 WHERE id = $2', [status, req.params.id]);
+
+    logActivity({
+      tenderId: req.params.id, posisi: `Tahapan tender diubah ke: ${status}`,
+      flow: 'tender', userId: user_id, ip: req.ip,
+    });
+
     res.json({ success: true, message: `Tahapan tender berhasil diubah ke: ${status}` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -376,19 +383,42 @@ router.patch('/:id/participants/:vendorId/evaluate', async (req, res) => {
 // ── POST /api/tenders/:id/winner — Penetapan Pemenang ──
 router.post('/:id/winner', async (req, res) => {
   try {
-    const { vendor_id } = req.body;
+    const { vendor_id, user_id } = req.body;
 
     // Reset status pemenang untuk peserta lain
     await pool.query(`UPDATE tender_participants SET is_winner = false WHERE tender_id = $1`, [req.params.id]);
-    
+
     // Set pemenang baru
     await pool.query(`
-      UPDATE tender_participants 
-      SET is_winner = true, status = 'winner' 
+      UPDATE tender_participants
+      SET is_winner = true, status = 'winner'
       WHERE tender_id = $1 AND vendor_id = $2
     `, [req.params.id, vendor_id]);
 
+    const winnerName = await pool.query('SELECT full_name FROM users WHERE id = $1', [vendor_id]);
+    logActivity({
+      tenderId: req.params.id, posisi: 'Penetapan Pemenang Tender',
+      keterangan: `Pemenang ditetapkan: ${winnerName.rows[0]?.full_name || vendor_id}`,
+      flow: 'tender', userId: user_id, ip: req.ip,
+    });
+
     res.json({ success: true, message: 'Pemenang tender berhasil ditetapkan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/tenders/:id/activity-log — Timeline rekam jejak tender (padanan REKAM_JEJAK eProc lama) ──
+router.get('/:id/activity-log', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.*, u.full_name AS user_name
+      FROM tender_activity_logs a
+      LEFT JOIN users u ON a.user_id = u.id
+      WHERE a.tender_id = $1
+      ORDER BY a.created_at ASC
+    `, [req.params.id]);
+    res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -789,7 +819,7 @@ router.get('/:id/contract', async (req, res) => {
 // ── POST /api/tenders/:id/contract — Unggah SPK & BAST (PPK) ──
 router.post('/:id/contract', upload.fields([{ name: 'spk' }, { name: 'bast' }]), async (req, res) => {
   try {
-    const { vendor_id, contract_number, contract_date, contract_value, status } = req.body;
+    const { vendor_id, contract_number, contract_date, contract_value, status, user_id } = req.body;
     if (!vendor_id || !contract_number || !contract_value) {
       return res.status(400).json({ success: false, message: 'Data kontrak belum lengkap.' });
     }
@@ -814,6 +844,11 @@ router.post('/:id/contract', upload.fields([{ name: 'spk' }, { name: 'bast' }]),
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `, [req.params.id, vendor_id, contract_number, contract_date || null, contract_value, finalSpkPath, finalBastPath, status || 'draft']);
     }
+
+    logActivity({
+      tenderId: req.params.id, posisi: existing.rows.length ? 'Perubahan Kontrak' : 'Input Kontrak',
+      keterangan: `Nomor kontrak: ${contract_number}`, flow: 'kontrak', userId: user_id, ip: req.ip,
+    });
 
     res.json({ success: true, message: 'Dokumen kontrak berhasil disimpan.' });
   } catch (err) {

@@ -21,6 +21,7 @@ import ContentManagement from './pages/ContentManagement';
 import UserManagement from './pages/UserManagement';
 import LoginLogs from './pages/LoginLogs';
 import ApiKeys from './pages/ApiKeys';
+import DocumentExpiry from './pages/DocumentExpiry';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -244,6 +245,7 @@ function AppShell() {
     user_management: <UserManagement />,
     login_logs: <LoginLogs />,
     api_keys: <ApiKeys />,
+    document_expiry: <DocumentExpiry />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;

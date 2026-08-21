@@ -83,6 +83,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
 
       const formData = new FormData();
       formData.append('vendor_id', winner.vendor_id);
+      formData.append('user_id', user.id);
       formData.append('contract_number', form.contract_number);
       formData.append('contract_date', form.contract_date);
       formData.append('contract_value', valueNum);

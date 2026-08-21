@@ -148,6 +148,82 @@ router.patch('/settings/:kunci', async (req, res) => {
   }
 });
 
+// ── DOKUMEN VENDOR AKAN KEDALUWARSA (padanan cronjobs_notif_dokexpired.php eProc lama) ──
+// Sistem lama pakai cron eksternal (crontab) yang panggil endpoint HTTP tiap 6 jam, dan
+// bergantung ke 2 VIEW database yang definisinya tidak ditemukan. Sistem baru menyederhanakan:
+// query langsung ke vendor_documents.expiry_date (kolom yang sudah ada sejak awal), dan
+// "kirim notifikasi" di sini HANYA mencatat log (belum benar-benar mengirim email, karena
+// belum ada konfigurasi SMTP di sistem baru) - konsisten dengan keterbatasan yang sama pada
+// fitur undangan klarifikasi tender (field email disimpan tapi pengiriman belum jalan).
+
+// GET /api/master/dokumen-expired?hari=30 — daftar dokumen vendor yang akan/sudah kedaluwarsa
+router.get('/dokumen-expired', async (req, res) => {
+  try {
+    const hari = parseInt(req.query.hari) || 30;
+    const result = await pool.query(`
+      SELECT d.*, u.full_name AS vendor_name, u.email AS vendor_email,
+             (d.expiry_date - CURRENT_DATE) AS sisa_hari
+      FROM vendor_documents d
+      JOIN users u ON d.vendor_id = u.id
+      WHERE d.expiry_date IS NOT NULL
+        AND d.expiry_date <= CURRENT_DATE + ($1 || ' days')::interval
+      ORDER BY d.expiry_date ASC
+    `, [hari]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/master/dokumen-expired/:docId/notify — catat pengiriman notifikasi (upsert log)
+router.post('/dokumen-expired/:docId/notify', async (req, res) => {
+  try {
+    const doc = await pool.query('SELECT vendor_id FROM vendor_documents WHERE id = $1', [req.params.docId]);
+    if (!doc.rows.length) return res.status(404).json({ success: false, message: 'Dokumen tidak ditemukan.' });
+
+    const existing = await pool.query(
+      'SELECT id, sent_count FROM document_expiry_notification_logs WHERE vendor_document_id = $1',
+      [req.params.docId]
+    );
+
+    let result;
+    if (existing.rows.length) {
+      result = await pool.query(
+        `UPDATE document_expiry_notification_logs
+         SET sent_count = sent_count + 1, last_sent_at = CURRENT_TIMESTAMP
+         WHERE id = $1 RETURNING *`,
+        [existing.rows[0].id]
+      );
+    } else {
+      result = await pool.query(
+        `INSERT INTO document_expiry_notification_logs (vendor_document_id, vendor_id)
+         VALUES ($1, $2) RETURNING *`,
+        [req.params.docId, doc.rows[0].vendor_id]
+      );
+    }
+
+    res.json({ success: true, message: 'Notifikasi dicatat (pengiriman email sungguhan belum aktif, belum ada konfigurasi SMTP).', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/master/dokumen-expired/logs — riwayat notifikasi yang sudah dicatat
+router.get('/dokumen-expired/logs', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT l.*, u.full_name AS vendor_name, d.doc_type
+      FROM document_expiry_notification_logs l
+      JOIN users u ON l.vendor_id = u.id
+      LEFT JOIN vendor_documents d ON l.vendor_document_id = d.id
+      ORDER BY l.last_sent_at DESC
+    `);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── WILAYAH ADMINISTRATIF (berjenjang) ──
 router.get('/regions', async (req, res) => {
   try {

@@ -14,6 +14,39 @@ import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
 import GeneralChatModal from './GeneralChatModal';
 
+function TenderActivityLogTab({ tenderId }) {
+  const [logs, setLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/tenders/${tenderId}/activity-log`, { headers: getAuthHeaders() })
+      .then(r => r.json()).then(j => { if (j.success) setLogs(j.data); })
+      .catch(console.error).finally(() => setIsLoading(false));
+  }, [tenderId]);
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <h3 className="font-bold text-dpbj-navy text-sm">Rekam Jejak Tender</h3>
+      {isLoading ? (
+        <p className="text-sm text-muted">Memuat...</p>
+      ) : logs.length === 0 ? (
+        <p className="text-sm text-muted">Belum ada aktivitas tercatat untuk tender ini.</p>
+      ) : (
+        <div className="space-y-3 border-l-2 border-dpbj-gold/40 pl-4">
+          {logs.map(l => (
+            <div key={l.id} className="text-sm relative">
+              <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-dpbj-gold" />
+              <p className="font-semibold text-dpbj-navy">{l.posisi}</p>
+              {l.keterangan && <p className="text-xs text-muted">{l.keterangan}</p>}
+              <p className="text-xs text-muted mt-0.5">{l.user_name || 'Sistem'} · {new Date(l.created_at).toLocaleString('id-ID')}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VendorQualModal({ vendorId, vendorName, onClose }) {
   const [qual, setQual] = useState(null);
   
@@ -331,7 +364,7 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/winner`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ vendor_id: vendorId })
+        body: JSON.stringify({ vendor_id: vendorId, user_id: user?.id })
       });
       const json = await res.json();
       if (json.success) {
@@ -468,7 +501,7 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
 }
 
 export default function DetailTenderModal({ isOpen, onClose, data }) {
-  const { user, refreshData } = useApp();
+  const { user, triggerRefresh: refreshData } = useApp();
   const [activeTab, setActiveTab] = useState('detail');
   const [participants, setParticipants] = useState([]);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -497,7 +530,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
       const res = await fetch(`${API_BASE}/tenders/${data.id}/stage`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, user_id: user?.id })
       });
       const json = await res.json();
       if (json.success) {
@@ -591,6 +624,11 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 <Award size={16} /> Kontrak & BAST
               </button>
             )}
+            {['pokja', 'admin', 'ppk'].includes(user.role) && (
+              <button onClick={() => setActiveTab('rekam_jejak')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'rekam_jejak' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
+                <ClipboardCheck size={16} /> Rekam Jejak
+              </button>
+            )}
           </div>
         )}
 
@@ -678,6 +716,9 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
             )}
             {activeTab === 'kontrak' && (
               <ContractTab tenderId={data.id} tenderStatus={data.status} participants={participants} user={user} />
+            )}
+            {activeTab === 'rekam_jejak' && (
+              <TenderActivityLogTab tenderId={data.id} />
             )}
           </div>
 

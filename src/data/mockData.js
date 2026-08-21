@@ -241,4 +241,5 @@ export const navItems = [
   { id: 'user_management', label: 'Manajemen User', icon: 'Users2' },
   { id: 'login_logs', label: 'Riwayat Login',    icon: 'History' },
   { id: 'api_keys',   label: 'API Key',           icon: 'KeyRound' },
+  { id: 'document_expiry', label: 'Dokumen Kedaluwarsa', icon: 'AlertTriangle' },
 ];

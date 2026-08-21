@@ -122,6 +122,33 @@ function RevisionHistorySection({ pengajuanId, getAuthHeaders }) {
   );
 }
 
+function ActivityLogSection({ pengajuanId, getAuthHeaders }) {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/pengajuan/${pengajuanId}/activity-log`, { headers: getAuthHeaders() })
+      .then(r => r.json()).then(j => { if (j.success) setLogs(j.data); }).catch(() => {});
+  }, [pengajuanId]);
+
+  if (logs.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-sm font-bold text-dpbj-navy mb-3 flex items-center gap-2"><History size={16} /> Rekam Jejak</h3>
+      <div className="space-y-2 border-l-2 border-dpbj-gold/40 pl-4">
+        {logs.map(l => (
+          <div key={l.id} className="text-xs relative">
+            <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-dpbj-gold" />
+            <p className="font-semibold text-dpbj-navy">{l.posisi}</p>
+            {l.keterangan && <p className="text-muted">{l.keterangan}</p>}
+            <p className="text-muted mt-0.5">{l.user_name || 'Sistem'} · {new Date(l.created_at).toLocaleString('id-ID')}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DetailPengajuanModal({ isOpen, onClose, data }) {
   const { user, triggerRefresh } = useApp();
   const [isDocsComplete, setIsDocsComplete] = useState(false);
@@ -158,14 +185,14 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
       setIsSubmitting(true);
       
       let url = `${API_BASE}/pengajuan/${data.id}/${action}`;
-      let body = {};
-      
+      let body = { user_id: user.id };
+
       if (action === 'review') {
-        body = { is_docs_complete: isDocsComplete, admin_notes: adminNotes };
+        body = { ...body, is_docs_complete: isDocsComplete, admin_notes: adminNotes };
       } else if (action === 'reject') {
         const reason = prompt('Alasan penolakan:');
         if (reason === null) return;
-        body = { reason };
+        body = { ...body, reason };
       }
 
       const res = await fetch(url, {
@@ -293,6 +320,8 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
           </div>
 
           <RevisionHistorySection pengajuanId={data.id} getAuthHeaders={getAuthHeaders} />
+
+          <ActivityLogSection pengajuanId={data.id} getAuthHeaders={getAuthHeaders} />
 
           <ChecklistSection pengajuanId={data.id} category={data.category} canEdit={user?.role === 'admin'} user={user} getAuthHeaders={getAuthHeaders} />
 

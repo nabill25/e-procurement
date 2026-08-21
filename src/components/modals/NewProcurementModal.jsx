@@ -113,8 +113,6 @@ export default function NewProcurementModal({ isOpen, onClose }) {
       if (files.rab) formData.append('rab', files.rab);
       if (files.nota) formData.append('nota', files.nota);
 
-      formData.append('title', form.title);
-
       await addRequest(formData);
       setSubmitted(true);
     } catch (err) {
