@@ -26,6 +26,7 @@ import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
 import RegistrasiVendor from './pages/RegistrasiVendor';
 import QrVerify from './pages/QrVerify';
+import PublicPolicyPage from './pages/PublicPolicyPage';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -34,7 +35,7 @@ import LoginModal from './components/modals/LoginModal';
 import RoleSwitcherModal from './components/modals/RoleSwitcherModal';
 
 // Halaman yang menggunakan full public layout (tanpa sidebar/topbar)
-const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify'];
+const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify', 'public_policy'];
 
 // Loading screen saat cek session awal
 function AuthLoadingScreen() {
@@ -197,6 +198,7 @@ function AppShell() {
       public_qr_verify: <QrVerify initialCode={qrVerifyCode} onNavigateHome={() => navigateTo('public_home')} />,
       kontak: <KontakKami onNavigateHome={() => navigateTo('public_home')} />,
       registrasi: <RegistrasiVendor onNavigateHome={() => navigateTo('public_home')} onLoginClick={() => setShowLogin(true)} />,
+      public_policy: <PublicPolicyPage onNavigateHome={() => navigateTo('public_home')} />,
     };
 
     return (

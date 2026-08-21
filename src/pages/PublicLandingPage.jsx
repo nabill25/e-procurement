@@ -4,6 +4,37 @@ import LiveClock from '../components/common/LiveClock';
 import logoUIFull from '../assets/logo-ui-full.png';
 import { API_BASE } from '../context/AppContext';
 
+function BannerSection() {
+  const [banners, setBanners] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/cms/banners`).then(res => res.json()).then(json => {
+      if (json.success) setBanners(json.data);
+    }).catch(() => {});
+  }, []);
+
+  if (banners.length === 0) return null;
+
+  return (
+    <section className="py-8 px-6 bg-surface">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {banners.map(b => {
+          const img = (
+            <img src={`http://localhost:3001${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100" />
+          );
+          return b.link_url ? (
+            <a key={b.id} href={b.link_url} target="_blank" rel="noreferrer" className="block hover:opacity-90 transition-opacity">
+              {img}
+            </a>
+          ) : (
+            <div key={b.id}>{img}</div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function NewsAndFaqSection() {
   const [news, setNews] = useState([]);
   const [faqs, setFaqs] = useState([]);
@@ -319,6 +350,7 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
         </div>
       </section>
 
+      <BannerSection />
       <NewsAndFaqSection />
 
       {/* Contact Quick Info */}
@@ -356,6 +388,9 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             </div>
           </div>
           <div className="text-center md:text-right">
+            <button onClick={() => onNavigate('public_policy')} className="text-xs font-semibold hover:underline mb-2 inline-block">
+              Kebijakan
+            </button>
             <p className="font-bold text-sm mb-1">© 2025 - 2026 | DPBJ UI</p>
             <p className="opacity-80 font-medium">Version 3.1.0</p>
           </div>
