@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useApp, API_BASE } from '../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../context/AppContext';
 import { Search, ShoppingCart, Filter, Plus, Package } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
 import KatalogDetailModal from '../components/modals/KatalogDetailModal';
@@ -14,7 +14,7 @@ const EMPTY_FORM = {
 };
 
 export default function Katalog() {
-  const { user, getAuthHeaders, navigateTo } = useApp();
+  const { user, navigateTo } = useApp();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Database } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
 const CATEGORIES = [
@@ -28,7 +28,6 @@ const CATEGORIES = [
 ];
 
 function SimpleMasterTable({ category }) {
-  const { getAuthHeaders } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [kode, setKode] = useState('');
@@ -139,7 +138,6 @@ function SimpleMasterTable({ category }) {
 }
 
 function UnitKerjaTable() {
-  const { getAuthHeaders } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [form, setForm] = useState({ kode: '', nama: '', alamat: '', telepon: '', email: '' });
@@ -264,7 +262,6 @@ function UnitKerjaTable() {
 }
 
 function VendorRetailTable() {
-  const { getAuthHeaders } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [form, setForm] = useState({ nama: '', npwp: '', telepon: '', kota: '', kontak_person: '', kontak_person_hp: '', alamat: '' });
@@ -399,7 +396,6 @@ function VendorRetailTable() {
 }
 
 function KatalogCategoryTable() {
-  const { getAuthHeaders } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nama, setNama] = useState('');
@@ -519,7 +515,7 @@ function KatalogCategoryTable() {
 }
 
 function MasterChecklistTable() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nama, setNama] = useState('');
@@ -635,7 +631,7 @@ function MasterChecklistTable() {
 }
 
 function DocumentTemplateTable() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nama, setNama] = useState('');
@@ -762,7 +758,7 @@ function DocumentTemplateTable() {
 }
 
 function HolidayTable() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [tanggal, setTanggal] = useState('');
@@ -872,7 +868,6 @@ function HolidayTable() {
 }
 
 function RegionTable() {
-  const { getAuthHeaders } = useApp();
   const [provinces, setProvinces] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState('');
   const [children, setChildren] = useState([]);

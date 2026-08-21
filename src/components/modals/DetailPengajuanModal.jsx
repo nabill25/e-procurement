@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Download, CheckCircle2, CheckSquare, Square, AlertTriangle, Upload, FileEdit, History, ClipboardList } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig } from '../../data/mockData';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
 
 function ChecklistSection({ pengajuanId, category, canEdit, user, getAuthHeaders }) {
@@ -123,7 +123,7 @@ function RevisionHistorySection({ pengajuanId, getAuthHeaders }) {
 }
 
 export default function DetailPengajuanModal({ isOpen, onClose, data }) {
-  const { user, getAuthHeaders, triggerRefresh } = useApp();
+  const { user, triggerRefresh } = useApp();
   const [isDocsComplete, setIsDocsComplete] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

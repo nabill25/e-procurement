@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useApp, API_BASE } from '../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../context/AppContext';
 import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
@@ -42,7 +42,6 @@ function IdentityTab({ vendor }) {
 }
 
 function DocumentsTab({ documents, vendorId, fetchQualifications }) {
-  const { getAuthHeaders } = useApp();
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({ doc_type: 'akta', doc_number: '', issue_date: '', expiry_date: '' });
   const [file, setFile] = useState(null);
@@ -169,7 +168,6 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
 }
 
 function ExperiencesTab({ experiences, vendorId, fetchQualifications }) {
-  const { getAuthHeaders } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ project_name: '', client_name: '', contract_value: '', start_date: '', end_date: '' });
 
@@ -283,7 +281,7 @@ function ExperiencesTab({ experiences, vendorId, fetchQualifications }) {
 }
 
 export default function VendorProfile() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [activeTab, setActiveTab] = useState('identitas');
   const [vendorData, setVendorData] = useState(null);
   const [qualifications, setQualifications] = useState({ documents: [], experiences: [] });

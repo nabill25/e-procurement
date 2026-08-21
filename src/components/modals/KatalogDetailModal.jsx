@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Package, Upload, Download, Trash2, Image as ImageIcon, Paperclip, History, Flag } from 'lucide-react';
-import { API_BASE, useApp } from '../../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 
 export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [item, setItem] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [attachFile, setAttachFile] = useState(null);

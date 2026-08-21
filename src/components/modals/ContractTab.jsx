@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import {
@@ -24,7 +24,6 @@ const WORKFLOW_SUBTABS = [
 ];
 
 export default function ContractTab({ tenderId, tenderStatus, participants, user }) {
-  const { getAuthHeaders } = useApp();
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);

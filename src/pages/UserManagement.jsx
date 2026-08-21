@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users2, Plus, Trash2, ShieldPlus } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 
 export default function UserManagement() {
-  const { getAuthHeaders } = useApp();
   const [users, setUsers] = useState([]);
   const [roleOptions, setRoleOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

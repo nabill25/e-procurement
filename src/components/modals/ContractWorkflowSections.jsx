@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog } from 'lucide-react';
-import { API_BASE, useApp } from '../../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
 
@@ -19,7 +19,6 @@ function Section({ icon: Icon, title, children, tone = 'navy' }) {
 
 // ── SPPBJ + SPK/PKS detail form ──
 export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }) {
-  const { getAuthHeaders } = useApp();
   const [sppbj, setSppbj] = useState({});
   const [spk, setSpk] = useState({});
   const [saving, setSaving] = useState(false);
@@ -119,7 +118,6 @@ export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }
 
 // ── SPMK ──
 export function SpmkSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ nomor: '', spmk_dari: '', spmk_sampai: '', keterangan: '' });
 
@@ -163,7 +161,6 @@ export function SpmkSection({ tenderId, canEdit, user }) {
 
 // ── Jaminan Pelaksanaan & Pemeliharaan ──
 export function JaminanSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [jaminan, setJaminan] = useState([]);
   const [jampel, setJampel] = useState([]);
   const [jForm, setJForm] = useState({ nomor: '', tanggal_jaminan: '' });
@@ -249,7 +246,6 @@ export function JaminanSection({ tenderId, canEdit, user }) {
 
 // ── SLA ──
 export function SlaSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ availability: '', waktu: '', denda: '', biaya_maintenance: '' });
 
@@ -300,7 +296,6 @@ export function SlaSection({ tenderId, canEdit, user }) {
 
 // ── Material & Surat Pesanan (Kontrak Payung) ──
 export function MaterialSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [materials, setMaterials] = useState([{ nama: '', qty: '', satuan: '', harga_satuan: '', sifat: 'Tetap' }]);
   const [existing, setExisting] = useState([]);
   const [suratPesanan, setSuratPesanan] = useState([]);
@@ -408,7 +403,6 @@ export function MaterialSection({ tenderId, canEdit, user }) {
 
 // ── Addendum (2 tahap approval) ──
 export function AddendumSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({ nomor: '', jenis: '', tanggal: '', keterangan: '' });
 
@@ -469,7 +463,6 @@ export function AddendumSection({ tenderId, canEdit, user }) {
 
 // ── Catatan, Pengingat, Dokumen tambahan ──
 export function NotesRemindersDocsSection({ tenderId, canEdit, isVendor, user }) {
-  const { getAuthHeaders } = useApp();
   const [notes, setNotes] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -592,7 +585,6 @@ const STATUS_CHANGE_LABELS = {
 };
 
 export function StatusChangeSection({ tenderId, canEdit, user }) {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [jenis, setJenis] = useState('perubahan');
   const [alasan, setAlasan] = useState('');
@@ -646,7 +638,6 @@ export function StatusChangeSection({ tenderId, canEdit, user }) {
 
 // ── PIC & Tahap Kontrak ──
 export function PicStageSection({ tenderId, contract, canEdit, refreshContract }) {
-  const { getAuthHeaders } = useApp();
   const [staffList, setStaffList] = useState([]);
 
   useEffect(() => {

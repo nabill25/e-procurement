@@ -73,7 +73,7 @@ export function PajakTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ pajak: data })
       });
       alert('Data pajak berhasil disimpan.');
@@ -101,7 +101,7 @@ export function TenagaAhliTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ tenaga_ahli: data })
       });
       alert('Data Tenaga Ahli berhasil disimpan.');
@@ -131,7 +131,7 @@ export function PeralatanTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ peralatan: data })
       });
       alert('Data Peralatan berhasil disimpan.');
@@ -158,7 +158,7 @@ export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ pengurus: data })
       });
       alert('Susunan Pengurus berhasil disimpan.');
@@ -184,7 +184,7 @@ export function BankTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ bank: data })
       });
       alert('Data Rekening Bank berhasil disimpan.');
@@ -212,7 +212,7 @@ export function NeracaTab({ vendor, getAuthHeaders, refreshData }) {
 
   const handleSave = async () => {
     try {
-      await fetch(`${API_BASE}/vendors/${vendor.id}/profile`, {
+      await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ neraca: data })
       });
       alert('Data Neraca Keuangan berhasil disimpan.');

@@ -3,7 +3,7 @@ import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, D
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig, methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
 import ObjectionsTab from './ObjectionsTab';
 import ContractTab from './ContractTab';
@@ -14,7 +14,6 @@ import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
 
 function VendorQualModal({ vendorId, vendorName, onClose }) {
-  const { getAuthHeaders } = useApp();
   const [qual, setQual] = useState(null);
   
   useEffect(() => {
@@ -163,7 +162,7 @@ function VendorQualModal({ vendorId, vendorName, onClose }) {
 }
 
 function VendorBidForm({ tenderId, onClose, refreshData }) {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [bidPrice, setBidPrice] = useState('');
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -296,7 +295,6 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
 }
 
 function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshData }) {
-  const { getAuthHeaders } = useApp();
   const [evaluating, setEvaluating] = useState(null);
   
   const handleSaveEvaluation = async (vendorId, isPassed) => {
@@ -455,7 +453,7 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
 }
 
 export default function DetailTenderModal({ isOpen, onClose, data }) {
-  const { user, getAuthHeaders, refreshData } = useApp();
+  const { user, refreshData } = useApp();
   const [activeTab, setActiveTab] = useState('detail');
   const [participants, setParticipants] = useState([]);
   const [isRegistering, setIsRegistering] = useState(false);

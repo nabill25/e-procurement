@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import { Download, AlertCircle, CheckCircle2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function ObjectionsTab({ tenderId, tenderStatus, participants, user }) {
-  const { getAuthHeaders } = useApp();
   const [objections, setObjections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [objectionText, setObjectionText] = useState('');

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Inbox as InboxIcon, Mail, MailOpen, CheckCircle2, Send } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
 const STATUS_CFG = {
@@ -10,7 +10,7 @@ const STATUS_CFG = {
 };
 
 export default function Inbox() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -140,7 +140,10 @@ export default function Inbox() {
                   {selected.sender_phone && <span>{selected.sender_phone}</span>}
                 </div>
                 {selected.category_name && (
-                  <span className="badge text-[10px] bg-surface text-dpbj-navy mt-2 inline-block">{selected.category_name}</span>
+                  <span className="badge text-[10px] bg-surface text-dpbj-navy mt-2 inline-block mr-2">{selected.category_name}</span>
+                )}
+                {selected.complain_type_id && (
+                  <span className="badge text-[10px] bg-red-100 text-red-700 mt-2 inline-block">Komplain Resmi</span>
                 )}
               </div>
 

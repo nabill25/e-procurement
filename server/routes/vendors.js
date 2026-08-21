@@ -119,14 +119,15 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ── GET /api/vendors/:id ──
+// ── GET /api/vendors/:id — :id di sini adalah users.id (konsisten dengan seluruh aplikasi,
+// lihat vendor_documents.vendor_id, tender_participants.vendor_id, dst yang semuanya FK ke users) ──
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT v.*, u.rating_avg, u.rating_count
       FROM vendors v
       LEFT JOIN users u ON v.user_id = u.id
-      WHERE v.id = $1
+      WHERE v.user_id = $1
     `, [req.params.id]);
     const rows = result.rows;
     if (!rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
@@ -176,7 +177,7 @@ router.put('/:id/profile', async (req, res) => {
     }
 
     values.push(req.params.id);
-    const sql = `UPDATE vendors SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const sql = `UPDATE vendors SET ${updates.join(', ')} WHERE user_id = $${idx} RETURNING *`;
     
     const result = await pool.query(sql, values);
     if (!result.rows.length) {
@@ -330,7 +331,7 @@ router.get('/:id/qualifications', async (req, res) => {
   try {
     const docsResult = await pool.query('SELECT * FROM vendor_documents WHERE vendor_id = $1 ORDER BY created_at DESC', [req.params.id]);
     const expResult = await pool.query('SELECT * FROM vendor_experiences WHERE vendor_id = $1 ORDER BY start_date DESC', [req.params.id]);
-    const sikapResult = await pool.query('SELECT pajak, tenaga_ahli, peralatan, pengurus, bank, neraca FROM vendors WHERE id = $1', [req.params.id]);
+    const sikapResult = await pool.query('SELECT pajak, tenaga_ahli, peralatan, pengurus, bank, neraca FROM vendors WHERE user_id = $1', [req.params.id]);
 
     const sikap = sikapResult.rows[0] || {};
 

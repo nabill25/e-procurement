@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useApp, API_BASE } from '../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../context/AppContext';
 import { Package, FileText, CheckCircle, XCircle, Search, Clock } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
 
 export default function Purchasing() {
-  const { user, getAuthHeaders, navigateTo } = useApp();
+  const { user, navigateTo } = useApp();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);

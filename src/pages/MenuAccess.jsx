@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Lock, Save } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 
 const ROLES = [
   { id: 'admin',  label: 'Admin' },
@@ -10,7 +10,6 @@ const ROLES = [
 ];
 
 export default function MenuAccess() {
-  const { getAuthHeaders } = useApp();
   const [menus, setMenus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);

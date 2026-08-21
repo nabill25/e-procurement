@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Newspaper, Plus, Trash2, HelpCircle } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
 function NewsTab() {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [form, setForm] = useState({ title: '', content: '', image_url: '' });
@@ -104,7 +104,6 @@ function NewsTab() {
 }
 
 function FaqTab() {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [form, setForm] = useState({ question: '', answer: '' });

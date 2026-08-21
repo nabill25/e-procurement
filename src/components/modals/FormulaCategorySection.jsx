@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Calculator } from 'lucide-react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 
 const SUITABILITY_OPTIONS = [
   { value: '', label: '-' },
@@ -13,7 +13,6 @@ const SUITABILITY_OPTIONS = [
 // Sertifikat Lain) - meniru persis hitungPersonil()/hitungPeralatan()/hitungSertifikat()
 // di eproc/lib/eproc/allfunc.js (sistem lama).
 export default function FormulaCategorySection({ tenderId, vendorId, category, criteriaList }) {
-  const { getAuthHeaders } = useApp();
   const [maxScore, setMaxScore] = useState('');
   const [items, setItems] = useState([]);
   const [result, setResult] = useState(null);

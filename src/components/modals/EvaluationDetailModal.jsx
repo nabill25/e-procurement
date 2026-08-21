@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle } from 'lucide-react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import FormulaCategorySection from './FormulaCategorySection';
 import clsx from 'clsx';
 
@@ -19,7 +19,7 @@ const CATEGORIES = [
 ];
 
 export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendor }) {
-  const { user, getAuthHeaders } = useApp();
+  const { user } = useApp();
   const [criteria, setCriteria] = useState([]);
   const [scores, setScores] = useState({});
   const [isLoading, setIsLoading] = useState(true);

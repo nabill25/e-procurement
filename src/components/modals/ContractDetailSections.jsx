@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CreditCard, AlertOctagon, ListChecks, Plus } from 'lucide-react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
 
@@ -11,7 +11,6 @@ const PAYMENT_STATUS = {
 };
 
 export function PaymentTermsSection({ tenderId, canEdit }) {
-  const { getAuthHeaders } = useApp();
   const [terms, setTerms] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ term_name: '', amount: '', progress_percent: '' });
@@ -102,7 +101,6 @@ export function PaymentTermsSection({ tenderId, canEdit }) {
 }
 
 export function PenaltiesSection({ tenderId, canEdit }) {
-  const { getAuthHeaders } = useApp();
   const [penalties, setPenalties] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ days_late: '', penalty_rate: '1 permil/hari', work_value: '', penalty_amount: '', notes: '' });
@@ -178,7 +176,6 @@ const DELIVERABLE_STATUS = {
 };
 
 export function DeliverablesSection({ tenderId, canEdit }) {
-  const { getAuthHeaders } = useApp();
   const [items, setItems] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ scope: '', deliverable_name: '', target_date: '' });
