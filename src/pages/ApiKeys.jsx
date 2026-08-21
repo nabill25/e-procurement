@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { KeyRound, Plus, Trash2, Power, Copy, Eye, X } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -8,7 +8,7 @@ function formatTanggal(iso) {
 }
 
 export default function ApiKeys() {
-  const { getAuthHeaders, user } = useApp();
+  const { user } = useApp();
   const [keys, setKeys] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);

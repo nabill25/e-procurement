@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { History, CheckCircle2, XCircle } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { API_BASE, getAuthHeaders } from '../context/AppContext';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -8,7 +8,6 @@ function formatTanggal(iso) {
 }
 
 export default function LoginLogs() {
-  const { getAuthHeaders } = useApp();
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 

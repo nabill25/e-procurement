@@ -158,6 +158,7 @@ function AppShell() {
     activePage, setActivePage,
     qrVerifyCode,
     isAuthLoading,
+    isAuthenticated, user,
     showNewProcurementModal, closeNewProcurementModal,
     showSettingsModal, closeSettingsModal,
     selectedPengajuan, setSelectedPengajuan,
@@ -214,7 +215,6 @@ function AppShell() {
 
   // ── INTERNAL (DASHBOARD) LAYOUT ───────────────────────────────────
   // Guard: jika belum login, redirect ke landing page (mengikuti eProc session check)
-  const { isAuthenticated, user } = useApp();
   if (!isAuthenticated || !user) {
     // Belum login tapi mencoba akses halaman internal → tampilkan landing page
     return (
