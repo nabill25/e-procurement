@@ -171,8 +171,13 @@
   .page-header {
     @apply mb-6;
   }
+  /* Kartu utama di seluruh halaman (bukan cuma dashboard) - sentuhan glass tipis
+     (latar hampir putih penuh + blur ringan) supaya konsisten dengan dashboard,
+     tapi TIDAK setransparan .glass-card khusus dashboard (di sini keterbacaan tabel/
+     form yang padat teks lebih penting daripada efek kaca yang kuat). */
   .section-card {
-    @apply bg-surface-card rounded-2xl shadow-card border border-border p-6;
+    @apply bg-white/90 backdrop-blur-md rounded-2xl shadow-card border border-white/70 p-6
+           transition-shadow duration-300 hover:shadow-card-lg;
   }
 }
 

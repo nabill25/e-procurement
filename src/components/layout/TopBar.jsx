@@ -82,7 +82,7 @@ export default function TopBar() {
       </div>
       
       {/* Main TopBar */}
-      <header className="bg-white border-b border-border px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4">
+      <header className="bg-white/85 backdrop-blur-md border-b border-border px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4">
       {/* Hamburger, cuma tampil di mobile untuk buka drawer sidebar */}
       <button
         className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-surface transition-colors flex-shrink-0"
