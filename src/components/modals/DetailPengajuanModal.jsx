@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Download, CheckCircle2, CheckSquare, Square, AlertTriangle, Upload, FileEdit, History, ClipboardList } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig } from '../../data/mockData';
-import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
 
 function ChecklistSection({ pengajuanId, category, canEdit, user, getAuthHeaders }) {
@@ -85,7 +85,7 @@ function FileAnalisaSection({ pengajuanId, canEdit, user, getAuthHeaders }) {
           {files.map(f => (
             <div key={f.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
               <span>{f.judul} {f.esign_status && <span className="text-emerald-600 ml-1">({f.esign_status})</span>}</span>
-              <a href={`http://localhost:3001${f.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
+              <a href={`${SERVER_BASE}${f.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
             </div>
           ))}
         </div>
@@ -113,7 +113,7 @@ function RevisionHistorySection({ pengajuanId, getAuthHeaders }) {
             <p className="text-red-800">{r.catatan}</p>
             <div className="flex items-center justify-between mt-1.5">
               <span className="text-red-500">{new Date(r.created_at).toLocaleDateString('id-ID')}</span>
-              {r.file_path && <a href={`http://localhost:3001${r.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>}
+              {r.file_path && <a href={`${SERVER_BASE}${r.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>}
             </div>
           </div>
         ))}
@@ -308,7 +308,7 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
                 <div key={doc.label} className="border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-gray-100 transition-colors">
                   <span className="text-xs font-bold text-dpbj-navy mb-2">{doc.label}</span>
                   {doc.path ? (
-                    <a href={`http://localhost:3001${doc.path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">
+                    <a href={`${SERVER_BASE}${doc.path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">
                       <Download size={12}/> Unduh
                     </a>
                   ) : (

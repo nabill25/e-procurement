@@ -2,7 +2,13 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { mockUsers } from '../data/mockData';
 
 const AppContext = createContext(null);
-export const API_BASE = 'http://localhost:3001/api';
+// Di production (Vercel), isi VITE_API_BASE di environment variables supaya menunjuk ke
+// backend yang sebenarnya (misal https://nama-app.up.railway.app/api). Kalau kosong, otomatis
+// pakai localhost:3001 supaya development lokal tetap jalan tanpa perlu setting apapun.
+export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
+// SERVER_BASE (tanpa akhiran /api) - dipakai untuk link/gambar file yang diunggah (disajikan
+// backend lewat /uploads/..., bukan lewat endpoint /api).
+export const SERVER_BASE = API_BASE.replace(/\/api\/?$/, '');
 
 // ── Helper: buat headers dengan Authorization JWT (mengikuti alur eProc session) ──
 export function getAuthHeaders() {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search, CalendarClock, Unlock } from 'lucide-react';
-import { API_BASE } from '../../context/AppContext';
+import { API_BASE, SERVER_BASE } from '../../context/AppContext';
 
 const DOC_TYPES = [
   { value: 'lelang', label: 'Dokumen Lelang' },
@@ -252,7 +252,7 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
                   <p className="text-[10px] text-muted uppercase">{d.document_type} • {d.uploaded_by_name || '-'}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <a href={`http://localhost:3001/uploads/${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={13} /></a>
+                  <a href={`${SERVER_BASE}/uploads/${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={13} /></a>
                   {canManage && <button onClick={() => handleDeleteDoc(d.id)} className="text-red-400"><Trash2 size={13} /></button>}
                 </div>
               </div>
@@ -311,12 +311,12 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
                   <div className="min-w-0">
                     <p className="font-semibold text-dpbj-navy truncate">{k.nama} <span className="text-[10px] text-muted font-normal">dari {k.vendor_name || 'Panitia'}</span></p>
                   </div>
-                  <a href={`http://localhost:3001/uploads/${k.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 shrink-0"><Download size={13} /></a>
+                  <a href={`${SERVER_BASE}/uploads/${k.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 shrink-0"><Download size={13} /></a>
                 </div>
                 {klarifikasi.filter(t => t.parent_id === k.id).map(t => (
                   <div key={t.id} className="mt-1.5 ml-3 pl-2 border-l-2 border-dpbj-gold/40 flex items-center justify-between text-[11px]">
                     <span className="text-dpbj-navy font-medium">↳ Tanggapan: {t.notes || t.nama}</span>
-                    <a href={`http://localhost:3001/uploads/${t.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
+                    <a href={`${SERVER_BASE}/uploads/${t.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
                   </div>
                 ))}
                 {canManage && !klarifikasi.some(t => t.parent_id === k.id) && (

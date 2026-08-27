@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, Briefcase, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import LiveClock from '../components/common/LiveClock';
 import logoUIFull from '../assets/logo-ui-full.png';
-import { API_BASE } from '../context/AppContext';
+import { API_BASE, SERVER_BASE } from '../context/AppContext';
 
 function BannerSection() {
   const [banners, setBanners] = useState([]);
@@ -20,7 +20,7 @@ function BannerSection() {
       <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
         {banners.map(b => {
           const img = (
-            <img src={`http://localhost:3001${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100" />
+            <img src={`${SERVER_BASE}${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100" />
           );
           return b.link_url ? (
             <a key={b.id} href={b.link_url} target="_blank" rel="noreferrer" className="block hover:opacity-90 transition-opacity">

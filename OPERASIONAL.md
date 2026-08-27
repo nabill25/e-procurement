@@ -64,35 +64,57 @@ Perhatian: proses ini menambahkan data dari file backup ke database yang sedang 
 2. Cek apakah kredensial di `.env` (`SUPABASE_DB_URL`) masih benar - kadang password perlu direset dari dashboard Supabase kalau sudah lama tidak dipakai atau ada kebijakan keamanan yang berubah.
 3. Kalau memang masalah dari Supabase dan berkepanjangan, sistem sementara tidak bisa dipakai sampai Supabase pulih (project ini belum punya failover ke database cadangan).
 
-## 3. Deploy ke Produksi (Vercel)
+## 3. Deploy ke Produksi (Frontend di Vercel, Backend di Railway)
 
-Panduan singkat kalau nanti sudah siap deploy sungguhan (bukan cuma demo):
+**Kenapa dipisah begini**: Vercel didesain untuk aplikasi frontend (atau fungsi serverless kecil), bukan server Node/Express yang jalan terus-menerus seperti `server/index.js` di project ini (dia memakai `app.listen()`, menyala terus menunggu request, bukan pola serverless). Railway (dan platform sejenis seperti Render) memang didesain untuk server Node biasa. Database tetap di Supabase seperti sekarang, tidak berubah.
 
-### Sebelum deploy pertama kali
+Konfigurasi yang sudah disiapkan di project ini (tidak perlu dibuat manual):
+- `vercel.json` (root) - beritahu Vercel cara build frontend, plus aturan redirect supaya semua URL (termasuk `/verify/KODE` untuk verifikasi QR) tetap memuat halaman aplikasi, bukan 404.
+- `railway.json` (root) - beritahu Railway cara build dan menjalankan backend dari folder `server/`.
+- `server/package.json` sudah punya script `start` yang dibutuhkan Railway.
 
-1. **Isi semua variabel lingkungan (environment variables) di Vercel**, jangan andalkan file `.env` lokal karena itu tidak ikut ter-deploy:
-   - `SUPABASE_DB_URL` - koneksi ke database production (bisa project Supabase yang sama atau yang baru khusus production, sesuai kebijakan institusi)
-   - `JWT_SECRET` - **WAJIB nilai acak yang BEDA dari yang dipakai di development**, jangan pernah pakai yang sama. Generate baru dengan: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
-   - `NODE_ENV=production` - ini yang mengaktifkan pembatasan CORS dan pengaturan keamanan production lainnya
-   - `FRONTEND_URL` - alamat domain frontend yang sebenarnya nanti (bukan localhost)
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` - kredensial email institusi, supaya notifikasi benar-benar terkirim
-2. **Jalankan seluruh file migrasi** (`migrations/001_....sql` sampai yang terbaru, berurutan) ke database production SEBELUM kode baru di-deploy, sesuai catatan di bagian atas CLAUDE.md soal alur kerja "kirim diff, atasan jalankan migrasi duluan".
-3. **Jalankan test suite** (`npm run test:e2e`) dan pastikan semuanya lulus sebelum deploy.
-4. **Backup database production** (poin 1 di atas) sebelum deploy pertama kali, sebagai jaring pengaman.
+### Langkah A: Deploy backend ke Railway (kerjakan ini DULUAN)
+
+1. Buka https://railway.app, login/daftar (bisa pakai akun GitHub yang sama).
+2. Klik "New Project" → "Deploy from GitHub repo" → pilih repo `nabill25/e-procurement`.
+3. Railway akan otomatis mendeteksi `railway.json` dan mulai build. Kalau diminta pilih root directory, pastikan tetap di root repo (bukan `server/`) karena `railway.json` sudah mengatur `cd server` sendiri di dalam perintahnya.
+4. Buka tab "Variables" di project Railway itu, isi SEMUA variabel berikut (nilai yang sama seperti di `server/.env` lokal Anda, KECUALI yang ditandai harus beda):
+   - `SUPABASE_DB_URL` - sama seperti di lokal (koneksi ke database Supabase yang sama)
+   - `JWT_SECRET` - **WAJIB nilai BARU yang berbeda dari development**, jangan pernah pakai yang sama. Generate lewat: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
+   - `JWT_EXPIRES_IN` = `8h`
+   - `NODE_ENV` = `production` (ini mengaktifkan pembatasan CORS dan rate-limit yang lebih ketat, sesuai yang sudah disiapkan di kode)
+   - `FRONTEND_URL` - isi setelah Langkah B selesai dan Anda tahu alamat Vercel-nya (misal `https://e-procurement-xxxx.vercel.app`)
+   - `SMTP_HOST` = `smtp.gmail.com`, `SMTP_PORT` = `587`, `SMTP_SECURE` = `false`, `SMTP_USER`, `SMTP_PASS` (App Password), `SMTP_FROM` - sama seperti di lokal. Railway kemungkinan besar TIDAK memblokir port SMTP seperti jaringan lokal tadi, jadi email seharusnya benar-benar terkirim dari sini.
+5. Setelah deploy selesai, Railway kasih Anda satu alamat (misal `https://e-procurement-production.up.railway.app`). Catat alamat ini - itu alamat backend Anda.
+6. Buka `https://alamat-railway-anda.up.railway.app/api` di browser, harus muncul teks `{"message":"DPBJ UI E-Procurement API is running!"}`. Kalau muncul itu, backend sudah jalan.
+
+### Langkah B: Deploy frontend ke Vercel
+
+1. Buka https://vercel.com, login/daftar (bisa pakai akun GitHub yang sama).
+2. Klik "Add New" → "Project" → pilih repo `nabill25/e-procurement` dari GitHub.
+3. Vercel akan otomatis mendeteksi `vercel.json` dan mengisi pengaturan build. Biarkan default (Framework Preset: Vite).
+4. Sebelum klik Deploy, buka bagian "Environment Variables", tambahkan:
+   - `VITE_API_BASE` = `https://alamat-railway-anda.up.railway.app/api` (pakai alamat dari Langkah A poin 5, JANGAN lupa akhiran `/api`)
+5. Klik Deploy. Tunggu beberapa menit.
+6. Setelah selesai, Vercel kasih alamat (misal `https://e-procurement-xxxx.vercel.app`). Ini alamat aplikasi yang akan dibuka pengguna.
+7. **Kembali ke Railway** (Langkah A poin 4), isi `FRONTEND_URL` dengan alamat Vercel ini, lalu redeploy backend supaya CORS mengizinkan alamat frontend yang benar.
+
+### Sebelum deploy pertama kali (jangan lewatkan)
+
+1. **Jalankan seluruh file migrasi** (`migrations/001_....sql` sampai yang terbaru, berurutan) ke database Supabase yang dipakai production, KALAU itu database yang berbeda dari yang dipakai development. Kalau memakai Supabase project yang sama seperti development sekarang, migrasinya sudah semua terpasang, tidak perlu diulang.
+2. **Jalankan test suite** (`npm run test:e2e`) dan pastikan semuanya lulus sebelum deploy.
+3. **Backup database** (bagian 1 di atas) sebelum deploy pertama kali, sebagai jaring pengaman.
 
 ### Setelah deploy
 
-1. Coba login dengan salah satu akun sungguhan, pastikan tidak ada error.
-2. Cek log Vercel (dashboard Vercel → project → tab "Logs") untuk memastikan tidak ada error yang muncul di production tapi tidak muncul waktu development.
-3. Beri tahu pengguna/staf yang akan memakai supaya mereka juga ikut mengecek dan melaporkan kalau ada yang aneh.
+1. Buka alamat Vercel, coba login dengan salah satu akun sungguhan, pastikan tidak ada error dan data benar-benar muncul (bukan cuma halaman kosong).
+2. Cek log Railway (dashboard Railway → project → tab "Deployments" → "View Logs") dan log Vercel (dashboard Vercel → project → tab "Logs") untuk memastikan tidak ada error yang muncul di production tapi tidak muncul waktu development.
+3. Coba fitur yang memicu email (misalnya Undangan Klarifikasi di tab Kontrak) untuk konfirmasi SMTP benar-benar berfungsi dari Railway (yang kemungkinan besar tidak memblokir port SMTP seperti jaringan lokal development).
+4. Beri tahu pengguna/staf yang akan memakai supaya mereka juga ikut mengecek dan melaporkan kalau ada yang aneh.
 
-### Yang perlu diperhatikan: backend terpisah dari frontend
+### Biaya
 
-Vercel secara bawaan didesain untuk aplikasi frontend (atau serverless function kecil), bukan server Node/Express yang jalan terus-menerus seperti `server/index.js` di project ini. Ada 2 pilihan:
-- **Deploy frontend saja ke Vercel**, backend di-host terpisah di layanan lain yang mendukung server Node biasa (misalnya Railway, Render, atau VPS institusi UI kalau ada).
-- **Ubah backend jadi serverless functions** khusus Vercel - ini perubahan arsitektur yang cukup besar, belum dikerjakan di project ini, perlu didiskusikan dulu kalau memang mau ke arah ini.
-
-Sebelum deploy sungguhan, pastikan dulu mana dari 2 pilihan itu yang mau dipakai, karena keduanya butuh persiapan berbeda.
+Railway dan Vercel keduanya punya paket gratis yang cukup untuk skala percobaan/demo (Railway: sekitar $5 kredit gratis per bulan untuk akun baru, cukup untuk 1 backend kecil yang tidak terus-menerus sibuk; Vercel: gratis penuh untuk project pribadi/kecil). Kalau nanti dipakai institusi dalam skala besar dengan trafik tinggi, pertimbangkan paket berbayar atau pindah ke infrastruktur resmi UI.
 
 ## 4. Monitoring (Pemantauan) Produksi
 

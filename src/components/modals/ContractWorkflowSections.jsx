@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog, ClipboardList } from 'lucide-react';
-import { getAuthHeaders, API_BASE, useApp } from '../../context/AppContext';
+import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
 
@@ -214,7 +214,7 @@ export function JaminanSection({ tenderId, canEdit, user }) {
             {jaminan.map(j => (
               <div key={j.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
                 <span>{j.nomor} - {j.tanggal_jaminan?.split('T')[0]} {j.status_konfirmasi && <span className="text-emerald-600">({j.status_konfirmasi})</span>}</span>
-                {j.file_jaminan && <a href={`http://localhost:3001${j.file_jaminan}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>}
+                {j.file_jaminan && <a href={`${SERVER_BASE}${j.file_jaminan}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>}
               </div>
             ))}
           </div>
@@ -562,7 +562,7 @@ export function NotesRemindersDocsSection({ tenderId, canEdit, isVendor, user })
               <div key={d.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
                 <span>{d.nama}</span>
                 <div className="flex items-center gap-2">
-                  <a href={`http://localhost:3001${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
+                  <a href={`${SERVER_BASE}${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
                   {canEdit && (
                     <button onClick={() => togglePublish(d)} className={clsx('text-[10px] px-2 py-0.5 rounded-full', d.publish_ke_penyedia ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600')}>
                       {d.publish_ke_penyedia ? 'Terpublish' : 'Publish'}

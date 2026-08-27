@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Landmark, Upload, Download, Trash2 } from 'lucide-react';
-import { API_BASE } from '../../context/AppContext';
+import { API_BASE, SERVER_BASE } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 
 const BULAN_LABEL = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -101,7 +101,7 @@ export default function RekeningKoranTab({ vendorId, getAuthHeaders }) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {it.file_path && (
-                    <a href={`http://localhost:3001/uploads/${it.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={14} /></a>
+                    <a href={`${SERVER_BASE}/uploads/${it.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={14} /></a>
                   )}
                   <button onClick={() => handleDelete(it.id)} className="p-1 text-red-400 hover:bg-red-50 rounded"><Trash2 size={13} /></button>
                 </div>

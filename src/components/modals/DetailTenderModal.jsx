@@ -3,7 +3,7 @@ import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, U
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig, methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
-import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
 import ObjectionsTab from './ObjectionsTab';
 import ContractTab from './ContractTab';
@@ -220,7 +220,7 @@ function VendorQualModal({ vendorId, vendorName, onClose }) {
                     <td className="p-2">{d.doc_number}</td>
                     <td className="p-2">{d.issue_date?.split('T')[0]}</td>
                     <td className="p-2">{d.status}</td>
-                    <td className="p-2"><a href={`http://localhost:3001${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">Lihat</a></td>
+                    <td className="p-2"><a href={`${SERVER_BASE}${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">Lihat</a></td>
                   </tr>
                 ))}
               </tbody>
@@ -566,7 +566,7 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
                   </td>
                   <td className="px-4 py-4">
                     {p.document_path ? (
-                      <a href={`http://localhost:3001${p.document_path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
+                      <a href={`${SERVER_BASE}${p.document_path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors">
                         <Download size={14} /> Unduh
                       </a>
                     ) : (

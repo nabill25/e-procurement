@@ -16,6 +16,10 @@ test.describe('Navigasi sidebar per role', () => {
 
       await loginAs(page, role);
 
+      // Tunggu sidebar benar-benar selesai render (menu diambil dari API GET /api/menu/:role,
+      // butuh waktu setelah login) sebelum mulai menghitung/mengklik item, supaya tidak flaky.
+      await page.locator('aside').getByText('Dashboard', { exact: true }).waitFor({ timeout: 8000 }).catch(() => {});
+
       const items = page.locator('aside button, aside a');
       const count = await items.count();
       const clickedLabels = [];

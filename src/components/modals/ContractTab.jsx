@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import {
@@ -249,12 +249,12 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
               <h4 className="font-bold text-xs text-dpbj-navy mb-3">Dokumen Tersedia:</h4>
               <div className="flex gap-4">
                 {contract.spk_path && (
-                  <a href={`http://localhost:3001${contract.spk_path}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-border px-3 py-2 rounded-lg text-sm font-semibold text-dpbj-navy hover:bg-gray-50 transition-colors">
+                  <a href={`${SERVER_BASE}${contract.spk_path}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-border px-3 py-2 rounded-lg text-sm font-semibold text-dpbj-navy hover:bg-gray-50 transition-colors">
                     <Download size={16} className="text-dpbj-gold"/> Unduh SPK
                   </a>
                 )}
                 {contract.bast_path && (
-                  <a href={`http://localhost:3001${contract.bast_path}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-border px-3 py-2 rounded-lg text-sm font-semibold text-dpbj-navy hover:bg-gray-50 transition-colors">
+                  <a href={`${SERVER_BASE}${contract.bast_path}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-border px-3 py-2 rounded-lg text-sm font-semibold text-dpbj-navy hover:bg-gray-50 transition-colors">
                     <Download size={16} className="text-dpbj-gold"/> Unduh BAST
                   </a>
                 )}

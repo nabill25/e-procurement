@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Newspaper, Plus, Trash2, HelpCircle, Image, Power, FileText, Pencil, X } from 'lucide-react';
-import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
 function NewsTab() {
@@ -301,7 +301,7 @@ function BannerTab() {
         ) : items.map(item => (
           <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border">
             <div className="flex items-center gap-3">
-              <img src={`http://localhost:3001${item.gambar_path}`} alt={item.nama} className="w-24 h-14 object-cover rounded-lg border border-border" />
+              <img src={`${SERVER_BASE}${item.gambar_path}`} alt={item.nama} className="w-24 h-14 object-cover rounded-lg border border-border" />
               <div>
                 <p className="text-sm font-semibold text-dpbj-navy">{item.nama}</p>
                 {item.link_url && <p className="text-[10px] text-blue-600 truncate max-w-xs">{item.link_url}</p>}

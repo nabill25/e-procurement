@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { User, Home, Eye, EyeOff } from 'lucide-react';
 import VendorPolicyModal from '../components/modals/VendorPolicyModal';
+import { API_BASE } from '../context/AppContext';
 
 function Breadcrumb({ onHome }) {
   return (
@@ -104,7 +105,7 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
         password: form.password
       };
 
-      const res = await fetch('http://localhost:3001/api/auth/register', {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
