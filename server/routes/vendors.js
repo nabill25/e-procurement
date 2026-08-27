@@ -1,23 +1,22 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { requireRole } = require('../lib/authMiddleware');
+const requireAdmin = requireRole('admin');
+
+// Kalau yang login adalah vendor, pastikan dia cuma mengelola datanya sendiri (:id di path
+// selalu berarti users.id milik vendor tersebut). Admin/PPK/Pokja tetap boleh bertindak atas
+// nama vendor manapun untuk keperluan administratif.
+function ownVendorDataOnly(req, res, next) {
+  if (req.user.role === 'vendor' && String(req.params.id) !== String(req.user.id)) {
+    return res.status(403).json({ success: false, message: 'Anda cuma bisa mengelola data akun Anda sendiri.' });
+  }
+  next();
+}
 
 // ── Konfigurasi Multer ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'vendor-' + req.params.id + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('vendors');
 
 // ── Status yang valid (mengikuti mapping status rekanan eProc) ──
 // eProc: status_validasi 1=pending, 2=terverifikasi, 3=ditangguhkan, 4=diblokir
@@ -51,7 +50,7 @@ router.get('/retail', async (req, res) => {
   }
 });
 
-router.post('/retail', async (req, res) => {
+router.post('/retail', requireAdmin, async (req, res) => {
   try {
     const { tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar, kota, region, kontak_person, kontak_person_hp, alamat, created_by } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -65,7 +64,7 @@ router.post('/retail', async (req, res) => {
   }
 });
 
-router.put('/retail/:retailId', async (req, res) => {
+router.put('/retail/:retailId', requireAdmin, async (req, res) => {
   try {
     const { tipe, nama, npwp, telepon_kode, telepon, whatsapp, tanggal_daftar, kota, region, kontak_person, kontak_person_hp, alamat } = req.body;
     const result = await pool.query(`
@@ -83,7 +82,7 @@ router.put('/retail/:retailId', async (req, res) => {
   }
 });
 
-router.delete('/retail/:retailId', async (req, res) => {
+router.delete('/retail/:retailId', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM vendor_retail WHERE id = $1 RETURNING id', [req.params.retailId]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
@@ -138,7 +137,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── PUT /api/vendors/:id/profile ──
-router.put('/:id/profile', async (req, res) => {
+router.put('/:id/profile', ownVendorDataOnly, async (req, res) => {
   try {
     const { pajak, tenaga_ahli, peralatan, pengurus, bank, neraca } = req.body;
 
@@ -219,7 +218,7 @@ router.post('/', async (req, res) => {
 
 // ── PATCH /api/vendors/:id/verify — Verifikasi vendor (status → terverifikasi) ──
 // Mengikuti eProc: status_validasi = 2
-router.patch('/:id/verify', async (req, res) => {
+router.patch('/:id/verify', requireAdmin, async (req, res) => {
   try {
     const { verified_by } = req.body;
     const result = await pool.query('SELECT company_name FROM vendors WHERE id = $1', [req.params.id]);
@@ -244,7 +243,7 @@ router.patch('/:id/verify', async (req, res) => {
 
 // ── POST /api/vendors/:id/status — Update status vendor (general) ──
 // Mengikuti eProc: mapping status_validasi ke berbagai status
-router.post('/:id/status', async (req, res) => {
+router.post('/:id/status', requireAdmin, async (req, res) => {
   try {
     const { status, reason } = req.body;
 
@@ -280,7 +279,7 @@ router.post('/:id/status', async (req, res) => {
 
 // ── PATCH /api/vendors/:id/suspend — Tangguhkan vendor ──
 // Mengikuti eProc: status_validasi = 3 (ditangguhkan)
-router.patch('/:id/suspend', async (req, res) => {
+router.patch('/:id/suspend', requireAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
     const result = await pool.query('SELECT company_name FROM vendors WHERE id = $1', [req.params.id]);
@@ -301,7 +300,7 @@ router.patch('/:id/suspend', async (req, res) => {
 
 // ── PATCH /api/vendors/:id/block — Blokir vendor (masuk blacklist) ──
 // Mengikuti eProc: status_validasi = 4 (diblokir)
-router.patch('/:id/block', async (req, res) => {
+router.patch('/:id/block', requireAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
     const result = await pool.query('SELECT user_id, company_name, npwp, city FROM vendors WHERE id = $1', [req.params.id]);
@@ -327,7 +326,7 @@ router.patch('/:id/block', async (req, res) => {
 });
 
 // ── GET /api/vendors/:id/qualifications — Ambil dokumen & pengalaman ──
-router.get('/:id/qualifications', async (req, res) => {
+router.get('/:id/qualifications', ownVendorDataOnly, async (req, res) => {
   try {
     const docsResult = await pool.query('SELECT * FROM vendor_documents WHERE vendor_id = $1 ORDER BY created_at DESC', [req.params.id]);
     const expResult = await pool.query('SELECT * FROM vendor_experiences WHERE vendor_id = $1 ORDER BY start_date DESC', [req.params.id]);
@@ -354,7 +353,7 @@ router.get('/:id/qualifications', async (req, res) => {
 });
 
 // ── POST /api/vendors/:id/documents — Upload dokumen legalitas ──
-router.post('/:id/documents', upload.single('document'), async (req, res) => {
+router.post('/:id/documents', ownVendorDataOnly, upload.single('document'), async (req, res) => {
   try {
     const { doc_type, doc_number, issue_date, expiry_date } = req.body;
     
@@ -379,7 +378,7 @@ router.post('/:id/documents', upload.single('document'), async (req, res) => {
 });
 
 // ── POST /api/vendors/:id/experiences — Tambah pengalaman kerja ──
-router.post('/:id/experiences', async (req, res) => {
+router.post('/:id/experiences', ownVendorDataOnly, async (req, res) => {
   try {
     const { project_name, client_name, contract_value, start_date, end_date } = req.body;
     
@@ -456,7 +455,7 @@ router.post('/:id/rating', async (req, res) => {
 });
 
 // ── BIDANG USAHA PER VENDOR ──
-router.get('/:id/bidang-usaha', async (req, res) => {
+router.get('/:id/bidang-usaha', ownVendorDataOnly, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT vb.id, vb.bidang_usaha_id, b.kode, b.nama, b.parent_id
@@ -471,7 +470,7 @@ router.get('/:id/bidang-usaha', async (req, res) => {
   }
 });
 
-router.post('/:id/bidang-usaha', async (req, res) => {
+router.post('/:id/bidang-usaha', ownVendorDataOnly, async (req, res) => {
   try {
     const { bidang_usaha_id } = req.body;
     if (!bidang_usaha_id) return res.status(400).json({ success: false, message: 'bidang_usaha_id diperlukan.' });
@@ -485,7 +484,7 @@ router.post('/:id/bidang-usaha', async (req, res) => {
   }
 });
 
-router.delete('/:id/bidang-usaha/:linkId', async (req, res) => {
+router.delete('/:id/bidang-usaha/:linkId', ownVendorDataOnly, async (req, res) => {
   try {
     await pool.query('DELETE FROM vendor_bidang_usaha WHERE id = $1 AND vendor_id = $2', [req.params.linkId, req.params.id]);
     res.json({ success: true, message: 'Bidang usaha berhasil dihapus.' });
@@ -495,7 +494,7 @@ router.delete('/:id/bidang-usaha/:linkId', async (req, res) => {
 });
 
 // ── REKENING KORAN (bukti mutasi bank per bulan, syarat kualifikasi keuangan) ──
-router.get('/:id/rekening-koran', async (req, res) => {
+router.get('/:id/rekening-koran', ownVendorDataOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM vendor_rekening_koran WHERE vendor_id = $1 ORDER BY tahun DESC, bulan DESC', [req.params.id]);
     res.json({ success: true, data: result.rows });
@@ -504,7 +503,7 @@ router.get('/:id/rekening-koran', async (req, res) => {
   }
 });
 
-router.post('/:id/rekening-koran', upload.single('file'), async (req, res) => {
+router.post('/:id/rekening-koran', ownVendorDataOnly, upload.single('file'), async (req, res) => {
   try {
     const { nomor_rekening, nama_bank, bulan, tahun, nilai, mata_uang } = req.body;
     if (!nomor_rekening || !bulan || !tahun) {
@@ -520,7 +519,7 @@ router.post('/:id/rekening-koran', upload.single('file'), async (req, res) => {
   }
 });
 
-router.delete('/:id/rekening-koran/:rkId', async (req, res) => {
+router.delete('/:id/rekening-koran/:rkId', ownVendorDataOnly, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM vendor_rekening_koran WHERE id = $1 AND vendor_id = $2 RETURNING id', [req.params.rkId, req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });

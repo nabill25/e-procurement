@@ -131,9 +131,23 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { company_name, npwp, email, password, username, company_type } = req.body;
-    
+
     if (!company_name || !npwp || !email || !password || !username) {
       return res.status(400).json({ success: false, message: 'Semua kolom wajib diisi.' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password minimal 8 karakter.' });
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      return res.status(400).json({ success: false, message: 'Format email tidak valid.' });
+    }
+
+    const npwpDigits = npwp.replace(/\D/g, '');
+    if (npwpDigits.length !== 15 && npwpDigits.length !== 16) {
+      return res.status(400).json({ success: false, message: 'NPWP harus berupa 15 digit (format lama) atau 16 digit (format baru).' });
     }
 
     // 1. Cek apakah email, username atau npwp sudah digunakan

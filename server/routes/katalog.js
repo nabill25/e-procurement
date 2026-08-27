@@ -1,26 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { requireAuth } = require('../lib/authMiddleware');
 
 // ── Konfigurasi Multer ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'katalog-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('katalog');
 
 // ── KATEGORI (berjenjang, ditaruh sebelum /:id supaya tidak ketiban rute item) ──
-router.get('/categories/tree', async (req, res) => {
+router.get('/categories/tree', requireAuth, async (req, res) => {
   try {
     const { search } = req.query;
     let sql = 'SELECT * FROM katalog_categories';
@@ -34,7 +22,7 @@ router.get('/categories/tree', async (req, res) => {
   }
 });
 
-router.post('/categories', async (req, res) => {
+router.post('/categories', requireAuth, async (req, res) => {
   try {
     const { nama, kode, parent_id } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -47,7 +35,7 @@ router.post('/categories', async (req, res) => {
   }
 });
 
-router.delete('/categories/:categoryId', async (req, res) => {
+router.delete('/categories/:categoryId', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM katalog_categories WHERE id = $1', [req.params.categoryId]);
     res.json({ success: true, message: 'Kategori berhasil dihapus.' });
@@ -56,8 +44,8 @@ router.delete('/categories/:categoryId', async (req, res) => {
   }
 });
 
-// ── LAPORAN/KOMPLAIN (publik, tidak butuh login, ditaruh sebelum /:id) ──
-router.get('/reports', async (req, res) => {
+// ── LAPORAN/KOMPLAIN (ditaruh sebelum /:id) - cuma POST /reports yang publik ──
+router.get('/reports', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT r.*, k.item_name AS nama_produk
@@ -84,7 +72,7 @@ router.post('/reports', async (req, res) => {
   }
 });
 
-router.patch('/reports/:reportId', async (req, res) => {
+router.patch('/reports/:reportId', requireAuth, async (req, res) => {
   try {
     const { status } = req.body;
     const result = await pool.query('UPDATE katalog_reports SET status = $1 WHERE id = $2 RETURNING *', [status, req.params.reportId]);
@@ -109,7 +97,7 @@ function generateInvoice(procurementRequestId) {
   return `INV-PR/${date}/${rand}${String(procurementRequestId).slice(0, 8)}`;
 }
 
-router.get('/cart/:procurementRequestId', async (req, res) => {
+router.get('/cart/:procurementRequestId', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, v.company_name AS vendor_name
@@ -122,7 +110,7 @@ router.get('/cart/:procurementRequestId', async (req, res) => {
   }
 });
 
-router.post('/cart', async (req, res) => {
+router.post('/cart', requireAuth, async (req, res) => {
   try {
     const { procurement_request_id, katalog_id, created_by } = req.body;
     if (!procurement_request_id || !katalog_id) {
@@ -153,7 +141,7 @@ router.post('/cart', async (req, res) => {
   }
 });
 
-router.patch('/cart/:cartItemId/qty', async (req, res) => {
+router.patch('/cart/:cartItemId/qty', requireAuth, async (req, res) => {
   try {
     const { qty } = req.body;
     if (!qty || qty < 1) return res.status(400).json({ success: false, message: 'qty harus lebih dari 0.' });
@@ -168,7 +156,7 @@ router.patch('/cart/:cartItemId/qty', async (req, res) => {
   }
 });
 
-router.delete('/cart/:cartItemId', async (req, res) => {
+router.delete('/cart/:cartItemId', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM katalog_cart_items WHERE id = $1', [req.params.cartItemId]);
     res.json({ success: true, message: 'Item berhasil dihapus dari keranjang.' });
@@ -178,7 +166,7 @@ router.delete('/cart/:cartItemId', async (req, res) => {
 });
 
 // Kirim harga negosiasi ke vendor + update ongkos kirim sekaligus (mengikuti cartupdateNego() asli).
-router.post('/cart/negotiate', async (req, res) => {
+router.post('/cart/negotiate', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { procurement_request_id, ongkos_kirim, items, updated_by } = req.body;
@@ -210,7 +198,7 @@ router.post('/cart/negotiate', async (req, res) => {
 });
 
 // Alur status pesanan (mengikuti statusupdate() asli persis, termasuk transisi status & invoice).
-router.patch('/cart/:cartItemId/status', async (req, res) => {
+router.patch('/cart/:cartItemId/status', requireAuth, async (req, res) => {
   try {
     const { status } = req.body;
     const STATUS_TRANSITIONS = { '10': '0', '0': '1', '1': '2', '2': '3', '3': '4', '5': '6' };
@@ -235,7 +223,7 @@ router.patch('/cart/:cartItemId/status', async (req, res) => {
   }
 });
 
-router.get('/logistik/:procurementRequestId', async (req, res) => {
+router.get('/logistik/:procurementRequestId', requireAuth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM katalog_logistik WHERE procurement_request_id = $1', [req.params.procurementRequestId]);
     res.json({ success: true, data: result.rows[0] || null });
@@ -245,7 +233,7 @@ router.get('/logistik/:procurementRequestId', async (req, res) => {
 });
 
 // ── COMPARE (per sesi browser) ──
-router.get('/compare/:sessionId', async (req, res) => {
+router.get('/compare/:sessionId', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, k.item_name, k.price, k.brand, k.image_url
@@ -258,7 +246,7 @@ router.get('/compare/:sessionId', async (req, res) => {
   }
 });
 
-router.post('/compare', async (req, res) => {
+router.post('/compare', requireAuth, async (req, res) => {
   try {
     const { katalog_id, session_id } = req.body;
     if (!katalog_id || !session_id) return res.status(400).json({ success: false, message: 'katalog_id dan session_id diperlukan.' });
@@ -276,7 +264,7 @@ router.post('/compare', async (req, res) => {
   }
 });
 
-router.delete('/compare', async (req, res) => {
+router.delete('/compare', requireAuth, async (req, res) => {
   try {
     const { katalog_id, session_id } = req.body;
     await pool.query('DELETE FROM katalog_compare WHERE katalog_id = $1 AND session_id = $2', [katalog_id, session_id]);
@@ -287,7 +275,7 @@ router.delete('/compare', async (req, res) => {
 });
 
 // ── GET /api/katalog ──
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { search, vendor_id, category_id, limit = 50 } = req.query;
     let sql = `
@@ -316,7 +304,7 @@ router.get('/', async (req, res) => {
 });
 
 // ── GET /api/katalog/:id ──
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT k.*, v.company_name
@@ -348,7 +336,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /api/katalog — Tambah item katalog (oleh vendor) ──
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const {
@@ -392,7 +380,7 @@ router.post('/', async (req, res) => {
 });
 
 // ── PUT /api/katalog/:id — Ubah item (auto-catat riwayat harga kalau harga berubah) ──
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const {
@@ -447,7 +435,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // ── DELETE /api/katalog/:id ──
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM katalog_items WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Item tidak ditemukan.' });
@@ -458,7 +446,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // ── FOTO PRODUK ──
-router.post('/:id/photos', upload.single('file'), async (req, res) => {
+router.post('/:id/photos', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
     const { created_by } = req.body;
@@ -471,7 +459,7 @@ router.post('/:id/photos', upload.single('file'), async (req, res) => {
   }
 });
 
-router.delete('/:id/photos/:photoId', async (req, res) => {
+router.delete('/:id/photos/:photoId', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM katalog_photos WHERE id = $1 AND katalog_id = $2', [req.params.photoId, req.params.id]);
     res.json({ success: true, message: 'Foto berhasil dihapus.' });
@@ -481,7 +469,7 @@ router.delete('/:id/photos/:photoId', async (req, res) => {
 });
 
 // ── LAMPIRAN PRODUK ──
-router.post('/:id/attachments', upload.single('file'), async (req, res) => {
+router.post('/:id/attachments', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
     const { nama, created_by } = req.body;
@@ -494,7 +482,7 @@ router.post('/:id/attachments', upload.single('file'), async (req, res) => {
   }
 });
 
-router.delete('/:id/attachments/:attachmentId', async (req, res) => {
+router.delete('/:id/attachments/:attachmentId', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM katalog_attachments WHERE id = $1 AND katalog_id = $2', [req.params.attachmentId, req.params.id]);
     res.json({ success: true, message: 'Lampiran berhasil dihapus.' });

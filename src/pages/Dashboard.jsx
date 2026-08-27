@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import MetricCards from '../components/dashboard/MetricCards';
 import TenderTable from '../components/dashboard/TenderTable';
-import { useApp, API_BASE } from '../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders } from '../context/AppContext';
 import { Clock, Activity, CheckCircle2, AlertTriangle, FileText, Users, Handshake } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -10,7 +10,7 @@ function RecentActivity({ refreshTrigger }) {
 
   const fetchRecent = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/audit?limit=5`);
+      const res = await fetch(`${API_BASE}/audit?limit=5`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setRecent(json.data);
     } catch (err) {
@@ -154,7 +154,7 @@ export default function Dashboard() {
   const [dashboardStats, setDashboardStats] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/dashboard`, { headers: { Authorization: `Bearer ${localStorage.getItem('eproc_token')}` } })
+    fetch(`${API_BASE}/dashboard`, { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(json => {
         if (json.success) setDashboardStats(json.data);

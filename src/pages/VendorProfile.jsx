@@ -61,7 +61,7 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
     try {
       const res = await fetch(`${API_BASE}/vendors/${vendorId}/documents`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('eproc_token')}` },
+        headers: { Authorization: getAuthHeaders().Authorization },
         body: data
       });
       const json = await res.json();

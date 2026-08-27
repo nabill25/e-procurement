@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
   Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X
 } from 'lucide-react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
@@ -56,7 +56,7 @@ export default function Sidebar() {
 
     if (!user?.role) return;
 
-    fetch(`${API_BASE}/menu/${user.role}`)
+    fetch(`${API_BASE}/menu/${user.role}`, { headers: getAuthHeaders() })
       .then(res => res.json())
       .then(json => {
         // Kalau server kasih data hak akses menu, PAKAI itu. Kalau gagal/kosong, tetap

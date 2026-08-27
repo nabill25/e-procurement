@@ -27,7 +27,7 @@ export default function UserManagement() {
 
   const fetchRoleOptions = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/users/roles`);
+      const res = await fetch(`${API_BASE}/users/roles`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setRoleOptions(json.data);
     } catch (err) {

@@ -28,12 +28,13 @@ dist-ssr
 .env.*
 !.env.example
 
+# Sistem lama (CodeIgniter) - cuma dipakai sebagai ACUAN untuk membangun sistem baru,
+# bukan bagian dari project ini, tidak perlu (dan tidak boleh) ikut di-push ke GitHub.
+eproc/
+
 # Dump database yang berisi data asli atau belum bisa dipastikan isinya - simpan lokal saja
 *.dump
-eproc/eproc_migrasi.sql
-eproc/dump-eproc_migrasi-*.sql
 database/dump-eproc_migrasi-*.sql
-eproc/vmstools/eproc_migrasi_*.tgz
 
 # PHP dependencies (aplikasi lama eproc)
 vendor/
@@ -41,3 +42,13 @@ vendor/
 # File yang diunggah pengguna lewat aplikasi baru (dokumen vendor, dst) - bukan source code
 # (folder ini otomatis dibuat lagi oleh server/index.js kalau belum ada)
 server/uploads/
+
+# Backup database (berisi data asli) - dibuat lewat node server/backup_database.js, simpan lokal saja
+backups/
+
+# Hasil testing otomatis (Playwright) - dibuat ulang tiap kali test dijalankan
+test-results/
+tests/e2e/report/
+playwright-report/
+blob-report/
+playwright/.cache/

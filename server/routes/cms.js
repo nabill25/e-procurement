@@ -1,23 +1,12 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { requireAuth, requireRole } = require('../lib/authMiddleware');
+const adminOnly = [requireAuth, requireRole('admin')];
 
 // ── Konfigurasi Multer (gambar banner) ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'banner-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('cms');
 
 // ── BERITA / PENGUMUMAN ──────────────────────────────────────────────────────
 
@@ -34,7 +23,7 @@ router.get('/news', async (req, res) => {
 });
 
 // GET /api/cms/news/all — Admin, semua berita termasuk yang belum dipublikasikan
-router.get('/news/all', async (req, res) => {
+router.get('/news/all', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cms_news ORDER BY created_at DESC');
     res.json({ success: true, data: result.rows });
@@ -44,7 +33,7 @@ router.get('/news/all', async (req, res) => {
 });
 
 // POST /api/cms/news — Admin, tambah berita baru
-router.post('/news', async (req, res) => {
+router.post('/news', adminOnly, async (req, res) => {
   try {
     const { title, content, image_url, created_by, is_published } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: 'title dan content wajib diisi.' });
@@ -62,7 +51,7 @@ router.post('/news', async (req, res) => {
 });
 
 // DELETE /api/cms/news/:id — Admin, hapus berita
-router.delete('/news/:id', async (req, res) => {
+router.delete('/news/:id', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM cms_news WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Berita tidak ditemukan.' });
@@ -87,7 +76,7 @@ router.get('/faq', async (req, res) => {
 });
 
 // GET /api/cms/faq/all — Admin, semua FAQ
-router.get('/faq/all', async (req, res) => {
+router.get('/faq/all', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cms_faq ORDER BY order_index ASC, created_at ASC');
     res.json({ success: true, data: result.rows });
@@ -97,7 +86,7 @@ router.get('/faq/all', async (req, res) => {
 });
 
 // POST /api/cms/faq — Admin, tambah FAQ baru
-router.post('/faq', async (req, res) => {
+router.post('/faq', adminOnly, async (req, res) => {
   try {
     const { question, answer, order_index } = req.body;
     if (!question || !answer) return res.status(400).json({ success: false, message: 'question dan answer wajib diisi.' });
@@ -115,7 +104,7 @@ router.post('/faq', async (req, res) => {
 });
 
 // DELETE /api/cms/faq/:id — Admin, hapus FAQ
-router.delete('/faq/:id', async (req, res) => {
+router.delete('/faq/:id', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM cms_faq WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'FAQ tidak ditemukan.' });
@@ -142,7 +131,7 @@ router.get('/banners', async (req, res) => {
 });
 
 // GET /api/cms/banners/all — Admin, semua banner termasuk yang nonaktif
-router.get('/banners/all', async (req, res) => {
+router.get('/banners/all', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cms_banners ORDER BY created_at DESC');
     res.json({ success: true, data: result.rows });
@@ -152,7 +141,7 @@ router.get('/banners/all', async (req, res) => {
 });
 
 // POST /api/cms/banners — Admin, tambah banner baru (upload gambar)
-router.post('/banners', upload.single('gambar'), async (req, res) => {
+router.post('/banners', adminOnly, upload.single('gambar'), async (req, res) => {
   try {
     const { nama, link_url, created_by } = req.body;
     if (!nama || !req.file) {
@@ -173,7 +162,7 @@ router.post('/banners', upload.single('gambar'), async (req, res) => {
 });
 
 // PATCH /api/cms/banners/:id/toggle — Admin, aktifkan/nonaktifkan tanpa hapus
-router.patch('/banners/:id/toggle', async (req, res) => {
+router.patch('/banners/:id/toggle', adminOnly, async (req, res) => {
   try {
     const result = await pool.query(
       'UPDATE cms_banners SET is_active = NOT is_active WHERE id = $1 RETURNING *',
@@ -187,7 +176,7 @@ router.patch('/banners/:id/toggle', async (req, res) => {
 });
 
 // DELETE /api/cms/banners/:id — Admin, hapus banner permanen
-router.delete('/banners/:id', async (req, res) => {
+router.delete('/banners/:id', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM cms_banners WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Banner tidak ditemukan.' });
@@ -216,7 +205,7 @@ router.get('/policies', async (req, res) => {
 });
 
 // GET /api/cms/policies/all — Admin, semua kebijakan termasuk draft
-router.get('/policies/all', async (req, res) => {
+router.get('/policies/all', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM cms_policies ORDER BY created_at ASC');
     res.json({ success: true, data: result.rows });
@@ -226,7 +215,7 @@ router.get('/policies/all', async (req, res) => {
 });
 
 // POST /api/cms/policies — Admin, tambah kebijakan baru
-router.post('/policies', async (req, res) => {
+router.post('/policies', adminOnly, async (req, res) => {
   try {
     const { title, content, jenis, is_published, created_by } = req.body;
     if (!title || !content) return res.status(400).json({ success: false, message: 'title dan content wajib diisi.' });
@@ -244,7 +233,7 @@ router.post('/policies', async (req, res) => {
 });
 
 // PUT /api/cms/policies/:id — Admin, ubah kebijakan
-router.put('/policies/:id', async (req, res) => {
+router.put('/policies/:id', adminOnly, async (req, res) => {
   try {
     const { title, content, jenis, is_published } = req.body;
     const result = await pool.query(`
@@ -264,7 +253,7 @@ router.put('/policies/:id', async (req, res) => {
 });
 
 // DELETE /api/cms/policies/:id — Admin, hapus kebijakan
-router.delete('/policies/:id', async (req, res) => {
+router.delete('/policies/:id', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM cms_policies WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Kebijakan tidak ditemukan.' });

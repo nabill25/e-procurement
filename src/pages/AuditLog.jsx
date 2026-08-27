@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Shield, CheckCircle2, XCircle, Download } from 'lucide-react';
-import { API_BASE, useApp } from '../context/AppContext';
+import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 
 const ACTION_STYLE = {
@@ -19,7 +19,7 @@ export default function AuditLog() {
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/audit`);
+      const res = await fetch(`${API_BASE}/audit`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) {
         setLogs(json.data);

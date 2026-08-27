@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
 const QRCode  = require('qrcode');
+const { requireAuth } = require('../lib/authMiddleware');
 
 // Kode acak 10 karakter (huruf besar + angka, tanpa karakter yang gampang ketuker seperti 0/O, 1/I)
 function generateCode() {
@@ -12,7 +13,7 @@ function generateCode() {
 }
 
 // ── POST /api/qr/generate — Buat kode QR baru untuk satu dokumen (Admin/PPK/Pokja) ──
-router.post('/generate', async (req, res) => {
+router.post('/generate', requireAuth, async (req, res) => {
   try {
     const { source_type, tender_id, vendor_id, info, created_by } = req.body;
     if (!source_type) return res.status(400).json({ success: false, message: 'source_type wajib diisi.' });

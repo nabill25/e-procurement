@@ -721,3 +721,119 @@ Setelah roadmap 100% paritas (A-K) selesai, pengguna bertanya apakah sistem suda
 **Catatan tentang bidang usaha per paket**: saat mengecek ulang, ternyata item ini (disebut "belum dikerjakan" di catatan lama) sebenarnya **sudah selesai sejak Kelompok B** (endpoint `tender_bidang_usaha` di `tenders.js`, section "Bidang Usaha yang Disyaratkan" sudah ada di `DokumenPaketTab.jsx`). Catatan lamanya sekadar ketinggalan zaman, tidak pernah diperbarui setelah Kelompok B selesai.
 
 Semua 7 item sudah dites end-to-end lewat curl (login, buat tender/kontrak/pengajuan/produk katalog uji, jalankan seluruh alur baru, verifikasi hasil di database, bersihkan semua data uji setelahnya - data seed permanen seperti daftar jenis tender/metode tetap utuh). Verifikasi lewat browser sungguhan sempat dimulai tapi terputus di tengah jalan karena limit sesi eksternal sebelum sempat menyelesaikan seluruh skenario UI - bagian yang sempat dicek (Data Master 5 kategori baru) tidak menemukan masalah. **Catatan untuk sesi berikutnya**: kalau ada waktu, sebaiknya jalankan verifikasi Playwright penuh untuk 7 item ini (terutama alur keranjang katalog dan modal reschedule/riwayat yang belum sempat diklik langsung di browser), mengikuti pola testing menyeluruh yang sudah jadi standar sejak Kelompok G.
+
+## Menuju 100% Fungsional: perbaikan bug + kesiapan operasional (selesai 2026-08-27)
+
+Setelah demo alur bisnis dan laporan skor kesiapan 73% (dilaporkan sesi sebelumnya), pengguna minta 2 hal digabung jadi satu pekerjaan: (1) cari dan perbaiki SEMUA bug form yang masih ada, (2) tuntaskan 4 hal yang menahan skor dari 100% - email SMTP, keamanan formal, testing otomatis, dan kesiapan multi-user.
+
+### 1. Keamanan: proteksi login/role ke seluruh API (temuan paling besar sesi ini)
+
+Ditemukan lewat audit menyeluruh: **hampir seluruh API backend (kira-kira 280 dari sekitar 295 endpoint di 14 file route) TIDAK punya pemeriksaan login sama sekali** - siapa saja tanpa login bisa membuat akun admin baru, mengubah data vendor manapun, membuat/menghapus kontrak, dst. Cuma `auth.js` yang sejak awal sudah pakai `requireAuth`. Ini bukan sesuatu yang baru rusak, melainkan celah yang memang belum pernah ditutup sejak awal proyek.
+
+Diperbaiki dengan pola bertingkat:
+- `server/lib/authMiddleware.js` (baru) - `requireAuth` (wajib login), `requireRole(...roles)` (wajib login DAN role tertentu, dipasang setelah `requireAuth`), `optionalAuth` (coba baca token kalau ada tapi tidak menolak kalau tidak ada - dipakai di endpoint yang harus tetap publik tapi ingin menampilkan info lebih banyak untuk yang sudah login).
+- File yang isinya 100% privat (`vendors.js`, `pengajuan.js`, `audit.js`, `dashboard.js`, `purchasing.js`) diproteksi blanket di `server/index.js` lewat `app.use('/api/xxx', requireAuth, ...)`.
+- File campuran publik/privat (`cms.js`, `inbox.js`, `qr.js`, `blacklist.js`, `master.js`, `katalog.js`, `tenders.js`, `users.js`, `menu.js`) diproteksi per-route di dalam file masing-masing, supaya rute publik (banner, FAQ, kebijakan, form Kontak Kami, verifikasi QR, cek blacklist, daftar tender publik, registrasi vendor) tetap terbuka.
+- `GET /api/tenders` dan `GET /api/tenders/:id` pakai `optionalAuth`: kolom `hps` (Harga Perkiraan Sendiri) cuma ditampilkan kalau pemanggil sudah login, disembunyikan (`NULL`) untuk publik - supaya tidak jadi patokan vendor menyesuaikan harga penawaran sebelum tender ditutup, tapi staf internal (yang butuh lihat HPS untuk kerja evaluasi) tetap bisa akses lewat endpoint yang SAMA.
+- `users.js` (manajemen akun staff, API key) sebagian besar admin-only, TAPI `GET /api/users` dan `GET /api/users/roles` sengaja dibuka untuk semua role yang login (bukan cuma admin) karena ternyata dipakai PPK juga untuk isi dropdown "PIC Persiapan/Pengendali/Penyelesai" di tab Kontrak - kalau diproteksi admin-only penuh, fitur itu rusak untuk PPK (baru ketahuan lewat audit form, lihat bagian bawah).
+- Ditambahkan pengecekan kepemilikan data (`ownVendorDataOnly` di `vendors.js`, pengecekan serupa di `tenders.js`): kalau yang login role `vendor`, dia cuma boleh mengelola/melihat datanya sendiri (profil, dokumen, bidang usaha, rekening koran, submit penawaran, daftar tender, ajukan sanggahan) - tidak bisa bertindak atas nama vendor lain walau tahu ID-nya. Role admin/ppk/pokja tetap bebas bertindak atas nama vendor manapun (kebutuhan administratif yang sah).
+- Ditambahkan pengecekan role pada field approval yang tadinya bisa diisi siapa saja yang login (misalnya `approve_ppk` di kontrak sekarang cuma bisa diisi role `ppk`/`admin`, `approved_penyedia` di addendum cuma bisa diisi role `vendor`/`admin`).
+- `GET /api/tenders/:id/participants` (daftar SEMUA peserta beserta harga penawaran masing-masing) sekarang ditolak untuk role `vendor` supaya tidak bisa mengintip harga penawaran kompetitor - dibuatkan endpoint terpisah `GET /api/tenders/:id/participants/me` yang cuma mengembalikan baris milik vendor yang login sendiri.
+
+**Keamanan lain yang dibenahi sekaligus**: `helmet` (HTTP security headers) dan `express-rate-limit` (20 percobaan/15 menit untuk endpoint login/register, mencegah brute-force password; 1000 request/15 menit untuk seluruh API sebagai jaring pengaman DoS dasar) ditambahkan di `server/index.js`. CORS dibatasi ke `FRONTEND_URL` saja kalau `NODE_ENV=production` (tetap terbuka di development supaya tidak mengganggu kerja lokal). `JWT_SECRET` yang tadinya nilai contoh dari template (`dpbj_ui_super_secret_2025_change_in_production`, ketahuan persis sama kalau ada yang baca kode sumber ini) diganti jadi string acak 96-karakter sungguhan lewat `crypto.randomBytes`. Validasi password minimal 8 karakter dan format email ditambahkan di `POST /api/auth/register`. Validasi format NPWP (15 digit format lama atau 16 digit format baru) ditambahkan di form registrasi vendor (frontend `RegistrasiVendor.jsx`) dan backend (`auth.js`), sebelumnya bisa didaftarkan dengan NPWP asal-asalan seperti "x" satu karakter.
+
+**Upload file diperketat**: semua 8 file yang punya `multer({storage: storage})` polos (tanpa validasi tipe/ukuran file, artinya sebelumnya bisa upload file APAPUN termasuk `.exe`/`.php` ke folder `uploads/` yang disajikan publik) diganti pakai modul terpusat baru `server/lib/upload.js` (`createUpload(prefix)`): cuma menerima dokumen umum/gambar/arsip (pdf, doc(x), xls(x), ppt(x), jpg, png, gif, webp, zip, rar), maksimal 10MB per file, maksimal 10 file sekaligus, dengan pesan error yang jelas kalau ditolak (`handleUploadError` middleware).
+
+### 2. Email SMTP: notifikasi sungguhan, bukan cuma catat log
+
+`server/lib/mailer.js` (baru) - modul kirim email pakai `nodemailer`, dengan **fallback otomatis ke "catat log saja"** kalau `SMTP_HOST` kosong di `.env` (jadi tidak akan pernah membuat fitur error walau SMTP belum dikonfigurasi sungguhan, pas untuk development lokal). 3 titik yang tadinya cuma "field email disimpan tapi tidak pernah benar-benar dikirim" sekarang benar-benar mengirim (kalau SMTP dikonfigurasi):
+- Notifikasi dokumen vendor akan/sudah kedaluwarsa (`master.js`, `POST /dokumen-expired/:docId/notify`).
+- Undangan klarifikasi tender ke vendor (`tenders.js`, `POST /:id/undangan-klarifikasi`).
+- Balasan pesan/pengaduan dari admin ke pengirim (`inbox.js`, `POST /:id/reply`) - ini titik baru yang ditemukan sekalian saat mengerjakan proteksi, sebelumnya balasan cuma tersimpan di database tanpa pernah sampai ke pengirim.
+
+`server/.env` sudah diisi variabel `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM` (kosong, siap diisi kalau pengguna sudah punya akses SMTP institusi UI). `server/.env.example` diperbarui total (sebelumnya isinya template lama yang menyebut MySQL/Laragon, sudah tidak sesuai kenyataan sejak lama).
+
+### 3. Testing otomatis: Playwright test suite baru
+
+Sebelumnya benar-benar tidak ada satupun automated test di project ini (cuma testing manual lewat browser tiap kali selesai kerja). Ditambahkan:
+- `playwright.config.cjs` (root) + `tests/e2e/` (helper login `tests/e2e/helpers.js`, test pertama `tests/e2e/auth.spec.js` - smoke test login gagal/berhasil untuk 4 role, plus cek halaman publik tanpa error console).
+- Root `package.json` sekarang `"type": "module"`, jadi file test/config yang pakai `require()` (CommonJS) butuh ekstensi `.cjs`, dan `tests/package.json` kecil (`{"type": "commonjs"}`) supaya folder `tests/` boleh CommonJS tanpa mengubah keseluruhan project.
+- Jalankan: `npx playwright test --config=playwright.config.cjs` (backend dan frontend harus sudah jalan duluan, config ini tidak otomatis menyalakan keduanya).
+- Ini fondasi awal, BUKAN cakupan penuh - baru mencakup alur login. Kalau mau diperluas, tinggal tambah file `.spec.js` baru di `tests/e2e/` mengikuti pola yang sama.
+
+### 4. Kesiapan multi-user: sudah dicek, arsitektur memang sudah aman untuk banyak user bersamaan
+
+Backend pakai `pg.Pool` (connection pooling, bukan koneksi tunggal) dan JWT stateless (tidak ada session di memori server yang bisa bentrok antar user) - dari sisi arsitektur sudah tidak ada penghalang fundamental untuk dipakai banyak orang sekaligus. Rate limiting yang ditambahkan di poin 1 juga jadi lapis perlindungan tambahan dari lonjakan trafik berlebihan. Tidak ditemukan pola kode yang menyimpan state global per-request yang bisa bocor antar user (state React ada di browser masing-masing, bukan di server).
+
+### 5. Bug form yang ditemukan dan diperbaiki (lewat 2 audit menyeluruh Playwright terpisah)
+
+Dua agent riset dikerahkan paralel untuk mengklik dan mengisi SEMUA form di aplikasi (login, registrasi vendor, pengajuan, tender, evaluasi, kontrak, katalog, negosiasi, sanggah, aanwijzing, panitia, dokumen paket, data master, manajemen user, kontak kami, settings, profil vendor - total sekitar 17 area). Ditemukan dan diperbaiki:
+
+- **CAPTCHA form login selalu gagal divalidasi dengan benar** (`LoginModal.jsx`) - kode generate CAPTCHA menambahkan akhiran `'sp'` yang tidak pernah dimaksudkan (`.join('') + 'sp'`), jadi pengguna harus mengetik ulang kode SEPERTI YANG TAMPIL termasuk akhiran aneh itu supaya validasinya benar. Dibandingkan dengan pola yang sama di `RegistrasiVendor.jsx` (yang benar, tidak ada akhiran ini) untuk memastikan ini memang bug, bukan disengaja. Diperbaiki dengan menghapus `+ 'sp'`.
+- **Vendor pemenang tidak bisa lihat kontrak/negosiasi miliknya sendiri** (`DetailTenderModal.jsx`) - fetch daftar peserta tender (`GET /tenders/:id/participants`) cuma dipanggil untuk role pokja/admin/ppk, vendor selalu dapat array kosong, jadi tab Kontrak & BAST dan Negosiasi salah menampilkan pesan "belum ada pemenang" walau kontrak sudah dibuat dan negosiasi sudah disepakati. Diperbaiki dengan endpoint baru `GET /tenders/:id/participants/me` (cuma kembalikan baris milik vendor yang login, tidak bisa lihat harga penawaran vendor lain) dan frontend dipisah jalur fetch-nya sesuai role. Diverifikasi lewat browser sungguhan: vendor sekarang bisa lihat detail kontrak (nomor SPK, nilai, dokumen) dan riwayat negosiasi (tawaran, harga final, status sepakat) miliknya sendiri.
+- **`GET /api/tenders/:id/negotiation/:vendorId` bisa 500 Internal Server Error** kalau `vendorId` bukan format UUID valid (efek berantai dari bug di atas: waktu `participants` kosong, `vendorId` yang dikirim ke tab Negosiasi jadi `undefined`). Ditambahkan validasi format UUID di awal endpoint, sekarang membalas 400 dengan pesan jelas.
+- **Dropdown PIC di tab Kontrak kosong untuk PPK** - dijelaskan di bagian keamanan di atas (endpoint `GET /api/users` sempat ikut diproteksi admin-only saat pengerasan keamanan, padahal PPK butuh itu untuk dropdown "PIC Persiapan/Pengendali/Penyelesai"). Ini regresi dari pekerjaan proteksi API di poin 1 sesi ini sendiri, ditemukan dan diperbaiki di sesi yang sama sebelum dianggap selesai.
+- **Modal "Pengaturan Profil" menampilkan data PALSU untuk SEMUA pengguna** (`SettingsModal.jsx`) - field NIP, Unit Kerja, dan Hak Akses ditulis hardcoded (selalu "198001012005011002" dan "Super Administrator" walau yang login vendor). Diperbaiki: NIP dihapus (memang tidak ada kolom ini di database, tidak dipaksakan menampilkan data yang tidak ada), Unit Kerja diganti Email, Hak Akses diambil dari `user.roleLabel` sungguhan. Sekaligus ketahuan field `username` tidak pernah dipetakan dari respons login/`/me` ke object `user` di frontend (`AppContext.jsx`) - diperbaiki juga.
+- **Tombol lulus/gugur di modal Evaluasi Detail tidak bisa diklik** (`EvaluationDetailModal.jsx`) - modal ini dirender bersarang di dalam `DetailTenderModal.jsx` yang overlay-nya pakai `backdrop-blur-sm` (menciptakan CSS stacking context baru), akibatnya elemen lain di dalam `DetailTenderModal` (sidebar "Jadwal Tahapan Tender") menutupi tombol yang seharusnya ada di lapisan lebih atas walau `z-index`-nya sudah lebih tinggi secara nominal. Diperbaiki dengan React Portal (`createPortal(..., document.body)`, pola yang sama sudah dipakai `LoginModal.jsx`) supaya modal ini dirender langsung ke `document.body`, keluar dari hierarki stacking context induknya. Diverifikasi lewat browser sungguhan: tombol lulus/gugur sekarang bisa diklik dan mengubah warna sesuai state.
+- **Teks status salah di layar sukses submit Pengajuan Baru** (`NewProcurementModal.jsx`) - menampilkan "Draft - Menunggu Review PPK" padahal backend langsung menyimpan status `diajukan` dan reviewer tahap pertama adalah Admin DPBJ (bukan PPK). Diperbaiki teksnya.
+- **Modal Pengajuan Baru tidak reset saat ditutup lewat tombol X** (`NewProcurementModal.jsx`) - `handleClose` cuma memanggil `onClose()`, tidak mereset form/step/status submitted seperti tombol "Buat Pengajuan Lain". Efeknya: buka lagi modal setelah submit sukses malah menampilkan ulang layar sukses SEBELUMNYA, bukan form kosong. Diperbaiki dengan menyamakan `handleClose` dengan logika reset yang sudah benar.
+- **Validasi NPWP tidak ada sama sekali** (dijelaskan di bagian keamanan/kualitas data di atas).
+
+**Bug yang ditemukan tapi belum ditangani di sesi ini** (dicatat untuk sesi berikutnya, bukan diabaikan): duplikat entri Sampul 1 validasi di Dokumen Paket kalau divalidasi berkali-kali oleh user yang sama (perlu dicek apakah backend seharusnya mencegah duplikasi ini), CatalogCartPanel (alur keranjang-nego-checkout) belum sempat diuji end-to-end di audit form kali ini, dan sanggahan (ObjectionsTab) submit oleh vendor kalah belum diuji end-to-end (butuh data uji tender di tahap masa_sanggah dengan vendor yang kalah, di luar cakupan waktu audit ini).
+
+### File-file baru yang ditambahkan sesi ini
+
+- `server/lib/authMiddleware.js` - `requireAuth`, `requireRole`, `optionalAuth`
+- `server/lib/upload.js` - `createUpload(prefix)`, `handleUploadError` (validasi tipe/ukuran file terpusat)
+- `server/lib/mailer.js` - `sendMail()`, fallback otomatis kalau SMTP belum dikonfigurasi
+- `playwright.config.cjs`, `tests/e2e/helpers.js`, `tests/e2e/auth.spec.js`, `tests/package.json` - fondasi testing otomatis
+
+### Cara verifikasi yang dipakai sesi ini
+
+Semua perubahan diverifikasi lewat kombinasi: `node -c` (cek sintaks tiap file backend sebelum restart), restart backend bersih (matikan proses lama pakai PID dari `netstat`, jalankan ulang, cek `curl http://localhost:3001/api`), lalu navigasi penuh lewat Playwright untuk KEEMPAT role (klik semua item sidebar satu-satu, tangkap console error dan response HTTP >=400) sebagai jaring pengaman utama supaya proteksi keamanan yang ditambahkan tidak diam-diam merusak fitur yang sah. Ditemukan dan diperbaiki beberapa regresi dari pekerjaan sesi ini sendiri lewat cara ini (endpoint `master.js` yang sempat kelewat ketat untuk PPK/Pokja/Vendor, endpoint `users.js` yang sempat kelewat ketat untuk PPK, dan sekitar 10 titik frontend yang ternyata belum pernah mengirim header token sama sekali walau sebelumnya "kebetulan" tidak masalah karena API belum diproteksi). Semua data uji (tender/kontrak/pengajuan/akun percobaan) dibuat lewat script Node langsung ke Supabase dan dihapus lagi setelah verifikasi selesai, mengikuti lampiran FK yang benar (child rows dulu baru parent).
+
+## Lanjutan: menuntaskan 5 celah menuju kesiapan produksi (2026-08-27, sesi lanjutan)
+
+Setelah laporan "belum 100% siap" di atas, pengguna minta 5 celah yang disebutkan (SMTP, audit keamanan formal, testing otomatis lebih luas, uji beban, backup/disaster-recovery/monitoring) benar-benar dikerjakan, bukan cuma dicatat sebagai keterbatasan.
+
+### Testing otomatis diperluas (sebelumnya cuma cakup login)
+
+Ditambahkan 2 file test baru di `tests/e2e/`:
+- `navigation.spec.js` - klik SEMUA item sidebar untuk KEEMPAT role, tangkap console error dan response HTTP gagal. Ini otomatisasi dari script manual `check_nav.cjs` yang dipakai berulang kali sebagai regression test sepanjang sesi sebelumnya.
+- `pengajuan.spec.js` - alur form Pengajuan Pengadaan Baru 5-step (regression guard untuk bug scroll-lock lama), plus 5 test proteksi keamanan (endpoint privat menolak tanpa token, endpoint publik tetap terbuka, endpoint admin-only menolak role lain).
+
+`tests/e2e/helpers.js` diperbaiki: `loginAs()` sebelumnya pakai `Escape` untuk menutup modal ganti-role (RoleSwitcherModal) yang ternyata TIDAK menutup modal itu (Escape tidak ada handler-nya di komponen itu) - sekarang klik opsi role pertama yang tersedia sebagai gantinya. Ditambahkan juga `dismissRoleSwitcherIfPresent()` untuk dipanggil berulang di tengah loop klik sidebar (modal ini bisa muncul lagi kalau tombol "Ganti Role" ikut terklik).
+
+Total sekarang 17 test, jalankan dengan `npm run test:e2e`. Semua 17 lulus bersih di kondisi backend stabil.
+
+### Uji beban (load testing) - baru, dan menemukan bug nyata
+
+`server/load_test.js` (baru, jalankan dengan `npm run load-test`) - pakai `autocannon` (dev dependency baru) untuk simulasi banyak pengguna bersamaan mengakses 3 jenis endpoint (publik, login, privat-tanpa-token).
+
+**Bug nyata ditemukan lewat uji beban ini**: rate limiter umum (`apiLimiter` di `server/index.js`) yang tadinya diatur 1000 request/15 menit per IP ternyata terlalu ketat untuk pemakaian wajar sekalipun - percobaan beban realistis (banyak staf dari 1 IP kantor, navigasi SPA normal yang melakukan puluhan fetch API per menit) bisa dengan mudah kena limit itu dalam hitungan menit, memblokir pengguna sah bukan cuma penyerang. Diperbaiki: dinaikkan jadi 600 request **per menit** (bukan per 15 menit) per IP - jauh lebih longgar untuk pemakaian wajar, window lebih pendek jadi reset lebih cepat kalau memang kena.
+
+Hasil akhir setelah perbaikan: latency 3-7ms untuk endpoint sederhana, di bawah 100ms untuk login (yang melibatkan bcrypt), nol error, nol timeout, status code sesuai ekspektasi (2xx untuk publik, 401 untuk privat-tanpa-token) di semua skenario.
+
+### Audit keamanan self-review (`KEAMANAN.md`, baru)
+
+Bukan pengganti penetration testing sungguhan (butuh pihak ketiga bersertifikasi, dicatat jujur di dokumen itu sebagai batasan), tapi tinjauan sistematis mengikuti kategori OWASP Top 10 lewat pembacaan kode langsung. Ditemukan dan diperbaiki 1 celah XSS nyata: `src/pages/PublicPolicyPage.jsx` merender HTML kebijakan (diisi admin lewat textarea) langsung tanpa sanitasi (`dangerouslySetInnerHTML` tanpa filter) - diperbaiki dengan menambahkan `dompurify` (library sanitasi HTML standar, dependency baru) sebelum render. Dicek juga: tidak ada pola SQL injection (parameterized query konsisten di semua route), password pakai bcrypt, JWT secret sudah acak. Dicatat sebagai keterbatasan yang jujur (bukan diperbaiki tapi diakui): upload file validasi cuma berdasarkan ekstensi bukan isi file (magic bytes), CAPTCHA level dasar (bisa dilewati bot canggih), belum ada pengecekan IDOR menyeluruh ke SEMUA endpoint (cuma titik-titik berisiko tinggi yang sudah dicek eksplisit).
+
+### Backup, disaster recovery, dan panduan deploy (`OPERASIONAL.md`, baru)
+
+- `server/backup_database.js` (baru, `npm run db:backup`) - export SEMUA tabel database ke file SQL (INSERT statements dengan `ON CONFLICT DO NOTHING`, aman dijalankan ulang tanpa duplikat), tanpa perlu `pg_dump` (tool itu tidak terpasang di komputer ini, dicek dan dikonfirmasi tidak ada). **Sudah diuji sungguhan** terhadap database Supabase asli: berhasil backup 98 tabel, 3683 baris, 2.26MB, dalam hitungan detik.
+- `server/restore_database.js` (baru, `npm run db:restore <file>`) - pasangan restore, jalankan file backup dalam 1 transaksi (rollback otomatis kalau ada error di tengah jalan).
+- Folder `backups/` ditambahkan ke `.gitignore` (berisi data asli, tidak boleh ikut git, sama seperti alasan dump lama yang sudah diblokir sebelumnya).
+- `OPERASIONAL.md` mencakup: prosedur backup (otomatis Supabase + manual tambahan), 3 skenario disaster recovery (data hilang, backend crash, Supabase tidak bisa diakses) dengan langkah konkret, panduan deploy ke Vercel (variabel lingkungan yang WAJIB diisi beda dari development termasuk JWT_SECRET baru, urutan migrasi sebelum deploy, catatan penting bahwa Vercel didesain untuk frontend/serverless bukan server Express yang jalan terus-menerus jadi backend perlu di-host terpisah kalau mau architecture yang sama persis dipertahankan), dan rekomendasi monitoring (Sentry/UptimeRobot, belum dikerjakan karena butuh keputusan pendaftaran akun pihak ketiga dari pengguna).
+
+### SMTP: menunggu kredensial dari pengguna
+
+Modul `server/lib/mailer.js` (dari sesi sebelumnya) sudah siap teknis, tinggal diisi kredensial. Pengguna diminta memberikan alamat Gmail + App Password (bukan password akun biasa, dibuat lewat https://myaccount.google.com/apppasswords) untuk dipasang sebagai SMTP sementara supaya email BENAR-BENAR terkirim (bukan cuma tercatat log). **Kredensial belum diterima di sesi ini** - begitu diterima, langkah berikutnya: isi ke `server/.env` (SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, SMTP_SECURE=false, SMTP_USER=alamat gmail, SMTP_PASS=app password), restart backend, kirim 1 email uji ke alamat sungguhan untuk konfirmasi benar-benar sampai, lalu sarankan pengguna hapus pesan berisi App Password itu dari riwayat chat.
+
+### File baru sesi lanjutan ini
+
+- `tests/e2e/navigation.spec.js`, `tests/e2e/pengajuan.spec.js` - perluasan test suite
+- `server/load_test.js` - uji beban otomatis
+- `KEAMANAN.md` - tinjauan keamanan self-review terstruktur (OWASP-style)
+- `OPERASIONAL.md` - prosedur backup/disaster-recovery/deploy/monitoring
+- `server/backup_database.js`, `server/restore_database.js` - skrip backup manual (sudah diuji sungguhan)
+- Dependency baru: `dompurify` (sanitasi XSS), `autocannon` (dev-only, load testing)

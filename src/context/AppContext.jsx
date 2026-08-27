@@ -284,6 +284,7 @@ function mapBackendUser(backendUser) {
   return {
     id:           backendUser.id,
     name:         backendUser.nama || backendUser.full_name || backendUser.username,
+    username:     backendUser.username || '',
     role:         backendUser.role || 'ppk',
     roleLabel:    roleLabels[backendUser.role] || backendUser.role,
     unit:         backendUser.unit || '',

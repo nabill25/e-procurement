@@ -9,19 +9,26 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "test:e2e": "playwright test --config=playwright.config.cjs",
+    "db:backup": "node server/backup_database.js",
+    "db:restore": "node server/restore_database.js",
+    "load-test": "node server/load_test.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "dompurify": "^3.4.14",
     "lucide-react": "^0.378.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
+    "autocannon": "^8.0.0",
     "autoprefixer": "^10.5.4",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.19",

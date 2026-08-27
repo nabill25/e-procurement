@@ -1,27 +1,17 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
 const { logActivity } = require('../lib/activityLog');
+const { sendMail } = require('../lib/mailer');
+const { requireAuth, optionalAuth } = require('../lib/authMiddleware');
 
 // ── Konfigurasi Multer ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, req.params.id + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('tenders');
 
-// ── GET /api/tenders — Daftar semua tender dengan filter ──
-router.get('/', async (req, res) => {
+// ── GET /api/tenders — Daftar semua tender dengan filter (publik: HPS cuma ditampilkan
+// kalau pemanggil sudah login, supaya tidak jadi patokan vendor sebelum tender ditutup) ──
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { status, method, search, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -29,7 +19,7 @@ router.get('/', async (req, res) => {
     let sql = `
       SELECT
         t.id, t.tender_number, t.title, t.method, t.category,
-        t.pagu_anggaran, t.hps, t.status,
+        t.pagu_anggaran, ${req.user ? 't.hps' : 'NULL AS hps'}, t.status,
         t.submission_deadline, t.winner_announcement,
         t.work_location, t.created_at,
         u_ppk.full_name   AS ppk_name,
@@ -80,7 +70,7 @@ router.get('/', async (req, res) => {
 
 // ── SK PANITIA (master roster, terpisah dari data master.js karena spesifik ke tender workflow) ──
 // Ditaruh sebelum route GET /:id supaya "master" tidak ketangkap sebagai :id.
-router.get('/master/sk-panitia', async (req, res) => {
+router.get('/master/sk-panitia', requireAuth, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM sk_panitia ORDER BY created_at DESC');
     res.json({ success: true, data: result.rows });
@@ -89,7 +79,7 @@ router.get('/master/sk-panitia', async (req, res) => {
   }
 });
 
-router.get('/master/sk-panitia/:skId', async (req, res) => {
+router.get('/master/sk-panitia/:skId', requireAuth, async (req, res) => {
   try {
     const sk = await pool.query('SELECT * FROM sk_panitia WHERE id = $1', [req.params.skId]);
     if (!sk.rows.length) return res.status(404).json({ success: false, message: 'SK Panitia tidak ditemukan.' });
@@ -100,7 +90,7 @@ router.get('/master/sk-panitia/:skId', async (req, res) => {
   }
 });
 
-router.post('/master/sk-panitia', async (req, res) => {
+router.post('/master/sk-panitia', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { unit_kerja, nomor_sk, tanggal_sk, pejabat_penetap, pejabat_penetap_nip, tanggal_mulai, tanggal_akhir, status, members } = req.body;
@@ -129,7 +119,7 @@ router.post('/master/sk-panitia', async (req, res) => {
   }
 });
 
-router.put('/master/sk-panitia/:skId', async (req, res) => {
+router.put('/master/sk-panitia/:skId', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { unit_kerja, nomor_sk, tanggal_sk, pejabat_penetap, pejabat_penetap_nip, tanggal_mulai, tanggal_akhir, status, members } = req.body;
@@ -159,7 +149,7 @@ router.put('/master/sk-panitia/:skId', async (req, res) => {
   }
 });
 
-router.delete('/master/sk-panitia/:skId', async (req, res) => {
+router.delete('/master/sk-panitia/:skId', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM sk_panitia WHERE id = $1', [req.params.skId]);
     res.json({ success: true, message: 'SK Panitia berhasil dihapus.' });
@@ -168,7 +158,7 @@ router.delete('/master/sk-panitia/:skId', async (req, res) => {
   }
 });
 
-router.post('/master/sk-panitia/:skId/lampiran', upload.single('file'), async (req, res) => {
+router.post('/master/sk-panitia/:skId/lampiran', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'File diperlukan.' });
     const result = await pool.query(`
@@ -180,11 +170,16 @@ router.post('/master/sk-panitia/:skId/lampiran', upload.single('file'), async (r
   }
 });
 
-// ── GET /api/tenders/:id — Detail satu tender ──
-router.get('/:id', async (req, res) => {
+// ── GET /api/tenders/:id — Detail satu tender (publik: HPS cuma ditampilkan kalau
+// pemanggil sudah login, supaya tidak jadi patokan vendor sebelum tender ditutup) ──
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.*, u_ppk.full_name AS ppk_name, u_pokja.full_name AS pokja_lead_name
+      SELECT t.id, t.tender_number, t.title, t.method, t.category, t.description,
+             t.pagu_anggaran, ${req.user ? 't.hps' : 'NULL AS hps'}, t.status, t.work_location,
+             t.submission_deadline, t.winner_announcement, t.created_at,
+             t.ppk_id, t.pokja_lead_id, t.procurement_request_id,
+             u_ppk.full_name AS ppk_name, u_pokja.full_name AS pokja_lead_name
       FROM tenders t
       LEFT JOIN users u_ppk   ON t.ppk_id       = u_ppk.id
       LEFT JOIN users u_pokja ON t.pokja_lead_id = u_pokja.id
@@ -198,6 +193,10 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ── Seluruh endpoint di bawah ini WAJIB login (proses internal pengadaan: dokumen, panitia,
+// evaluasi, negosiasi, kontrak, dst). Cuma GET / dan GET /:id di atas yang publik. ──
+router.use(requireAuth);
 
 // ── POST /api/tenders — Buat tender baru ──
 router.post('/', async (req, res) => {
@@ -282,6 +281,9 @@ router.post('/:id/register', async (req, res) => {
     if (!vendor_id) {
       return res.status(400).json({ success: false, message: 'vendor_id diperlukan.' });
     }
+    if (req.user.role === 'vendor' && String(vendor_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'Anda cuma bisa mendaftarkan akun vendor Anda sendiri.' });
+    }
 
     // Cek apakah tender sedang dalam tahap pendaftaran
     const tender = await pool.query('SELECT status FROM tenders WHERE id = $1', [tenderId]);
@@ -311,9 +313,15 @@ router.post('/:id/register', async (req, res) => {
   }
 });
 
-// ── GET /api/tenders/:id/participants — Lihat Peserta Tender (Oleh Pokja) ──
+// ── GET /api/tenders/:id/participants — Lihat Peserta Tender (Oleh Pokja/PPK/Admin, melihat
+// SEMUA peserta termasuk harga penawaran satu sama lain - makanya dibatasi role internal saja).
+// Vendor pakai endpoint terpisah di bawah (/participants/me) yang cuma kembalikan baris
+// miliknya sendiri, supaya tidak bisa mengintip harga penawaran kompetitor. ──
 router.get('/:id/participants', async (req, res) => {
   try {
+    if (req.user.role === 'vendor') {
+      return res.status(403).json({ success: false, message: 'Gunakan endpoint /participants/me untuk melihat status keikutsertaan Anda.' });
+    }
     const result = await pool.query(`
       SELECT tp.*, v.company_name, v.company_type, v.city
       FROM tender_participants tp
@@ -326,14 +334,34 @@ router.get('/:id/participants', async (req, res) => {
   }
 });
 
+// ── GET /api/tenders/:id/participants/me — Status keikutsertaan vendor yang login sendiri
+// (dipakai vendor untuk tahu apakah dia sudah terdaftar/jadi pemenang di tender ini, tanpa
+// bisa mengintip data peserta lain seperti harga penawaran kompetitor) ──
+router.get('/:id/participants/me', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT tp.*, v.company_name, v.company_type, v.city
+      FROM tender_participants tp
+      JOIN vendors v ON tp.vendor_id = v.user_id
+      WHERE tp.tender_id = $1 AND tp.vendor_id = $2
+    `, [req.params.id, req.user.id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── POST /api/tenders/:id/bids — Vendor mengirim penawaran & dokumen ──
 router.post('/:id/bids', upload.single('document'), async (req, res) => {
   try {
     const tenderId = req.params.id;
     const { vendor_id, bid_price } = req.body;
-    
+
     if (!vendor_id || !bid_price) {
       return res.status(400).json({ success: false, message: 'vendor_id dan bid_price diperlukan.' });
+    }
+    if (req.user.role === 'vendor' && String(vendor_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'Anda cuma bisa mengirim penawaran atas nama akun vendor Anda sendiri.' });
     }
 
     const document_path = req.file ? `/uploads/${req.file.filename}` : null;
@@ -525,8 +553,12 @@ router.get('/:id/activity-log', async (req, res) => {
 });
 
 // ── GET /api/tenders/:id/negotiation/:vendorId — Riwayat negosiasi harga dengan vendor pemenang ──
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 router.get('/:id/negotiation/:vendorId', async (req, res) => {
   try {
+    if (!UUID_RE.test(req.params.vendorId)) {
+      return res.status(400).json({ success: false, message: 'ID vendor tidak valid.' });
+    }
     const participant = await pool.query(`
       SELECT bid_price, negotiated_price, negotiation_status
       FROM tender_participants
@@ -867,6 +899,9 @@ router.post('/:id/objections', upload.single('attachment'), async (req, res) => 
   try {
     const { vendor_id, objection_text } = req.body;
     if (!vendor_id || !objection_text) return res.status(400).json({ success: false, message: 'vendor_id dan objection_text wajib.' });
+    if (req.user.role === 'vendor' && String(vendor_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'Anda cuma bisa mengirim sanggahan atas nama akun vendor Anda sendiri.' });
+    }
 
     const attachmentPath = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -1200,6 +1235,9 @@ router.patch('/:id/contract/spk-detail', async (req, res) => {
   }
 });
 
+// field-ke-role: siapa yang boleh mengisi approval field tertentu (admin selalu boleh, sebagai
+// jaring pengaman kalau alur normal terhambat)
+const CONTRACT_APPROVAL_ROLES = { approve_manager: ['admin'], approve_ppk: ['ppk', 'admin'] };
 router.patch('/:id/contract/approval', async (req, res) => {
   try {
     const contractId = await getContractId(req.params.id);
@@ -1207,6 +1245,9 @@ router.patch('/:id/contract/approval', async (req, res) => {
     const { field, value } = req.body;
     const ALLOWED = ['approve_manager', 'approve_ppk'];
     if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    if (!CONTRACT_APPROVAL_ROLES[field].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses untuk mengisi persetujuan ini.' });
+    }
     const result = await pool.query(`UPDATE contracts SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [!!value, contractId]);
     res.json({ success: true, message: 'Persetujuan berhasil disimpan.', data: result.rows[0] });
   } catch (err) {
@@ -1318,6 +1359,13 @@ router.patch('/:id/contract/penilaian', async (req, res) => {
   }
 });
 
+// Kasubdit dan Unit belum punya role/login sendiri di sistem baru (baru fondasi role, belum
+// dikembangkan UI-nya), jadi field itu untuk sementara cuma bisa diisi admin sebagai penjaga.
+const PENILAIAN_APPROVAL_ROLES = {
+  penilaian_approval_ppk: ['ppk', 'admin'],
+  penilaian_approval_kasubdit: ['admin'],
+  penilaian_approval_unit: ['admin'],
+};
 router.patch('/:id/contract/penilaian/approval', async (req, res) => {
   try {
     const contractId = await getContractId(req.params.id);
@@ -1325,6 +1373,9 @@ router.patch('/:id/contract/penilaian/approval', async (req, res) => {
     const { field, value } = req.body;
     const ALLOWED = ['penilaian_approval_ppk', 'penilaian_approval_kasubdit', 'penilaian_approval_unit'];
     if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    if (!PENILAIAN_APPROVAL_ROLES[field].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses untuk mengisi persetujuan ini.' });
+    }
     const result = await pool.query(`UPDATE contracts SET ${field} = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [!!value, contractId]);
     res.json({ success: true, message: 'Persetujuan penilaian berhasil disimpan.', data: result.rows[0] });
   } catch (err) {
@@ -1627,11 +1678,17 @@ router.post('/:id/contract/addendum', upload.fields([{ name: 'file_persetujuan' 
   }
 });
 
+// Kasubdit belum punya role/login sendiri (baru fondasi role), sementara diisi admin sebagai
+// penjaga. Penyedia (vendor) mengisi persetujuannya sendiri.
+const ADDENDUM_APPROVAL_ROLES = { approved_kasubdit: ['admin'], approved_penyedia: ['vendor', 'admin'] };
 router.patch('/:id/contract/addendum/:addendumId/approval', async (req, res) => {
   try {
     const { field, value } = req.body;
     const ALLOWED = ['approved_kasubdit', 'approved_penyedia'];
     if (!ALLOWED.includes(field)) return res.status(400).json({ success: false, message: `field harus salah satu dari: ${ALLOWED.join(', ')}` });
+    if (!ADDENDUM_APPROVAL_ROLES[field].includes(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses untuk mengisi persetujuan ini.' });
+    }
     const result = await pool.query(`UPDATE contract_addendum SET ${field} = $1 WHERE id = $2 RETURNING *`, [!!value, req.params.addendumId]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Addendum tidak ditemukan.' });
 
@@ -2351,7 +2408,43 @@ router.post('/:id/undangan-klarifikasi', async (req, res) => {
       INSERT INTO tender_undangan_klarifikasi (tender_id, vendor_id, tanggal_undangan, jam, peserta, pelaksanaan, tempat, keterangan, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
     `, [req.params.id, vendor_id, tanggal_undangan, jam || null, peserta || null, pelaksanaan || null, tempat || null, keterangan || null, created_by || null]);
-    res.json({ success: true, message: 'Undangan klarifikasi berhasil disimpan.', data: result.rows[0] });
+
+    let mailResult = { sent: false, reason: 'no_email' };
+    try {
+      const info = await pool.query(
+        `SELECT t.title, u.full_name AS vendor_name, u.email AS vendor_email
+         FROM tenders t, users u WHERE t.id = $1 AND u.id = $2`,
+        [req.params.id, vendor_id]
+      );
+      if (info.rows.length && info.rows[0].vendor_email) {
+        const { title, vendor_name, vendor_email } = info.rows[0];
+        const tglStr = new Date(tanggal_undangan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        mailResult = await sendMail({
+          to: vendor_email,
+          subject: `Undangan Klarifikasi: ${title}`,
+          html: `
+            <p>Yth. ${vendor_name},</p>
+            <p>Anda diundang untuk hadir dalam klarifikasi terkait paket pengadaan <strong>${title}</strong>.</p>
+            <ul>
+              <li>Tanggal: ${tglStr}${jam ? ' pukul ' + jam : ''}</li>
+              ${tempat ? `<li>Tempat: ${tempat}</li>` : ''}
+              ${pelaksanaan ? `<li>Pelaksanaan: ${pelaksanaan}</li>` : ''}
+              ${peserta ? `<li>Peserta yang diharapkan hadir: ${peserta}</li>` : ''}
+            </ul>
+            ${keterangan ? `<p>Keterangan: ${keterangan}</p>` : ''}
+            <p>Mohon kehadirannya tepat waktu. Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+          `,
+        });
+      }
+    } catch (mailErr) {
+      console.error('[UNDANGAN KLARIFIKASI MAIL]', mailErr);
+    }
+
+    const message = mailResult.sent
+      ? 'Undangan klarifikasi berhasil disimpan dan email terkirim ke vendor.'
+      : 'Undangan klarifikasi berhasil disimpan' + (mailResult.reason === 'smtp_not_configured' ? ' (email tidak terkirim, SMTP belum dikonfigurasi).' : mailResult.reason === 'no_email' ? ' (vendor tidak punya email terdaftar, email tidak dikirim).' : '.');
+
+    res.json({ success: true, message, email_sent: mailResult.sent, data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

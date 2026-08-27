@@ -1,27 +1,16 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
 const { logActivity } = require('../lib/activityLog');
+const { requireRole } = require('../lib/authMiddleware');
+const requireAdmin = requireRole('admin');
 
 // ── Konfigurasi Multer ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'pengajuan-' + file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('pengajuan');
 
 // ── POST /api/pengajuan/sap-sync (Simulasi SAP ERP) ──
-router.post('/sap-sync', async (req, res) => {
+router.post('/sap-sync', requireAdmin, async (req, res) => {
   const client = await pool.connect();
   try {
     const { requester_id } = req.body;
@@ -149,7 +138,7 @@ router.post('/:id/submit', async (req, res) => {
 });
 
 // ── POST /api/pengajuan/:id/review — Tahap 1 Admin Review Dokumen ──
-router.post('/:id/review', async (req, res) => {
+router.post('/:id/review', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { admin_notes, is_docs_complete, user_id } = req.body;
@@ -181,7 +170,7 @@ router.post('/:id/review', async (req, res) => {
 });
 
 // ── POST /api/pengajuan/:id/approve — Tahap 2 Admin ACC pengajuan ──
-router.post('/:id/approve', async (req, res) => {
+router.post('/:id/approve', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { user_id } = req.body;
@@ -226,7 +215,7 @@ router.post('/:id/approve', async (req, res) => {
 });
 
 // ── POST /api/pengajuan/:id/reject — Tolak pengajuan ──
-router.post('/:id/reject', async (req, res) => {
+router.post('/:id/reject', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -258,7 +247,7 @@ router.get('/master/checklist', async (req, res) => {
   }
 });
 
-router.post('/master/checklist', async (req, res) => {
+router.post('/master/checklist', requireAdmin, async (req, res) => {
   try {
     const { nama, paket_jenis, metode_pemilihan, wajib, created_by } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -272,7 +261,7 @@ router.post('/master/checklist', async (req, res) => {
   }
 });
 
-router.delete('/master/checklist/:checklistId', async (req, res) => {
+router.delete('/master/checklist/:checklistId', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM master_checklist WHERE id = $1', [req.params.checklistId]);
     res.json({ success: true, message: 'Item checklist berhasil dihapus.' });
@@ -371,7 +360,7 @@ router.get('/:id/revisions', async (req, res) => {
   }
 });
 
-router.post('/:id/revisions', upload.single('file'), async (req, res) => {
+router.post('/:id/revisions', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     const { catatan, created_by } = req.body;
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;

@@ -1,23 +1,13 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { requireAuth, requireRole } = require('../lib/authMiddleware');
+const { sendMail } = require('../lib/mailer');
+const adminOnly = [requireAuth, requireRole('admin')];
 
 // ── Konfigurasi Multer (lampiran pesan) ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'inbox-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('inbox');
 
 // ── GET /api/inbox/categories — Daftar kategori pengaduan ──
 router.get('/categories', async (req, res) => {
@@ -30,7 +20,7 @@ router.get('/categories', async (req, res) => {
 });
 
 // ── GET /api/inbox — Daftar pesan masuk (Admin) ──
-router.get('/', async (req, res) => {
+router.get('/', adminOnly, async (req, res) => {
   try {
     const { status } = req.query;
     let sql = `
@@ -65,7 +55,7 @@ router.get('/meta/complain-types', async (req, res) => {
 });
 
 // ── CRUD Kategori Komplain & Penerima Default (Admin) ──
-router.post('/meta/complain-types', async (req, res) => {
+router.post('/meta/complain-types', adminOnly, async (req, res) => {
   try {
     const { name, description } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Nama subjek komplain wajib diisi.' });
@@ -79,7 +69,7 @@ router.post('/meta/complain-types', async (req, res) => {
   }
 });
 
-router.delete('/meta/complain-types/:id', async (req, res) => {
+router.delete('/meta/complain-types/:id', adminOnly, async (req, res) => {
   try {
     await pool.query('UPDATE inbox_complain_types SET is_active = false WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Subjek komplain berhasil dinonaktifkan.' });
@@ -88,7 +78,7 @@ router.delete('/meta/complain-types/:id', async (req, res) => {
   }
 });
 
-router.get('/meta/complain-recipients', async (req, res) => {
+router.get('/meta/complain-recipients', adminOnly, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM inbox_complain_recipients WHERE is_active = true ORDER BY email ASC');
     res.json({ success: true, data: result.rows });
@@ -97,7 +87,7 @@ router.get('/meta/complain-recipients', async (req, res) => {
   }
 });
 
-router.post('/meta/complain-recipients', async (req, res) => {
+router.post('/meta/complain-recipients', adminOnly, async (req, res) => {
   try {
     const { email, keterangan } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email penerima wajib diisi.' });
@@ -111,7 +101,7 @@ router.post('/meta/complain-recipients', async (req, res) => {
   }
 });
 
-router.delete('/meta/complain-recipients/:id', async (req, res) => {
+router.delete('/meta/complain-recipients/:id', adminOnly, async (req, res) => {
   try {
     await pool.query('UPDATE inbox_complain_recipients SET is_active = false WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Penerima komplain berhasil dinonaktifkan.' });
@@ -121,7 +111,7 @@ router.delete('/meta/complain-recipients/:id', async (req, res) => {
 });
 
 // ── GET /api/inbox/:id — Detail pesan + balasannya ──
-router.get('/:id', async (req, res) => {
+router.get('/:id', adminOnly, async (req, res) => {
   try {
     const msg = await pool.query(`
       SELECT m.*, c.name AS category_name
@@ -172,7 +162,7 @@ router.post('/', upload.single('attachment'), async (req, res) => {
 });
 
 // ── PATCH /api/inbox/:id/read — Tandai pesan sudah dibaca (Admin) ──
-router.patch('/:id/read', async (req, res) => {
+router.patch('/:id/read', adminOnly, async (req, res) => {
   try {
     const { read_by } = req.body;
     const result = await pool.query(`
@@ -189,12 +179,12 @@ router.patch('/:id/read', async (req, res) => {
 });
 
 // ── POST /api/inbox/:id/reply — Balas pesan (Admin) ──
-router.post('/:id/reply', async (req, res) => {
+router.post('/:id/reply', adminOnly, async (req, res) => {
   try {
     const { content, replied_by } = req.body;
     if (!content) return res.status(400).json({ success: false, message: 'Isi balasan wajib diisi.' });
 
-    const original = await pool.query('SELECT sender_name, sender_email FROM inbox_messages WHERE id = $1', [req.params.id]);
+    const original = await pool.query('SELECT subject, sender_name, sender_email FROM inbox_messages WHERE id = $1', [req.params.id]);
     if (!original.rows.length) return res.status(404).json({ success: false, message: 'Pesan tidak ditemukan.' });
 
     const reply = await pool.query(`
@@ -205,7 +195,26 @@ router.post('/:id/reply', async (req, res) => {
 
     await pool.query(`UPDATE inbox_messages SET status = 'dibalas' WHERE id = $1`, [req.params.id]);
 
-    res.status(201).json({ success: true, message: 'Balasan berhasil dikirim.', data: reply.rows[0] });
+    let mailResult = { sent: false, reason: 'no_email' };
+    const { sender_name, sender_email, subject } = original.rows[0];
+    if (sender_email) {
+      mailResult = await sendMail({
+        to: sender_email,
+        subject: `Re: ${subject}`,
+        html: `
+          <p>Yth. ${sender_name},</p>
+          <p>Terima kasih telah menghubungi kami. Berikut balasan atas pesan Anda:</p>
+          <blockquote style="border-left:3px solid #ccc;padding-left:10px;color:#555;">${content}</blockquote>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      });
+    }
+
+    const message = mailResult.sent
+      ? 'Balasan berhasil dikirim dan email diteruskan ke pengirim.'
+      : 'Balasan berhasil disimpan' + (mailResult.reason === 'smtp_not_configured' ? ' (email tidak terkirim, SMTP belum dikonfigurasi).' : '.');
+
+    res.status(201).json({ success: true, message, email_sent: mailResult.sent, data: reply.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

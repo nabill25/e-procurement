@@ -1,23 +1,11 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { requireAuth, requireRole } = require('../lib/authMiddleware');
 
 // ── Konfigurasi Multer (upload file SK) ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'blacklist-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('blacklist');
 
 // ── GET /api/blacklist — Daftar perusahaan yang di-blacklist (publik) ──
 router.get('/', async (req, res) => {
@@ -57,7 +45,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /api/blacklist — Tambah entri blacklist manual (Admin) ──
-router.post('/', upload.single('sk_file'), async (req, res) => {
+router.post('/', requireAuth, requireRole('admin'), upload.single('sk_file'), async (req, res) => {
   try {
     const { vendor_id, company_name, npwp, address, city, start_date, end_date, sk_number, reason, created_by } = req.body;
 

@@ -6,7 +6,7 @@ import { useApp } from '../../context/AppContext';
 function CaptchaWidget({ onVerify }) {
   const [chars] = useState(() => {
     const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('') + 'sp';
+    return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('');
   });
   const [input, setInput] = useState('');
   return (

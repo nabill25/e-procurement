@@ -1,10 +1,12 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
+const { requireRole } = require('../lib/authMiddleware');
+const requireAdmin = requireRole('admin');
 
 // ── GET /api/menu/access-matrix — Semua menu beserta role yang boleh melihatnya (Admin) ──
 // Didefinisikan sebelum /:role supaya path "access-matrix" tidak ketiban rute role.
-router.get('/access-matrix', async (req, res) => {
+router.get('/access-matrix', requireAdmin, async (req, res) => {
   try {
     const menus = await pool.query('SELECT * FROM menu_items WHERE is_active = true ORDER BY order_index ASC');
     const access = await pool.query('SELECT menu_id, role FROM menu_role_access');
@@ -21,7 +23,7 @@ router.get('/access-matrix', async (req, res) => {
 });
 
 // ── PUT /api/menu/:menuId/access — Ubah daftar role yang boleh lihat satu menu (Admin) ──
-router.put('/:menuId/access', async (req, res) => {
+router.put('/:menuId/access', requireAdmin, async (req, res) => {
   try {
     const { roles } = req.body; // contoh: ["admin", "ppk"]
     if (!Array.isArray(roles)) {

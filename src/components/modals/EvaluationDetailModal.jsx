@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import FormulaCategorySection from './FormulaCategorySection';
@@ -117,7 +118,7 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
     items: criteria.filter(c => c.category === cat.id),
   })).filter(cat => cat.items.length > 0);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-dpbj-navy/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-5 border-b border-border bg-surface">
@@ -237,6 +238,7 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

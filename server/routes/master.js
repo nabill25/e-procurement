@@ -1,23 +1,18 @@
 const express = require('express');
 const router  = express.Router();
 const { pool } = require('../db');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
+const { createUpload, handleUploadError } = require('../lib/upload');
+const { sendMail } = require('../lib/mailer');
+const { requireAuth, requireRole } = require('../lib/authMiddleware');
+
+// Seluruh isi modul Data Master butuh login (GET dipakai role manapun untuk isi dropdown
+// form seperti Analisa Kebutuhan/Pasar; operasi tulis POST/PUT/PATCH/DELETE dibatasi admin
+// saja lewat requireAdmin di tiap route-nya).
+router.use(requireAuth);
+const requireAdmin = requireRole('admin');
 
 // ── Konfigurasi Multer ──
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'master-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+const upload = createUpload('master');
 
 // Kategori data master yang valid (mengikuti tabel referensi di eProc lama)
 const VALID_CATEGORIES = ['bank', 'mata_uang', 'negara', 'satuan', 'incoterm', 'payment_method', 'analisa_kebutuhan', 'analisa_pasar', 'rekanan_tipe', 'sertifikat_jenis', 'jenis_belanja', 'analisa_kategori', 'ijin_usaha', 'pendidikan', 'paket_jenis', 'metode_lelang', 'metode_kualifikasi', 'metode_evaluasi', 'direktorat'];
@@ -49,7 +44,7 @@ router.get('/document-templates', async (req, res) => {
   }
 });
 
-router.post('/document-templates', upload.single('file'), async (req, res) => {
+router.post('/document-templates', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     const { nama, keterangan, target, created_by } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -65,7 +60,7 @@ router.post('/document-templates', upload.single('file'), async (req, res) => {
   }
 });
 
-router.delete('/document-templates/:templateId', async (req, res) => {
+router.delete('/document-templates/:templateId', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM document_templates WHERE id = $1 RETURNING id', [req.params.templateId]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Template tidak ditemukan.' });
@@ -90,7 +85,7 @@ router.get('/holidays', async (req, res) => {
   }
 });
 
-router.post('/holidays', async (req, res) => {
+router.post('/holidays', requireAdmin, async (req, res) => {
   const client = await pool.connect();
   try {
     const { holidays, created_by } = req.body;
@@ -112,7 +107,7 @@ router.post('/holidays', async (req, res) => {
   }
 });
 
-router.delete('/holidays/:holidayId', async (req, res) => {
+router.delete('/holidays/:holidayId', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM holidays WHERE id = $1', [req.params.holidayId]);
     res.json({ success: true, message: 'Hari libur berhasil dihapus.' });
@@ -132,7 +127,7 @@ router.get('/settings/:kunci', async (req, res) => {
   }
 });
 
-router.patch('/settings/:kunci', async (req, res) => {
+router.patch('/settings/:kunci', requireAdmin, async (req, res) => {
   try {
     const { aktif, url, keterangan, updated_by } = req.body;
     const result = await pool.query(`
@@ -157,7 +152,7 @@ router.patch('/settings/:kunci', async (req, res) => {
 // fitur undangan klarifikasi tender (field email disimpan tapi pengiriman belum jalan).
 
 // GET /api/master/dokumen-expired?hari=30 — daftar dokumen vendor yang akan/sudah kedaluwarsa
-router.get('/dokumen-expired', async (req, res) => {
+router.get('/dokumen-expired', requireAdmin, async (req, res) => {
   try {
     const hari = parseInt(req.query.hari) || 30;
     const result = await pool.query(`
@@ -175,11 +170,31 @@ router.get('/dokumen-expired', async (req, res) => {
   }
 });
 
-// POST /api/master/dokumen-expired/:docId/notify — catat pengiriman notifikasi (upsert log)
-router.post('/dokumen-expired/:docId/notify', async (req, res) => {
+// POST /api/master/dokumen-expired/:docId/notify — kirim email notifikasi + catat log (upsert)
+router.post('/dokumen-expired/:docId/notify', requireAdmin, async (req, res) => {
   try {
-    const doc = await pool.query('SELECT vendor_id FROM vendor_documents WHERE id = $1', [req.params.docId]);
+    const doc = await pool.query(
+      `SELECT d.vendor_id, d.doc_type, d.expiry_date, u.full_name AS vendor_name, u.email AS vendor_email
+       FROM vendor_documents d JOIN users u ON d.vendor_id = u.id WHERE d.id = $1`,
+      [req.params.docId]
+    );
     if (!doc.rows.length) return res.status(404).json({ success: false, message: 'Dokumen tidak ditemukan.' });
+    const docInfo = doc.rows[0];
+
+    let mailResult = { sent: false, reason: 'no_email' };
+    if (docInfo.vendor_email) {
+      const expiryStr = docInfo.expiry_date ? new Date(docInfo.expiry_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+      mailResult = await sendMail({
+        to: docInfo.vendor_email,
+        subject: `Pemberitahuan: Dokumen ${docInfo.doc_type} Anda Akan/Sudah Kedaluwarsa`,
+        html: `
+          <p>Yth. ${docInfo.vendor_name},</p>
+          <p>Dokumen <strong>${docInfo.doc_type}</strong> yang Anda unggah di sistem e-Procurement DPBJ UI akan/sudah melewati tanggal berlaku pada <strong>${expiryStr}</strong>.</p>
+          <p>Mohon segera perbarui dokumen tersebut melalui halaman Profil &amp; Kualifikasi Vendor untuk menghindari kendala pada proses pengadaan yang sedang/akan Anda ikuti.</p>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      });
+    }
 
     const existing = await pool.query(
       'SELECT id, sent_count FROM document_expiry_notification_logs WHERE vendor_document_id = $1',
@@ -198,18 +213,26 @@ router.post('/dokumen-expired/:docId/notify', async (req, res) => {
       result = await pool.query(
         `INSERT INTO document_expiry_notification_logs (vendor_document_id, vendor_id)
          VALUES ($1, $2) RETURNING *`,
-        [req.params.docId, doc.rows[0].vendor_id]
+        [req.params.docId, docInfo.vendor_id]
       );
     }
 
-    res.json({ success: true, message: 'Notifikasi dicatat (pengiriman email sungguhan belum aktif, belum ada konfigurasi SMTP).', data: result.rows[0] });
+    const message = mailResult.sent
+      ? 'Notifikasi berhasil dikirim ke email vendor dan dicatat.'
+      : (mailResult.reason === 'smtp_not_configured'
+          ? 'Notifikasi dicatat (email tidak terkirim karena SMTP belum dikonfigurasi di server).'
+          : (mailResult.reason === 'no_email'
+              ? 'Notifikasi dicatat (vendor tidak punya alamat email terdaftar, email tidak dikirim).'
+              : 'Notifikasi dicatat, namun pengiriman email gagal: ' + (mailResult.error || '')));
+
+    res.json({ success: true, message, email_sent: mailResult.sent, data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 // GET /api/master/dokumen-expired/logs — riwayat notifikasi yang sudah dicatat
-router.get('/dokumen-expired/logs', async (req, res) => {
+router.get('/dokumen-expired/logs', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT l.*, u.full_name AS vendor_name, d.doc_type
@@ -241,7 +264,7 @@ router.get('/regions', async (req, res) => {
   }
 });
 
-router.post('/regions', async (req, res) => {
+router.post('/regions', requireAdmin, async (req, res) => {
   try {
     const { level, nama, parent_id } = req.body;
     if (!level || !nama) return res.status(400).json({ success: false, message: 'level dan nama wajib diisi.' });
@@ -254,7 +277,7 @@ router.post('/regions', async (req, res) => {
   }
 });
 
-router.delete('/regions/:regionId', async (req, res) => {
+router.delete('/regions/:regionId', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM regions WHERE id = $1 RETURNING id', [req.params.regionId]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Wilayah tidak ditemukan.' });
@@ -276,7 +299,7 @@ router.get('/unit-kerja', async (req, res) => {
   }
 });
 
-router.post('/unit-kerja', async (req, res) => {
+router.post('/unit-kerja', requireAdmin, async (req, res) => {
   try {
     const { kode, nama, alamat, telepon, email } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -293,7 +316,7 @@ router.post('/unit-kerja', async (req, res) => {
   }
 });
 
-router.delete('/unit-kerja/:id', async (req, res) => {
+router.delete('/unit-kerja/:id', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM unit_kerja_master WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
@@ -314,7 +337,7 @@ router.get('/penilaian-templates', async (req, res) => {
   }
 });
 
-router.post('/penilaian-templates', async (req, res) => {
+router.post('/penilaian-templates', requireAdmin, async (req, res) => {
   try {
     const { parent_id, kode, nama, bobot_persen, skor_maksimal, catatan } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -328,7 +351,7 @@ router.post('/penilaian-templates', async (req, res) => {
   }
 });
 
-router.delete('/penilaian-templates/:id', async (req, res) => {
+router.delete('/penilaian-templates/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('UPDATE penilaian_kinerja_templates SET is_active = false WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Kriteria penilaian berhasil dinonaktifkan.' });
@@ -351,7 +374,7 @@ router.get('/:category', checkCategory, async (req, res) => {
 });
 
 // ── POST /api/master/:category — Tambah data referensi ──
-router.post('/:category', checkCategory, async (req, res) => {
+router.post('/:category', requireAdmin, checkCategory, async (req, res) => {
   try {
     const { kode, nama, extra } = req.body;
     if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
@@ -369,7 +392,7 @@ router.post('/:category', checkCategory, async (req, res) => {
 });
 
 // ── PUT /api/master/:category/:id — Ubah data referensi ──
-router.put('/:category/:id', checkCategory, async (req, res) => {
+router.put('/:category/:id', requireAdmin, checkCategory, async (req, res) => {
   try {
     const { kode, nama, extra, is_active } = req.body;
     const result = await pool.query(`
@@ -390,7 +413,7 @@ router.put('/:category/:id', checkCategory, async (req, res) => {
 });
 
 // ── DELETE /api/master/:category/:id — Hapus data referensi ──
-router.delete('/:category/:id', checkCategory, async (req, res) => {
+router.delete('/:category/:id', requireAdmin, checkCategory, async (req, res) => {
   try {
     const result = await pool.query(
       'DELETE FROM master_data WHERE id = $1 AND category = $2 RETURNING id',

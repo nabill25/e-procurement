@@ -649,14 +649,17 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
   const [showBidForm, setShowBidForm] = useState(false);
 
   useEffect(() => {
-    if (isOpen && data && (user.role === 'pokja' || user.role === 'admin' || user.role === 'ppk')) {
-      fetch(`${API_BASE}/tenders/${data.id}/participants`, { headers: getAuthHeaders() })
-        .then(res => res.json())
-        .then(json => {
-          if (json.success) setParticipants(json.data);
-        })
-        .catch(console.error);
-    }
+    if (!isOpen || !data) return;
+    const isInternal = user.role === 'pokja' || user.role === 'admin' || user.role === 'ppk';
+    const endpoint = isInternal
+      ? `${API_BASE}/tenders/${data.id}/participants`
+      : `${API_BASE}/tenders/${data.id}/participants/me`;
+    fetch(endpoint, { headers: getAuthHeaders() })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setParticipants(json.data);
+      })
+      .catch(console.error);
   }, [isOpen, data, user.role, activeTab]);
 
   if (!isOpen || !data) return null;

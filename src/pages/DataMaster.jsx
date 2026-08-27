@@ -45,7 +45,7 @@ function SimpleMasterTable({ category }) {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/master/${category}`);
+      const res = await fetch(`${API_BASE}/master/${category}`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -154,7 +154,7 @@ function UnitKerjaTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/master/unit-kerja`);
+      const res = await fetch(`${API_BASE}/master/unit-kerja`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -278,7 +278,7 @@ function VendorRetailTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/vendors/retail`);
+      const res = await fetch(`${API_BASE}/vendors/retail`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -414,7 +414,7 @@ function KatalogCategoryTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/katalog/categories/tree`);
+      const res = await fetch(`${API_BASE}/katalog/categories/tree`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -650,7 +650,7 @@ function DocumentTemplateTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/master/document-templates`);
+      const res = await fetch(`${API_BASE}/master/document-templates`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -776,7 +776,7 @@ function HolidayTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/master/holidays`);
+      const res = await fetch(`${API_BASE}/master/holidays`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) {
@@ -884,14 +884,14 @@ function RegionTable() {
   const [saving, setSaving] = useState(false);
 
   const fetchProvinces = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/master/regions?level=provinsi`);
+    const res = await fetch(`${API_BASE}/master/regions?level=provinsi`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (json.success) setProvinces(json.data);
   }, []);
 
   const fetchChildren = useCallback(async () => {
     if (!selectedProvince) { setChildren([]); return; }
-    const res = await fetch(`${API_BASE}/master/regions?parent_id=${selectedProvince}`);
+    const res = await fetch(`${API_BASE}/master/regions?parent_id=${selectedProvince}`, { headers: getAuthHeaders() });
     const json = await res.json();
     if (json.success) setChildren(json.data);
   }, [selectedProvince]);
@@ -1090,7 +1090,7 @@ function ComplainRecipientTable() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients`);
+      const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setData(json.data);
     } catch (err) { console.error(err); } finally { setIsLoading(false); }

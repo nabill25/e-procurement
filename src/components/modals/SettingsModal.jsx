@@ -1,4 +1,4 @@
-import { X, LogOut, Shield, User, Mail, Building2 } from 'lucide-react';
+import { X, LogOut, Shield, User, Mail } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function SettingsModal({ isOpen, onClose }) {
@@ -31,24 +31,26 @@ export default function SettingsModal({ isOpen, onClose }) {
             <div className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
               <User size={18} className="text-muted" />
               <div>
-                <p className="text-xs text-muted font-medium">NIP / ID Pengguna</p>
-                <p className="text-sm font-semibold text-dpbj-navy">198001012005011002</p>
+                <p className="text-xs text-muted font-medium">Username</p>
+                <p className="text-sm font-semibold text-dpbj-navy">{user?.username || '-'}</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
-              <Building2 size={18} className="text-muted" />
-              <div>
-                <p className="text-xs text-muted font-medium">Unit Kerja</p>
-                <p className="text-sm font-semibold text-dpbj-navy">Direktorat Pengadaan Barang dan Jasa</p>
+
+            {user?.email && (
+              <div className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
+                <Mail size={18} className="text-muted" />
+                <div>
+                  <p className="text-xs text-muted font-medium">Email</p>
+                  <p className="text-sm font-semibold text-dpbj-navy">{user.email}</p>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
               <Shield size={18} className="text-muted" />
               <div>
                 <p className="text-xs text-muted font-medium">Hak Akses</p>
-                <p className="text-sm font-semibold text-dpbj-navy">Super Administrator</p>
+                <p className="text-sm font-semibold text-dpbj-navy">{user?.roleLabel || user?.role_label || user?.role || '-'}</p>
               </div>
             </div>
           </div>

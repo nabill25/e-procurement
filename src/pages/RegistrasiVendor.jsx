@@ -70,7 +70,14 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
     const e = {};
     if (!form.bentukUsaha) e.bentukUsaha = 'Wajib dipilih';
     if (!form.namaPerusahaan.trim()) e.namaPerusahaan = 'Wajib diisi';
-    if (!form.npwp.trim()) e.npwp = 'Wajib diisi';
+    if (!form.npwp.trim()) {
+      e.npwp = 'Wajib diisi';
+    } else {
+      const digitsOnly = form.npwp.replace(/\D/g, '');
+      if (form.is16Digit ? digitsOnly.length !== 16 : digitsOnly.length !== 15) {
+        e.npwp = form.is16Digit ? 'NPWP 16 digit harus berupa 16 angka' : 'NPWP harus berupa 15 angka (format: XX.XXX.XXX.X-XXX.XXX)';
+      }
+    }
     if (!form.email.trim()) e.email = 'Wajib diisi';
     if (!form.username.trim()) e.username = 'Wajib diisi';
     if (!form.password.trim()) e.password = 'Wajib diisi';

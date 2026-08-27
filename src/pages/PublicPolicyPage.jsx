@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { FileText, Home } from 'lucide-react';
 import { API_BASE } from '../context/AppContext';
 
@@ -65,7 +66,7 @@ export default function PublicPolicyPage({ onNavigateHome }) {
               {active && (
                 <div>
                   <h3 className="font-bold text-dpbj-navy text-lg mb-4">{active.title}</h3>
-                  <div className="text-sm text-dpbj-navy leading-relaxed" dangerouslySetInnerHTML={{ __html: active.content }} />
+                  <div className="text-sm text-dpbj-navy leading-relaxed" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(active.content) }} />
                 </div>
               )}
             </div>

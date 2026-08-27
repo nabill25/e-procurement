@@ -17,7 +17,7 @@ export default function MenuAccess() {
   const fetchMatrix = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/menu/access-matrix`);
+      const res = await fetch(`${API_BASE}/menu/access-matrix`, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setMenus(json.data);
     } catch (err) {

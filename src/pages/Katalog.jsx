@@ -39,7 +39,7 @@ export default function Katalog() {
   }, [search]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/katalog/categories/tree`).then(r => r.json()).then(j => { if (j.success) setCategories(j.data); }).catch(() => {});
+    fetch(`${API_BASE}/katalog/categories/tree`, { headers: getAuthHeaders() }).then(r => r.json()).then(j => { if (j.success) setCategories(j.data); }).catch(() => {});
   }, []);
 
   useEffect(() => {

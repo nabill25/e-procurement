@@ -3,8 +3,11 @@ const express = require('express');
 const router  = express.Router();
 const bcrypt  = require('bcrypt');
 const { pool } = require('../db');
+const { requireRole } = require('../lib/authMiddleware');
+const requireAdmin = requireRole('admin');
 
-// ── GET /api/users/roles — Daftar semua role yang dikenal sistem ──
+// ── GET /api/users/roles — Daftar semua role yang dikenal sistem (dipakai juga PPK untuk
+// dropdown, misal isi PIC tahap kontrak - bukan cuma admin) ──
 router.get('/roles', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM role_definitions WHERE is_active = true ORDER BY label ASC');
@@ -14,7 +17,9 @@ router.get('/roles', async (req, res) => {
   }
 });
 
-// ── GET /api/users — Daftar user internal (bukan vendor), beserta role yang dimiliki ──
+// ── GET /api/users — Daftar user internal (bukan vendor), beserta role yang dimiliki.
+// Dipakai halaman admin Manajemen User, TAPI juga dipakai PPK untuk isi dropdown PIC di
+// tab Kontrak (ContractWorkflowSections.jsx) - jadi cukup login, tidak admin-only. ──
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -42,7 +47,7 @@ router.get('/', async (req, res) => {
 });
 
 // ── POST /api/users — Buat akun staff internal baru (Admin) ──
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const { username, password, full_name, email, role_key } = req.body;
     if (!username || !password || !full_name || !role_key) {
@@ -90,7 +95,7 @@ router.post('/', async (req, res) => {
 });
 
 // ── POST /api/users/:id/roles — Tambah role tambahan untuk satu user (Admin) ──
-router.post('/:id/roles', async (req, res) => {
+router.post('/:id/roles', requireAdmin, async (req, res) => {
   try {
     const { role_key, level } = req.body;
     if (!role_key) return res.status(400).json({ success: false, message: 'role_key wajib diisi.' });
@@ -112,7 +117,7 @@ router.post('/:id/roles', async (req, res) => {
 
 // ── DELETE /api/users/:id/roles/:roleKey — Cabut satu role dari user (Admin) ──
 // Tidak boleh menghapus role kalau itu satu-satunya role yang tersisa.
-router.delete('/:id/roles/:roleKey', async (req, res) => {
+router.delete('/:id/roles/:roleKey', requireAdmin, async (req, res) => {
   try {
     const countResult = await pool.query('SELECT COUNT(*) AS cnt FROM user_roles WHERE user_id = $1', [req.params.id]);
     if (parseInt(countResult.rows[0].cnt) <= 1) {
@@ -132,7 +137,7 @@ router.delete('/:id/roles/:roleKey', async (req, res) => {
 });
 
 // ── GET /api/users/login-logs — Riwayat login SEMUA akun (Admin) ───────────────
-router.get('/login-logs', async (req, res) => {
+router.get('/login-logs', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT l.id, l.user_id, l.username, l.ip_address, l.user_agent, l.is_active, l.login_at, l.logout_at,
@@ -150,7 +155,7 @@ router.get('/login-logs', async (req, res) => {
 // ── API KEY: integrasi pihak ketiga (Admin) ─────────────────────────────────────
 // Di sistem lama pengelolaan key dilakukan manual langsung ke database (tidak ada UI).
 // Sistem baru menambahkan UI ini sebagai perbaikan, mengikuti struktur tabel KEY asli.
-router.get('/api-keys', async (req, res) => {
+router.get('/api-keys', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM api_keys ORDER BY created_at DESC');
     res.json({ success: true, data: result.rows });
@@ -159,7 +164,7 @@ router.get('/api-keys', async (req, res) => {
   }
 });
 
-router.post('/api-keys', async (req, res) => {
+router.post('/api-keys', requireAdmin, async (req, res) => {
   try {
     const { client_name } = req.body;
     if (!client_name) return res.status(400).json({ success: false, message: 'Nama klien wajib diisi.' });
@@ -175,7 +180,7 @@ router.post('/api-keys', async (req, res) => {
   }
 });
 
-router.patch('/api-keys/:id/toggle', async (req, res) => {
+router.patch('/api-keys/:id/toggle', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       `UPDATE api_keys SET is_active = NOT is_active WHERE id = $1 RETURNING *`,
@@ -188,7 +193,7 @@ router.patch('/api-keys/:id/toggle', async (req, res) => {
   }
 });
 
-router.delete('/api-keys/:id', async (req, res) => {
+router.delete('/api-keys/:id', requireAdmin, async (req, res) => {
   try {
     await pool.query('DELETE FROM api_keys WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'API key berhasil dihapus.' });
@@ -197,7 +202,7 @@ router.delete('/api-keys/:id', async (req, res) => {
   }
 });
 
-router.get('/api-keys/:id/requests', async (req, res) => {
+router.get('/api-keys/:id/requests', requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT * FROM api_key_requests WHERE api_key_id = $1 ORDER BY requested_at DESC LIMIT 100`,

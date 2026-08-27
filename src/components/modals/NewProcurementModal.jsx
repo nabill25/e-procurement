@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, FileText, Upload, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useApp, API_BASE } from '../../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 
 const CATEGORIES = ['Barang', 'Jasa Konsultansi', 'Jasa Konstruksi', 'Jasa Lainnya', 'Barang/Jasa TIK'];
 const BUDGET_SOURCES = ['DIPA', 'BLU', 'PNBP', 'Hibah', 'Lainnya'];
@@ -73,8 +73,8 @@ export default function NewProcurementModal({ isOpen, onClose }) {
   const [analisaPasarOptions, setAnalisaPasarOptions] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/master/analisa_kebutuhan`).then(r => r.json()).then(j => { if (j.success) setAnalisaKebutuhanOptions(j.data); }).catch(() => {});
-    fetch(`${API_BASE}/master/analisa_pasar`).then(r => r.json()).then(j => { if (j.success) setAnalisaPasarOptions(j.data); }).catch(() => {});
+    fetch(`${API_BASE}/master/analisa_kebutuhan`, { headers: getAuthHeaders() }).then(r => r.json()).then(j => { if (j.success) setAnalisaKebutuhanOptions(j.data); }).catch(() => {});
+    fetch(`${API_BASE}/master/analisa_pasar`, { headers: getAuthHeaders() }).then(r => r.json()).then(j => { if (j.success) setAnalisaPasarOptions(j.data); }).catch(() => {});
   }, []);
 
   const set = (key, val) => {
@@ -122,6 +122,9 @@ export default function NewProcurementModal({ isOpen, onClose }) {
 
   const handleClose = () => {
     if (submitted) setActivePage('pengajuan');
+    setForm(INITIAL);
+    setStep(0);
+    setSubmitted(false);
     if (onClose) onClose();
   };
 
@@ -380,7 +383,7 @@ export default function NewProcurementModal({ isOpen, onClose }) {
                 Pengajuan Anda telah masuk ke sistem dan akan diproses oleh PPK & DPBJ UI.
               </p>
               <p className="text-xs text-muted mb-6">
-                Status: <span className="font-semibold text-amber-600">Draft — Menunggu Review PPK</span>
+                Status: <span className="font-semibold text-amber-600">Diajukan, Menunggu Verifikasi Admin DPBJ</span>
               </p>
               <div className="flex gap-3">
                 <button onClick={handleClose} className="btn-primary">
