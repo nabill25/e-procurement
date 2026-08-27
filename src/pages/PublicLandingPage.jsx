@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, Briefcase, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import LiveClock from '../components/common/LiveClock';
 import Reveal from '../components/common/Reveal';
+import { TenderIcon, RegistrasiIcon } from '../components/common/ServiceIcons';
 import logoUIFull from '../assets/logo-ui-full.png';
 import { API_BASE, SERVER_BASE } from '../context/AppContext';
 
@@ -267,9 +268,8 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-400/5 rounded-full blur-3xl group-hover:bg-orange-400/20 transition-all duration-500 pointer-events-none" />
               
               <div className="relative w-28 h-28 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-200 to-orange-100 rounded-2xl transform rotate-6 group-hover:rotate-12 transition-transform duration-500 shadow-sm" />
                 <div className="absolute inset-0 bg-white rounded-2xl shadow-md transform -rotate-3 group-hover:rotate-0 transition-transform duration-500 flex items-center justify-center border border-orange-50">
-                  <Briefcase size={48} strokeWidth={1.5} className="text-orange-500 drop-shadow-sm" />
+                  <TenderIcon size={52} className="drop-shadow-sm" />
                 </div>
               </div>
 
@@ -291,9 +291,8 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-blue-400/5 rounded-full blur-3xl group-hover:bg-blue-400/20 transition-all duration-500 pointer-events-none" />
               
               <div className="relative w-28 h-28 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-200 to-blue-100 rounded-2xl transform rotate-6 group-hover:rotate-12 transition-transform duration-500 shadow-sm" />
                 <div className="absolute inset-0 bg-white rounded-2xl shadow-md transform -rotate-3 group-hover:rotate-0 transition-transform duration-500 flex items-center justify-center border border-blue-50">
-                  <ClipboardList size={48} strokeWidth={1.5} className="text-blue-500 drop-shadow-sm" />
+                  <RegistrasiIcon size={52} className="drop-shadow-sm" />
                 </div>
               </div>
 
