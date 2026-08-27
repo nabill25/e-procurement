@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Calendar, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
+import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig, methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
@@ -913,6 +913,12 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 <button onClick={() => handleUpdateStage('pemenang')} disabled={isUpdatingStage} className="btn-primary w-full justify-center text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-md">Masuk Tahap Pemenang</button>
               )}
               {user.role === 'pokja' && data.status === 'pemenang' && (
+                <button onClick={() => handleUpdateStage('masa_sanggah')} disabled={isUpdatingStage} className="btn-primary w-full justify-center text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-md">Buka Masa Sanggah</button>
+              )}
+              {user.role === 'pokja' && data.status === 'masa_sanggah' && (
+                <button onClick={() => handleUpdateStage('kontrak')} disabled={isUpdatingStage} className="btn-primary w-full justify-center text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md">Tutup Sanggah & Lanjut Kontrak</button>
+              )}
+              {user.role === 'pokja' && data.status === 'kontrak' && (
                 <button onClick={() => handleUpdateStage('selesai')} disabled={isUpdatingStage} className="btn-primary w-full justify-center text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">Selesaikan Tender</button>
               )}
 

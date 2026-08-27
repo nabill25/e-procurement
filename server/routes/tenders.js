@@ -252,7 +252,11 @@ router.patch('/:id/status', async (req, res) => {
 router.patch('/:id/stage', async (req, res) => {
   try {
     const { status, user_id } = req.body; // status baru
-    const allowed = ['draft','pengumuman','pendaftaran','penawaran','evaluasi','pemenang','selesai','dibatalkan'];
+    // Catatan: 'masa_sanggah' dan 'kontrak' sengaja ditambahkan ke daftar ini supaya konsisten
+    // dengan procurementPhases.js (7 tahap) dan tab "Kontrak & BAST" yang mensyaratkan status
+    // 'kontrak' (getTenderPhaseIndex >= 6) - sebelumnya kedua status ini ditolak di sini padahal
+    // sudah didefinisikan di tempat lain, membuat tab Kontrak tidak pernah bisa dicapai lewat UI.
+    const allowed = ['draft','pengumuman','pendaftaran','penawaran','evaluasi','pemenang','masa_sanggah','kontrak','selesai','dibatalkan'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ success: false, message: 'Tahapan tender tidak valid.' });
     }
