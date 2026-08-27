@@ -40,6 +40,7 @@ export function AppProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [showNewProcurementModal, setShowNewProcurementModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // drawer sidebar khusus layar mobile
   const [selectedPengajuan, setSelectedPengajuan] = useState(null);
   const [selectedTender, setSelectedTender] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -253,6 +254,7 @@ export function AppProvider({ children }) {
     notifications, addNotification, markAllAsRead,
     showNewProcurementModal, openNewProcurementModal, closeNewProcurementModal,
     showSettingsModal, openSettingsModal, closeSettingsModal,
+    isSidebarOpen, setIsSidebarOpen,
     selectedPengajuan, setSelectedPengajuan,
     selectedTender, setSelectedTender,
     searchQuery, setSearchQuery,

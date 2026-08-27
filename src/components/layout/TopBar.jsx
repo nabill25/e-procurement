@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, Plus, ChevronDown, CheckCircle2, AlertCircle, Clock, LogOut } from 'lucide-react';
+import { Bell, Search, Plus, ChevronDown, CheckCircle2, AlertCircle, Clock, LogOut, Menu } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import LiveClock from '../common/LiveClock';
 
@@ -8,18 +8,31 @@ const pageTitles = {
   pengajuan:       { title: 'Pengajuan Pengadaan', subtitle: 'Kelola pengajuan dari unit kerja' },
   tender:          { title: 'Paket Pengadaan', subtitle: 'Manajemen tender dan proses pemilihan' },
   vendor:          { title: 'Manajemen Vendor', subtitle: 'Data penyedia barang dan jasa' },
+  vendor_profile:  { title: 'Profil & Kualifikasi', subtitle: 'Profil perusahaan dan dokumen kualifikasi' },
   blacklist:       { title: 'Daftar Hitam', subtitle: 'Daftar penyedia yang dikenakan sanksi' },
   audit:           { title: 'Audit & Dokumen', subtitle: 'Log aktivitas dan arsip dokumen' },
+  katalog:         { title: 'E-Purchasing', subtitle: 'Katalog produk dan belanja langsung' },
+  purchasing:      { title: 'Purchase Orders', subtitle: 'Riwayat dan status pesanan pembelian' },
+  master_data:     { title: 'Data Master', subtitle: 'Kelola data referensi sistem' },
+  menu_access:     { title: 'Hak Akses Menu', subtitle: 'Atur menu yang tampil per role' },
+  inbox:           { title: 'Pusat Pesan', subtitle: 'Pesan masuk dan pengaduan' },
+  content_management: { title: 'Kelola Konten', subtitle: 'Berita, FAQ, banner, dan kebijakan publik' },
+  user_management: { title: 'Manajemen User', subtitle: 'Kelola akun staff dan role' },
+  login_logs:      { title: 'Riwayat Login', subtitle: 'Histori login per akun' },
+  api_keys:        { title: 'API Key', subtitle: 'Kelola kunci akses integrasi pihak ketiga' },
+  document_expiry: { title: 'Dokumen Kedaluwarsa', subtitle: 'Pemantauan dokumen vendor akan kedaluwarsa' },
   public_home:     { title: 'Portal Publik', subtitle: 'Halaman publik e-Procurement UI' },
   public_tender:   { title: 'Daftar Tender', subtitle: 'Informasi paket tender yang sedang dibuka' },
   public_blacklist:{ title: 'Daftar Hitam Publik', subtitle: 'Informasi sanksi daftar hitam penyedia' },
+  public_qr_verify:{ title: 'Cek Dokumen', subtitle: 'Verifikasi keaslian dokumen lewat kode QR' },
+  public_policy:   { title: 'Kebijakan', subtitle: 'Kebijakan resmi DPBJ Universitas Indonesia' },
   kontak:          { title: 'Kontak Kami', subtitle: 'Hubungi DPBJ Universitas Indonesia' },
   registrasi:      { title: 'Registrasi Penyedia', subtitle: 'Pendaftaran vendor/penyedia baru' },
 };
 
 
 export default function TopBar() {
-  const { activePage, user, setUser, logout, notifications, markAllAsRead, openNewProcurementModal } = useApp();
+  const { activePage, user, setUser, logout, notifications, markAllAsRead, openNewProcurementModal, setIsSidebarOpen } = useApp();
   const { title, subtitle } = pageTitles[activePage] || pageTitles.dashboard;
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isRoleOpen, setIsRoleOpen] = useState(false);
@@ -69,10 +82,19 @@ export default function TopBar() {
       </div>
       
       {/* Main TopBar */}
-      <header className="bg-white border-b border-border px-6 py-4 flex items-center gap-4">
+      <header className="bg-white border-b border-border px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4">
+      {/* Hamburger, cuma tampil di mobile untuk buka drawer sidebar */}
+      <button
+        className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-surface transition-colors flex-shrink-0"
+        onClick={() => setIsSidebarOpen(true)}
+        aria-label="Buka menu"
+      >
+        <Menu size={20} className="text-dpbj-navy" />
+      </button>
+
       {/* Page title */}
       <div className="flex-1 min-w-0">
-        <h1 className="text-lg font-bold text-dpbj-navy leading-tight truncate">{title}</h1>
+        <h1 className="text-base sm:text-lg font-bold text-dpbj-navy leading-tight truncate">{title}</h1>
         <p className="text-xs text-muted truncate hidden sm:block">{subtitle}</p>
       </div>
 
