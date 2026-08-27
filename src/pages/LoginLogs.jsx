@@ -39,7 +39,7 @@ export default function LoginLogs() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>

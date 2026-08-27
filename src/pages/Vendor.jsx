@@ -148,18 +148,18 @@ export default function Vendor() {
       </div>
 
       <div className="section-card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex-1 min-w-[180px]">
             <h2 className="text-base font-bold text-dpbj-navy">Daftar Penyedia Barang & Jasa</h2>
             <p className="text-xs text-muted">{vendors.length} vendor terdaftar dalam sistem DPBJ UI</p>
           </div>
-          <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 focus-within:border-dpbj-gold transition-all">
-            <Search size={13} className="text-gray-400" />
-            <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-40" placeholder="Cari vendor..." />
+          <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 focus-within:border-dpbj-gold transition-all w-full sm:w-auto">
+            <Search size={13} className="text-gray-400 shrink-0" />
+            <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full sm:w-40" placeholder="Cari vendor..." />
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>

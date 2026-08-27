@@ -106,12 +106,37 @@
   .data-table { @apply w-full text-sm; }
   .data-table thead th {
     @apply px-4 py-3 text-left text-xs font-semibold text-dpbj-navy/60 uppercase tracking-wider
-           bg-surface border-b border-border;
+           bg-surface border-b border-border whitespace-nowrap;
   }
   .data-table tbody tr {
     @apply border-b border-border hover:bg-dpbj-gold-faint/50 transition-colors duration-150;
   }
   .data-table tbody td { @apply px-4 py-3.5 text-dpbj-navy; }
+
+  /* ── Pembungkus tabel/tab yang bisa digeser mendatar (mobile) ──
+     Beda dari overflow-x-auto polos: scrollbar dibuat SELALU terlihat jelas (bukan cuma
+     muncul saat hover, yang di HP/touch-device seringkali tidak pernah muncul sama sekali)
+     dan diberi fade gradient di tepi kanan sebagai isyarat "masih ada konten di sana".
+     Fade-nya dibuat dengan trik background-attachment: local (menempel ke KONTEN yang
+     discroll, bukan ke viewport pembungkus) supaya otomatis TIDAK tampil kalau kontennya
+     memang muat penuh tanpa perlu digeser sama sekali (misal di layar desktop lebar) -
+     tanpa trik ini gradient akan selalu tampil walau tidak ada overflow sungguhan. */
+  .table-scroll {
+    @apply overflow-x-auto rounded-xl border border-border;
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.dpbj.gold') theme('colors.surface');
+    background:
+      linear-gradient(to right, white 30%, rgba(255,255,255,0)) 0 0,
+      linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(26,54,104,0.12), rgba(0,0,0,0)) 0 0,
+      radial-gradient(farthest-side at 100% 50%, rgba(26,54,104,0.12), rgba(0,0,0,0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+  .table-scroll::-webkit-scrollbar { height: 8px; }
+  .table-scroll::-webkit-scrollbar-track { @apply bg-surface; }
+  .table-scroll::-webkit-scrollbar-thumb { @apply bg-dpbj-gold rounded-full; }
 
   /* ── Modal Overlay ── */
   .modal-overlay {

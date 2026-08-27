@@ -127,7 +127,7 @@ export default function ApiKeys() {
           </form>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>

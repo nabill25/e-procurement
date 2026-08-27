@@ -179,7 +179,7 @@ export default function Pengajuan() {
           <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full" placeholder="Cari pengajuan..." />
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>

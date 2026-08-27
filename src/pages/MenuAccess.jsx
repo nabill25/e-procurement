@@ -70,7 +70,7 @@ export default function MenuAccess() {
           Perubahan di sini langsung berlaku untuk semua pengguna dengan peran terkait. Pastikan minimal role Admin tetap punya akses ke halaman ini supaya tidak terkunci sendiri.
         </p>
 
-        <div className="overflow-x-auto rounded-xl border border-border mt-5">
+        <div className="table-scroll mt-5">
           <table className="data-table">
             <thead>
               <tr>

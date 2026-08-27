@@ -258,7 +258,7 @@ export default function Katalog() {
                 <label className="block text-sm font-semibold text-dpbj-navy mb-1">Deskripsi Singkat</label>
                 <textarea className="form-input w-full" rows="2" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-dpbj-navy mb-1">Harga Satuan (Rp) *</label>
                   <input type="number" required className="form-input w-full text-sm" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
@@ -272,7 +272,7 @@ export default function Katalog() {
                   <input type="text" className="form-input w-full text-sm" value={formData.item_code} onChange={e => setFormData({...formData, item_code: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-dpbj-navy mb-1">Merek</label>
                   <input type="text" className="form-input w-full text-sm" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
@@ -286,7 +286,7 @@ export default function Katalog() {
                   <input type="text" className="form-input w-full text-sm" value={formData.jenis_produk} onChange={e => setFormData({...formData, jenis_produk: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-dpbj-navy mb-1">Panjang</label>
                   <input type="number" className="form-input w-full text-sm" value={formData.panjang} onChange={e => setFormData({...formData, panjang: e.target.value})} />
@@ -304,7 +304,7 @@ export default function Katalog() {
                   <input type="text" placeholder="cm" className="form-input w-full text-sm" value={formData.unit_pengukuran} onChange={e => setFormData({...formData, unit_pengukuran: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-dpbj-navy mb-1">TKDN (%)</label>
                   <input type="number" className="form-input w-full text-sm" value={formData.tkdn_persen} onChange={e => setFormData({...formData, tkdn_persen: e.target.value})} />

@@ -113,7 +113,7 @@ function SimpleMasterTable({ category }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -233,7 +233,7 @@ function UnitKerjaTable() {
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -365,7 +365,7 @@ function VendorRetailTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -488,7 +488,7 @@ function KatalogCategoryTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -604,7 +604,7 @@ function MasterChecklistTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -729,7 +729,7 @@ function DocumentTemplateTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -843,7 +843,7 @@ function HolidayTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -966,7 +966,7 @@ function RegionTable() {
             </button>
           </form>
 
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -1056,7 +1056,7 @@ function ComplainTypeTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Nama</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
           <tbody>
@@ -1138,7 +1138,7 @@ function ComplainRecipientTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Email</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
           <tbody>
@@ -1253,7 +1253,7 @@ function PenilaianTemplateTable() {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr><th>Kode</th><th>Nama</th><th>Bab</th><th>Bobot</th><th>Skor Maks</th><th className="text-right">Aksi</th></tr>

@@ -79,7 +79,7 @@ export default function Blacklist({ onNavigateHome }) {
         </div>
 
         {/* Controls row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 bg-gray-50 border-b border-border">
           <div className="flex items-center gap-2 text-xs text-muted">
             <span>Menampilkan</span>
             <select
@@ -91,12 +91,12 @@ export default function Blacklist({ onNavigateHome }) {
             </select>
             <span>data</span>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted">Pencarian :</span>
+          <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
+            <span className="text-muted shrink-0">Pencarian :</span>
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="border border-border rounded px-2 py-1 text-xs text-dpbj-navy focus:outline-none focus:ring-1 focus:ring-dpbj-gold/40 w-36"
+              className="border border-border rounded px-2 py-1 text-xs text-dpbj-navy focus:outline-none focus:ring-1 focus:ring-dpbj-gold/40 w-full sm:w-36"
             />
           </div>
         </div>

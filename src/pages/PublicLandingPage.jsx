@@ -313,12 +313,12 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
       {/* Pengumuman & Berita */}
       <section className="py-12 px-6 bg-white border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
             <div>
-              <h2 className="font-serif font-bold text-dpbj-navy text-3xl mb-1">Pengumuman & Berita</h2>
+              <h2 className="font-serif font-bold text-dpbj-navy text-2xl sm:text-3xl mb-1">Pengumuman & Berita</h2>
               <p className="text-sm font-medium text-muted uppercase tracking-widest">Informasi Terbaru</p>
             </div>
-            <button onClick={() => onNavigate('public_tender')} className="text-sm text-dpbj-gold hover:text-dpbj-gold-dark font-semibold flex items-center gap-1 transition-colors">
+            <button onClick={() => onNavigate('public_tender')} className="text-sm text-dpbj-gold hover:text-dpbj-gold-dark font-semibold flex items-center gap-1 transition-colors shrink-0">
               Lihat Semua <ArrowRight size={14} />
             </button>
           </div>
@@ -380,8 +380,8 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
       {/* Footer */}
       <footer className="bg-dpbj-gold text-dpbj-navy-dark text-xs py-8 px-6 mt-auto border-t-4 border-dpbj-navy-dark">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-4">
-            <img src={logoUIFull} alt="Logo UI" className="h-10 w-auto grayscale contrast-200 brightness-0" />
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+            <img src={logoUIFull} alt="Logo UI" className="h-auto w-32 sm:h-10 sm:w-auto grayscale contrast-200 brightness-0" />
             <div className="text-left">
               <p className="font-bold text-base">Sistem Pengadaan Barang Jasa</p>
               <p className="font-medium text-sm">Universitas Indonesia</p>

@@ -85,7 +85,7 @@ export default function DocumentExpiry() {
         </div>
 
         {showLogs ? (
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="table-scroll">
             <table className="data-table">
               <thead><tr><th>Vendor</th><th>Jenis Dokumen</th><th>Jumlah Kirim</th><th>Terakhir Dikirim</th></tr></thead>
               <tbody>
@@ -103,7 +103,7 @@ export default function DocumentExpiry() {
             </table>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-border">
+          <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>

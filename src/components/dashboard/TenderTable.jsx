@@ -125,7 +125,7 @@ export default function TenderTable({ compact = false }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
