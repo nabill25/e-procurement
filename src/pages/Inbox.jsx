@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Inbox as InboxIcon, Mail, MailOpen, CheckCircle2, Send } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Inbox as InboxIcon, Mail, MailOpen, CheckCircle2, Send, ArrowLeft } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
@@ -16,6 +16,7 @@ export default function Inbox() {
   const [selected, setSelected] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const detailRef = useRef(null);
 
   const fetchMessages = useCallback(async () => {
     setIsLoading(true);
@@ -45,6 +46,12 @@ export default function Inbox() {
           body: JSON.stringify({ read_by: user.id }),
         });
         fetchMessages();
+      }
+
+      // Di mobile, list dan detail tumpuk vertikal - scroll otomatis ke panel detail
+      // supaya user tidak perlu geser manual melewati semua pesan lain di atasnya.
+      if (window.innerWidth < 1024) {
+        setTimeout(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       }
     } catch (err) {
       console.error(err);
@@ -125,13 +132,19 @@ export default function Inbox() {
         </div>
 
         {/* Detail pesan */}
-        <div className="section-card lg:col-span-2">
+        <div ref={detailRef} className="section-card lg:col-span-2 scroll-mt-4">
           {!selected ? (
             <div className="h-full flex items-center justify-center text-sm text-muted italic py-20">
               Pilih pesan di sebelah kiri untuk melihat detail.
             </div>
           ) : (
             <div className="space-y-5">
+              <button
+                onClick={() => setSelected(null)}
+                className="lg:hidden flex items-center gap-1.5 text-xs font-semibold text-dpbj-navy/70 hover:text-dpbj-navy -mt-1"
+              >
+                <ArrowLeft size={14} /> Kembali ke daftar pesan
+              </button>
               <div className="border-b border-border pb-4">
                 <h3 className="font-bold text-dpbj-navy text-lg">{selected.subject}</h3>
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted">

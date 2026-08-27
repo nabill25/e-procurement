@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User, Home, Eye, EyeOff } from 'lucide-react';
 import VendorPolicyModal from '../components/modals/VendorPolicyModal';
 import { API_BASE } from '../context/AppContext';
+import { formatNPWP, npwpErrorMessage } from '../utils/npwp';
 
 function Breadcrumb({ onHome }) {
   return (
@@ -54,7 +55,6 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
     email: '',
     username: '',
     password: '',
-    is16Digit: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -71,14 +71,8 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
     const e = {};
     if (!form.bentukUsaha) e.bentukUsaha = 'Wajib dipilih';
     if (!form.namaPerusahaan.trim()) e.namaPerusahaan = 'Wajib diisi';
-    if (!form.npwp.trim()) {
-      e.npwp = 'Wajib diisi';
-    } else {
-      const digitsOnly = form.npwp.replace(/\D/g, '');
-      if (form.is16Digit ? digitsOnly.length !== 16 : digitsOnly.length !== 15) {
-        e.npwp = form.is16Digit ? 'NPWP 16 digit harus berupa 16 angka' : 'NPWP harus berupa 15 angka (format: XX.XXX.XXX.X-XXX.XXX)';
-      }
-    }
+    const npwpError = npwpErrorMessage(form.npwp);
+    if (npwpError) e.npwp = npwpError;
     if (!form.email.trim()) e.email = 'Wajib diisi';
     if (!form.username.trim()) e.username = 'Wajib diisi';
     if (!form.password.trim()) e.password = 'Wajib diisi';
@@ -189,7 +183,7 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
                   {errors.namaPerusahaan && <p className="text-xs text-red-500 mt-1.5">{errors.namaPerusahaan}</p>}
                 </div>
 
-                {/* NPWP */}
+                {/* NPWP - format terdeteksi otomatis saat mengetik, tidak perlu pilih manual */}
                 <div>
                   <label className="form-label">
                     NPWP <span className="text-dpbj-gold text-[10px] font-bold tracking-wider ml-1">PERUSAHAAN</span>
@@ -197,19 +191,16 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
                   </label>
                   <input
                     value={form.npwp}
-                    onChange={e => setForm(f => ({ ...f, npwp: e.target.value }))}
-                    placeholder={form.is16Digit ? '16 digit NPWP...' : 'XX.XXX.XXX.X-XXX.XXX'}
-                    className={`form-input ${errors.npwp ? 'border-red-300 bg-red-50' : ''}`}
+                    onChange={e => setForm(f => ({ ...f, npwp: formatNPWP(e.target.value) }))}
+                    placeholder="XX.XXX.XXX.X-XXX.XXX"
+                    inputMode="numeric"
+                    className={`form-input font-mono tracking-wide ${errors.npwp ? 'border-red-300 bg-red-50' : ''}`}
                   />
-                  <label className="flex items-center gap-2 mt-2 text-xs text-gray-500 cursor-pointer hover:text-dpbj-navy transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={form.is16Digit}
-                      onChange={e => setForm(f => ({ ...f, is16Digit: e.target.checked }))}
-                      className="rounded border-gray-300 text-dpbj-gold focus:ring-dpbj-gold"
-                    />
-                    Format 16 Digit
-                  </label>
+                  <p className="mt-1.5 text-[11px] text-gray-400">
+                    {form.npwp.replace(/\D/g, '').length > 15
+                      ? 'Format baru terdeteksi (16 digit)'
+                      : 'Ketik saja angkanya, format lama (15 digit) atau baru (16 digit) terdeteksi otomatis'}
+                  </p>
                   {errors.npwp && <p className="text-xs text-red-500 mt-1.5">{errors.npwp}</p>}
                 </div>
 

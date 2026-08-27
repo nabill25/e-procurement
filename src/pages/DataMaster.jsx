@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Database, MoveHorizontal } from 'lucide-react';
+import { formatNPWP } from '../utils/npwp';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
@@ -344,7 +345,7 @@ function VendorRetailTable() {
         </div>
         <div>
           <label className="text-xs text-muted font-medium">NPWP</label>
-          <input value={form.npwp} onChange={e => setForm({ ...form, npwp: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
+          <input value={form.npwp} onChange={e => setForm({ ...form, npwp: formatNPWP(e.target.value) })} placeholder="XX.XXX.XXX.X-XXX.XXX" inputMode="numeric" className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40 font-mono" />
         </div>
         <div>
           <label className="text-xs text-muted font-medium">Telepon</label>

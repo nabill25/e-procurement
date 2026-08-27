@@ -131,9 +131,9 @@ export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
               <p className="text-xs font-semibold text-muted uppercase tracking-wide flex items-center gap-1.5"><ImageIcon size={13} /> Foto Produk</p>
             </div>
             {canManage && (
-              <div className="flex items-center gap-2 mb-2">
-                <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} className="text-xs flex-1" />
-                <button onClick={uploadPhoto} className="btn-secondary text-xs flex items-center gap-1"><Upload size={11} /> Unggah</button>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} className="text-xs flex-1 min-w-[140px]" />
+                <button onClick={uploadPhoto} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Upload size={11} /> Unggah</button>
               </div>
             )}
             {item.photos?.length > 0 ? (
@@ -155,10 +155,10 @@ export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
           <div className="border-t border-border pt-4">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5"><Paperclip size={13} /> Lampiran</p>
             {canManage && (
-              <div className="flex items-center gap-2 mb-2">
-                <input placeholder="Nama lampiran" value={attachName} onChange={e => setAttachName(e.target.value)} className="text-xs p-1.5 border border-gray-300 rounded-lg flex-1" />
-                <input type="file" onChange={e => setAttachFile(e.target.files[0])} className="text-xs" />
-                <button onClick={uploadAttachment} className="btn-secondary text-xs flex items-center gap-1"><Upload size={11} /> Unggah</button>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <input placeholder="Nama lampiran" value={attachName} onChange={e => setAttachName(e.target.value)} className="text-xs p-1.5 border border-gray-300 rounded-lg flex-1 min-w-[120px]" />
+                <input type="file" onChange={e => setAttachFile(e.target.files[0])} className="text-xs max-w-full" />
+                <button onClick={uploadAttachment} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap"><Upload size={11} /> Unggah</button>
               </div>
             )}
             {item.attachments?.length > 0 ? (

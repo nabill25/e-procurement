@@ -290,3 +290,75 @@
 .public-section-enter {
   animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ============================================================
+   Dashboard — Glassmorphism / "liquid glass" tokens
+   Dipakai khusus di halaman Dashboard supaya kesannya premium/interaktif
+   tanpa mengubah gaya kartu solid (.section-card, .metric-card) yang sudah
+   dipakai konsisten di seluruh aplikasi lain.
+   ============================================================ */
+
+/* Kartu kaca: latar putih tembus pandang + blur + garis tepi terang tipis,
+   supaya elemen di belakangnya (gradient mesh) tetap terasa tapi kontennya
+   tetap terbaca jelas di kedua tema. */
+.glass-card {
+  @apply relative rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl shadow-glass;
+}
+.glass-card-dark {
+  @apply relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Gradient mesh ambient di background dashboard - beberapa blob warna blur besar
+   yang melayang pelan (animate-float), memberi kesan "hidup" tanpa mengganggu
+   keterbacaan konten di atasnya karena opacity-nya sangat rendah. */
+.dashboard-mesh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.dashboard-mesh::before,
+.dashboard-mesh::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.35;
+}
+.dashboard-mesh::before {
+  width: 420px;
+  height: 420px;
+  top: -120px;
+  right: -80px;
+  background: radial-gradient(circle, theme('colors.dpbj.gold') 0%, transparent 70%);
+}
+.dashboard-mesh::after {
+  width: 360px;
+  height: 360px;
+  bottom: -100px;
+  left: -60px;
+  background: radial-gradient(circle, theme('colors.dpbj.navy-light') 0%, transparent 70%);
+}
+
+/* Shimmer highlight yang menyapu pelan di kartu metrik utama - efek "kaca hidup" halus,
+   dipakai terbatas (bukan di semua kartu) supaya tidak berlebihan/mengganggu. */
+.glass-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.glass-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.5) 45%, transparent 60%);
+  background-size: 200% 100%;
+  animation: shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Angka besar di kartu statistik - transisi halus tiap kali nilainya berubah (refresh data) */
+.stat-value-enter {
+  animation: countUp 0.4s ease-out;
+}

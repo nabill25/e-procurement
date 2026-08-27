@@ -235,7 +235,7 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {/* Timeline Status */}
           <div className="flex items-center justify-between mb-2">
-            {['Diajukan PPK', 'Review Berkas', 'Disetujui'].map((step, idx) => (
+            {['Diajukan', 'Review Berkas', 'Disetujui'].map((step, idx) => (
               <div key={idx} className="flex flex-col items-center flex-1">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${currentIndex >= idx ? 'bg-emerald-500' : 'bg-gray-200'}`}>
                   {currentIndex >= idx ? <CheckCircle2 size={12}/> : idx + 1}
@@ -342,10 +342,10 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
                   <textarea className="form-input w-full h-20 text-sm bg-white" placeholder="Beri catatan jika ada yang kurang..." value={adminNotes} onChange={e => setAdminNotes(e.target.value)}></textarea>
                 </div>
                 {!showRevisionForm ? (
-                  <div className="flex justify-end gap-2">
-                    <button disabled={isSubmitting} onClick={() => setShowRevisionForm(true)} className="btn-secondary text-amber-700 bg-amber-100 hover:bg-amber-200 flex items-center gap-1.5"><FileEdit size={14} /> Minta Revisi</button>
-                    <button disabled={isSubmitting} onClick={() => handleAction('reject')} className="btn-secondary text-red-600 bg-red-50 hover:bg-red-100">Tolak Berkas</button>
-                    <button disabled={isSubmitting || !isDocsComplete} onClick={() => handleAction('review')} className="btn-primary bg-amber-600 hover:bg-amber-700">Terima & Lanjut ke Pimpinan</button>
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-end gap-2">
+                    <button disabled={isSubmitting} onClick={() => setShowRevisionForm(true)} className="btn-secondary text-amber-700 bg-amber-100 hover:bg-amber-200 flex items-center justify-center gap-1.5 w-full sm:w-auto"><FileEdit size={14} /> Minta Revisi</button>
+                    <button disabled={isSubmitting} onClick={() => handleAction('reject')} className="btn-secondary text-red-600 bg-red-50 hover:bg-red-100 w-full sm:w-auto justify-center">Tolak Berkas</button>
+                    <button disabled={isSubmitting || !isDocsComplete} onClick={() => handleAction('review')} className="btn-primary bg-amber-600 hover:bg-amber-700 w-full sm:w-auto justify-center">Terima & Lanjut ke Pimpinan</button>
                   </div>
                 ) : (
                   <div className="bg-white border border-amber-300 rounded-lg p-3 space-y-2">
@@ -366,9 +366,9 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
               <h3 className="text-sm font-bold text-emerald-800 mb-3 flex items-center gap-2"><CheckCircle2 size={16}/> Tahap 2: Persetujuan Akhir (Admin DPBJ)</h3>
               <p className="text-xs text-emerald-700 mb-4">Berkas telah diverifikasi. Pengajuan ini siap untuk disetujui menjadi Paket Tender.</p>
-              <div className="flex justify-end gap-2">
-                <button disabled={isSubmitting} onClick={() => handleAction('reject')} className="btn-secondary text-red-600 bg-red-50 hover:bg-red-100">Tolak Pengajuan</button>
-                <button disabled={isSubmitting} onClick={() => handleAction('approve')} className="btn-primary bg-emerald-600 hover:bg-emerald-700">Setujui & Buat Tender</button>
+              <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+                <button disabled={isSubmitting} onClick={() => handleAction('reject')} className="btn-secondary text-red-600 bg-red-50 hover:bg-red-100 w-full sm:w-auto justify-center">Tolak Pengajuan</button>
+                <button disabled={isSubmitting} onClick={() => handleAction('approve')} className="btn-primary bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto justify-center">Setujui & Buat Tender</button>
               </div>
             </div>
           )}
