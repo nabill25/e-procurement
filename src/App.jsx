@@ -206,7 +206,7 @@ function AppShell() {
       <div className="min-h-screen flex flex-col bg-gray-50">
         <PublicNav activePage={activePage} navigateTo={navigateTo} onLoginClick={() => setShowLogin(true)} />
         <main className="flex-1 p-6 max-w-5xl mx-auto w-full">
-          <div key={activePage} className="animate-fade-in-up">
+          <div key={activePage} className="page-transition">
             {publicContent[activePage]}
           </div>
         </main>
@@ -256,7 +256,7 @@ function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div key={activePage} className="max-w-7xl mx-auto animate-fade-in-up">
+          <div key={activePage} className="max-w-7xl mx-auto page-transition">
             {renderPage()}
           </div>
         </main>

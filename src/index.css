@@ -252,6 +252,21 @@
   opacity: 0;
 }
 
+/* ── Transisi pergantian halaman/menu ──
+   Dipakai lewat key={activePage} di App.jsx supaya React remount elemen setiap
+   pindah menu, memicu animasi ini dari awal tiap kali. Beda dari .animate-fade-in-up
+   biasa: ada sedikit scale (0.98→1) supaya terasa seperti halaman "masuk" dari
+   belakang, bukan cuma geser naik - efeknya lebih terasa premium/hidup tapi durasinya
+   sengaja tetap singkat (350ms) supaya tidak terasa lambat saat user klik-klik cepat
+   pindah menu berkali-kali. */
+@keyframes pageEnter {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.page-transition {
+  animation: pageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* ── Pulse soft ── */
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
