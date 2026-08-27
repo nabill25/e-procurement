@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Lock, Save } from 'lucide-react';
+import { Lock, Save, MoveHorizontal } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 
 const ROLES = [
@@ -70,7 +70,10 @@ export default function MenuAccess() {
           Perubahan di sini langsung berlaku untuk semua pengguna dengan peran terkait. Pastikan minimal role Admin tetap punya akses ke halaman ini supaya tidak terkunci sendiri.
         </p>
 
-        <div className="table-scroll mt-5">
+        <p className="table-scroll-hint mt-5">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
+        <div className="table-scroll sm:mt-5">
           <table className="data-table">
             <thead>
               <tr>

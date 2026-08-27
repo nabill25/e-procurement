@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, FileText, Upload, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 
@@ -22,30 +23,50 @@ const INITIAL = {
 
 function StepIndicator({ steps, current }) {
   return (
-    <div className="flex items-center gap-0 mb-8">
-      {steps.map((step, i) => {
-        const isActive   = i === current;
-        const isComplete = i < current;
-        return (
-          <div key={step} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                isComplete ? 'gold-gradient text-dpbj-navy-dark' :
-                isActive   ? 'bg-dpbj-navy text-white shadow-lg ring-4 ring-dpbj-navy/20' :
-                             'bg-border text-muted'
-              }`}>
-                {isComplete ? <CheckCircle2 size={14} /> : i + 1}
+    <div className="mb-6 sm:mb-8">
+      {/* Mobile: progress bar ringkas + label langkah aktif saja, supaya tidak overflow
+          horizontal (5 label penuh seperti "Analisa Kebutuhan & Pasar" tidak muat di layar sempit) */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-dpbj-navy">
+            Langkah {current + 1} dari {steps.length}
+          </span>
+          <span className="text-xs font-semibold text-dpbj-gold-dark">{steps[current]}</span>
+        </div>
+        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+          <div
+            className="h-full gold-gradient rounded-full transition-all duration-300"
+            style={{ width: `${((current + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop/tablet: stepper penuh dengan nomor + label tiap langkah */}
+      <div className="hidden sm:flex items-center gap-0">
+        {steps.map((step, i) => {
+          const isActive   = i === current;
+          const isComplete = i < current;
+          return (
+            <div key={step} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                  isComplete ? 'gold-gradient text-dpbj-navy-dark' :
+                  isActive   ? 'bg-dpbj-navy text-white shadow-lg ring-4 ring-dpbj-navy/20' :
+                               'bg-border text-muted'
+                }`}>
+                  {isComplete ? <CheckCircle2 size={14} /> : i + 1}
+                </div>
+                <p className={`text-[10px] font-semibold mt-1 whitespace-nowrap ${
+                  isActive ? 'text-dpbj-navy' : isComplete ? 'text-dpbj-gold-dark' : 'text-muted'
+                }`}>{step}</p>
               </div>
-              <p className={`text-[10px] font-semibold mt-1 whitespace-nowrap ${
-                isActive ? 'text-dpbj-navy' : isComplete ? 'text-dpbj-gold-dark' : 'text-muted'
-              }`}>{step}</p>
+              {i < steps.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-2 mb-4 rounded-full transition-all duration-500 ${isComplete ? 'bg-dpbj-gold' : 'bg-border'}`} />
+              )}
             </div>
-            {i < steps.length - 1 && (
-              <div className={`flex-1 h-0.5 mx-2 mb-4 rounded-full transition-all duration-500 ${isComplete ? 'bg-dpbj-gold' : 'bg-border'}`} />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -130,7 +151,7 @@ export default function NewProcurementModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && handleClose()}>
       <div className="modal-container">
         {/* Modal Header */}
@@ -385,11 +406,11 @@ export default function NewProcurementModal({ isOpen, onClose }) {
               <p className="text-xs text-muted mb-6">
                 Status: <span className="font-semibold text-amber-600">Diajukan, Menunggu Verifikasi Admin DPBJ</span>
               </p>
-              <div className="flex gap-3">
-                <button onClick={handleClose} className="btn-primary">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button onClick={handleClose} className="btn-primary justify-center">
                   Lihat Daftar Pengajuan
                 </button>
-                <button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); }} className="btn-ghost">
+                <button onClick={() => { setForm(INITIAL); setStep(0); setSubmitted(false); }} className="btn-ghost justify-center">
                   Buat Pengajuan Lain
                 </button>
               </div>
@@ -397,6 +418,7 @@ export default function NewProcurementModal({ isOpen, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { History, CheckCircle2, XCircle } from 'lucide-react';
+import { History, CheckCircle2, XCircle, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../context/AppContext';
 
 function formatTanggal(iso) {
@@ -39,6 +39,9 @@ export default function LoginLogs() {
           </div>
         </div>
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

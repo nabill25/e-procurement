@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Eye, Calendar, CheckCircle, SendHorizonal, XCircle, RefreshCw } from 'lucide-react';
+import { Plus, Search, Eye, Calendar, CheckCircle, SendHorizonal, XCircle, RefreshCw, MoveHorizontal } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../context/AppContext';
 import { statusConfig } from '../data/mockData';
 import { StatusBadge, formatRupiah } from '../components/ui/shared';
@@ -135,23 +135,23 @@ export default function Pengajuan() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-dpbj-navy">Daftar Pengajuan Pengadaan</h2>
           <p className="text-xs text-muted">{requests.length} pengajuan terdaftar · TA 2025</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {user?.role === 'ppk' && (
-            <button 
-              onClick={handleSAPSync} 
+            <button
+              onClick={handleSAPSync}
               disabled={actionLoading === 'sap-sync'}
-              className="btn-secondary flex items-center gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+              className="btn-secondary flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 whitespace-nowrap"
             >
               <RefreshCw size={15} className={actionLoading === 'sap-sync' ? "animate-spin" : ""} />
               Tarik Data SAP PR
             </button>
           )}
-          <button onClick={openNewProcurementModal} className="btn-primary">
+          <button onClick={openNewProcurementModal} className="btn-primary justify-center">
             <Plus size={15} />
             Pengajuan Baru
           </button>
@@ -179,6 +179,9 @@ export default function Pengajuan() {
           <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full" placeholder="Cari pengajuan..." />
         </div>
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

@@ -115,9 +115,9 @@ export default function Sidebar() {
                   onClick={() => navigateAndClose(id)}
                   className={clsx(`sidebar-item w-full text-left animate-slide-in-right stagger-${index + 1}`, { active: isActive })}
                 >
-                  {Icon && <Icon size={17} className={isActive ? 'text-dpbj-navy-dark' : 'text-slate-400'} />}
-                  <span>{label}</span>
-                  {isActive && <ChevronRight size={14} className="ml-auto opacity-60" />}
+                  {Icon && <Icon size={17} className={clsx('shrink-0', isActive ? 'text-dpbj-navy-dark' : 'text-slate-400')} />}
+                  <span className="truncate">{label}</span>
+                  {isActive && <ChevronRight size={14} className="ml-auto opacity-60 shrink-0" />}
                 </button>
               );
           })}

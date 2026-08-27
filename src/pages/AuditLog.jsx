@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, CheckCircle2, XCircle, Download } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, Download, MoveHorizontal } from 'lucide-react';
 import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 
@@ -68,6 +68,9 @@ export default function AuditLog() {
           </button>
         </div>
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

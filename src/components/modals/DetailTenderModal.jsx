@@ -731,7 +731,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
 
         {/* Tabs (Pokja/Admin/PPK) */}
         {['pokja', 'admin', 'ppk', 'vendor'].includes(user.role) && (
-          <div className="flex px-6 pt-3 border-b border-border bg-white gap-6 overflow-x-auto">
+          <div className="flex px-6 pt-3 border-b border-border bg-white gap-6 overflow-x-auto tab-scroll-fade">
             <button onClick={() => setActiveTab('detail')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'detail' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <FileText size={16} /> Detail Tender
             </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Database } from 'lucide-react';
+import { Plus, Trash2, Database, MoveHorizontal } from 'lucide-react';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 
@@ -99,8 +99,8 @@ function SimpleMasterTable({ category }) {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleAdd} className="flex items-end gap-3 bg-surface p-4 rounded-xl border border-border">
-        <div className="w-32">
+      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row sm:items-end gap-3 bg-surface p-4 rounded-xl border border-border">
+        <div className="w-full sm:w-32">
           <label className="text-xs text-muted font-medium">Kode</label>
           <input value={kode} onChange={e => setKode(e.target.value)} className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
         </div>
@@ -108,11 +108,14 @@ function SimpleMasterTable({ category }) {
           <label className="text-xs text-muted font-medium">Nama</label>
           <input value={nama} onChange={e => setNama(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-dpbj-gold/40" />
         </div>
-        <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 disabled:opacity-50">
+        <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 w-full sm:w-auto">
           <Plus size={16} /> Tambah
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -233,6 +236,9 @@ function UnitKerjaTable() {
         </div>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -365,6 +371,9 @@ function VendorRetailTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -488,6 +497,9 @@ function KatalogCategoryTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -604,6 +616,9 @@ function MasterChecklistTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -729,6 +744,9 @@ function DocumentTemplateTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -843,6 +861,9 @@ function HolidayTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -966,6 +987,9 @@ function RegionTable() {
             </button>
           </form>
 
+          <p className="table-scroll-hint">
+            <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+          </p>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
@@ -1056,6 +1080,9 @@ function ComplainTypeTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Nama</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
@@ -1138,6 +1165,9 @@ function ComplainRecipientTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Email</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
@@ -1253,6 +1283,9 @@ function PenilaianTemplateTable() {
         </button>
       </form>
 
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
@@ -1300,7 +1333,7 @@ export default function DataMaster() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-1 tab-scroll-fade">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}

@@ -342,70 +342,70 @@ export default function VendorProfile() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="flex border-b border-border">
+        <div className="flex border-b border-border overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
           <button
             onClick={() => setActiveTab('identitas')}
-            className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'identitas' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'identitas' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
           >
             Identitas
           </button>
           <button
             onClick={() => setActiveTab('dokumen')}
-            className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'dokumen' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+            className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'dokumen' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
           >
             Legalitas
           </button>
             <button
               onClick={() => setActiveTab('pengalaman')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pengalaman' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pengalaman' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Pengalaman
             </button>
             <button
               onClick={() => setActiveTab('pajak')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pajak' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pajak' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Pajak
             </button>
             <button
               onClick={() => setActiveTab('pengurus')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pengurus' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'pengurus' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Pengurus
             </button>
             <button
               onClick={() => setActiveTab('ahli')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'ahli' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'ahli' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Tenaga Ahli
             </button>
             <button
               onClick={() => setActiveTab('alat')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'alat' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'alat' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Peralatan
             </button>
             <button
               onClick={() => setActiveTab('bank')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bank' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bank' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Bank
             </button>
             <button
               onClick={() => setActiveTab('neraca')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'neraca' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'neraca' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Neraca
             </button>
             <button
               onClick={() => setActiveTab('bidang_usaha')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bidang_usaha' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'bidang_usaha' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Bidang Usaha
             </button>
             <button
               onClick={() => setActiveTab('rekening_koran')}
-              className={clsx("flex-1 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'rekening_koran' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
+              className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'rekening_koran' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
             >
               Rekening Koran
             </button>

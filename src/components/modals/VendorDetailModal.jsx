@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertCircle, FileText, Download, Ban } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -24,7 +25,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
   };
   const sc = statusCfg[vendor.status] || statusCfg.pending;
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-container w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
@@ -120,8 +121,8 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
         </div>
 
         {/* Footer Actions — mengikuti alur eProc status rekanan */}
-        <div className="p-6 border-t border-border bg-surface flex flex-wrap justify-end gap-3">
-          <button onClick={onClose} className="btn-ghost">Tutup</button>
+        <div className="p-4 sm:p-6 border-t border-border bg-surface flex flex-col sm:flex-row sm:flex-wrap sm:justify-end gap-2 sm:gap-3">
+          <button onClick={onClose} className="btn-ghost w-full sm:w-auto">Tutup</button>
           
           {user?.role === 'admin' && (
             <>
@@ -129,7 +130,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
               {vendor.status !== 'diblokir' && (
                 <button
                   onClick={() => onBlock && onBlock(vendor)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all w-full sm:w-auto"
                 >
                   <Ban size={14} />
                   Blokir / Blacklist
@@ -140,7 +141,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
               {(vendor.status === 'terverifikasi' || vendor.status === 'pending') && (
                 <button
                   onClick={() => onSuspend && onSuspend(vendor)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border-2 border-orange-400 text-orange-600 hover:bg-orange-400 hover:text-white transition-all w-full sm:w-auto"
                 >
                   <AlertCircle size={14} />
                   Tangguhkan
@@ -151,7 +152,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
               {vendor.status === 'pending' && (
                 <button
                   onClick={() => onReject && onReject(vendor)}
-                  className="btn-danger"
+                  className="btn-danger w-full sm:w-auto justify-center"
                 >
                   Tolak & Minta Perbaikan
                 </button>
@@ -161,7 +162,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
               {vendor.status === 'pending' && (
                 <button
                   onClick={() => onVerify && onVerify(vendor)}
-                  className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white"
+                  className="btn-primary bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto justify-center"
                 >
                   <CheckCircle2 size={16} /> Verifikasi Vendor
                 </button>
@@ -170,6 +171,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -129,14 +129,33 @@
       linear-gradient(to right, white 30%, rgba(255,255,255,0)) 0 0,
       linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
       radial-gradient(farthest-side at 0 50%, rgba(26,54,104,0.12), rgba(0,0,0,0)) 0 0,
-      radial-gradient(farthest-side at 100% 50%, rgba(26,54,104,0.12), rgba(0,0,0,0)) 100% 0;
+      radial-gradient(farthest-side at 100% 50%, rgba(26,54,104,0.2), rgba(0,0,0,0)) 100% 0;
     background-repeat: no-repeat;
-    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-size: 40px 100%, 40px 100%, 18px 100%, 18px 100%;
     background-attachment: local, local, scroll, scroll;
   }
   .table-scroll::-webkit-scrollbar { height: 8px; }
   .table-scroll::-webkit-scrollbar-track { @apply bg-surface; }
   .table-scroll::-webkit-scrollbar-thumb { @apply bg-dpbj-gold rounded-full; }
+
+  /* ── Petunjuk "geser" untuk tabel yang overflow di mobile ──
+     Teks kecil di atas tabel, cuma tampil di layar sempit (di layar lebar tabelnya biasanya
+     muat penuh jadi petunjuk ini tidak relevan). Lebih eksplisit daripada mengandalkan
+     gradient bayangan saja, yang gampang tidak disadari sebagai isyarat "bisa digeser". */
+  .table-scroll-hint {
+    @apply sm:hidden flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark mb-2;
+  }
+
+  /* ── Fade tepi kanan untuk strip tab yang bisa digeser mendatar (mobile) ──
+     Versi lebih ringan dari .table-scroll (tanpa border/rounded/scrollbar tebal) - dipakai
+     di baris tab modal/halaman yang isinya banyak, supaya jelas kalau tab lain masih ada
+     di luar layar. Sama seperti .table-scroll, fade cuma tampil kalau memang overflow. */
+  .tab-scroll-fade {
+    background: linear-gradient(to right, rgba(255,255,255,0), white 90%) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 32px 100%;
+    background-attachment: local;
+  }
 
   /* ── Modal Overlay ── */
   .modal-overlay {

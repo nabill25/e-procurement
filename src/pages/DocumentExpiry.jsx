@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Send, History } from 'lucide-react';
+import { AlertTriangle, Send, History, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../context/AppContext';
 
 function formatTanggal(iso) {
@@ -85,25 +85,34 @@ export default function DocumentExpiry() {
         </div>
 
         {showLogs ? (
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead><tr><th>Vendor</th><th>Jenis Dokumen</th><th>Jumlah Kirim</th><th>Terakhir Dikirim</th></tr></thead>
-              <tbody>
-                {logs.length === 0 ? (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted text-sm">Belum ada riwayat notifikasi.</td></tr>
-                ) : logs.map(l => (
-                  <tr key={l.id}>
-                    <td className="text-sm font-medium text-dpbj-navy">{l.vendor_name}</td>
-                    <td className="text-xs text-muted">{l.doc_type || '-'}</td>
-                    <td className="text-xs text-muted">{l.sent_count}x</td>
-                    <td className="text-xs text-muted">{formatTanggal(l.last_sent_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <p className="table-scroll-hint">
+              <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+            </p>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead><tr><th>Vendor</th><th>Jenis Dokumen</th><th>Jumlah Kirim</th><th>Terakhir Dikirim</th></tr></thead>
+                <tbody>
+                  {logs.length === 0 ? (
+                    <tr><td colSpan={4} className="py-8 text-center text-muted text-sm">Belum ada riwayat notifikasi.</td></tr>
+                  ) : logs.map(l => (
+                    <tr key={l.id}>
+                      <td className="text-sm font-medium text-dpbj-navy">{l.vendor_name}</td>
+                      <td className="text-xs text-muted">{l.doc_type || '-'}</td>
+                      <td className="text-xs text-muted">{l.sent_count}x</td>
+                      <td className="text-xs text-muted">{formatTanggal(l.last_sent_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
-          <div className="table-scroll">
+          <>
+            <p className="table-scroll-hint">
+              <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+            </p>
+            <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -140,7 +149,8 @@ export default function DocumentExpiry() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

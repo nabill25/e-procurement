@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, MapPin, CheckCircle2, Clock, XCircle, Search, Eye } from 'lucide-react';
+import { Star, MapPin, CheckCircle2, Clock, XCircle, Search, Eye, MoveHorizontal } from 'lucide-react';
 import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 import VendorDetailModal from '../components/modals/VendorDetailModal';
@@ -159,6 +159,9 @@ export default function Vendor() {
           </div>
         </div>
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

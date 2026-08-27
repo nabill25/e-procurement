@@ -173,18 +173,18 @@ export default function Katalog() {
         </div>
       )}
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-border flex gap-4 items-center">
-        <div className="relative flex-1">
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-border flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
-          <input 
-            type="text" 
-            placeholder="Cari nama produk atau vendor..." 
+          <input
+            type="text"
+            placeholder="Cari nama produk atau vendor..."
             className="form-input w-full pl-10"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <button className="btn-secondary flex items-center gap-2 px-4"><Filter size={18}/> Filter</button>
+        <button className="btn-secondary flex items-center justify-center gap-2 px-4 whitespace-nowrap"><Filter size={18}/> Filter</button>
       </div>
 
       {loading ? (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users2, Plus, Trash2, ShieldPlus } from 'lucide-react';
+import { Users2, Plus, Trash2, ShieldPlus, MoveHorizontal } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 
 export default function UserManagement() {
@@ -122,6 +122,9 @@ export default function UserManagement() {
           </form>
         )}
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

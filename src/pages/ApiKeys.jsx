@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { KeyRound, Plus, Trash2, Power, Copy, Eye, X } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Power, Copy, Eye, X, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
 
 function formatTanggal(iso) {
@@ -127,6 +127,9 @@ export default function ApiKeys() {
           </form>
         )}
 
+        <p className="table-scroll-hint">
+          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+        </p>
         <div className="table-scroll">
           <table className="data-table">
             <thead>

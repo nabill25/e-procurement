@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, ChevronUp, ChevronDown, Eye, MoreVertical, Download, Calendar } from 'lucide-react';
+import { Search, Filter, ChevronUp, ChevronDown, Eye, MoreVertical, Download, Calendar, MoveHorizontal } from 'lucide-react';
 import { useApp, API_BASE } from '../../context/AppContext';
 import { statusConfig, methodConfig } from '../../data/mockData'; // we can keep configs
 import { StatusBadge, formatRupiah } from '../ui/shared';
@@ -125,6 +125,9 @@ export default function TenderTable({ compact = false }) {
       </div>
 
       {/* Table */}
+      <p className="table-scroll-hint">
+        <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
+      </p>
       <div className="table-scroll">
         <table className="data-table">
           <thead>
