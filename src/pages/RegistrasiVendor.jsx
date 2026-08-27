@@ -300,7 +300,7 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
               </div>
               <h3 className="font-bold text-dpbj-navy">Panduan Registrasi</h3>
             </div>
-            <ul className="space-y-4 text-xs text-gray-600 leading-relaxed">
+            <ul className="space-y-4 text-xs text-gray-600 leading-relaxed stagger-list">
               {[
                 'Silahkan isi form Registrasi dengan lengkap dan sesuai dengan data perusahaan.',
                 'Kolom yang wajib diisi ditandai dengan bintang merah (*).',
@@ -310,7 +310,7 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
                 'Sistem akan mengirim email untuk aktivasi akun Anda.',
                 'Setelah aktivasi berhasil, silahkan login dan lengkapi data identitas.'
               ].map((step, i) => (
-                <li key={i} className="flex items-start gap-3">
+                <li key={i} className="stagger-item flex items-start gap-3">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white border border-blue-200 flex items-center justify-center text-blue-600 font-bold text-[10px]">
                     {i + 1}
                   </span>

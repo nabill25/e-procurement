@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, Briefcase, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import LiveClock from '../components/common/LiveClock';
+import Reveal from '../components/common/Reveal';
 import logoUIFull from '../assets/logo-ui-full.png';
 import { API_BASE, SERVER_BASE } from '../context/AppContext';
 
@@ -16,22 +17,22 @@ function BannerSection() {
   if (banners.length === 0) return null;
 
   return (
-    <section className="py-8 px-6 bg-surface">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <Reveal as="section" className="py-8 px-6 bg-surface">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 stagger-grid">
         {banners.map(b => {
           const img = (
-            <img src={`${SERVER_BASE}${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100" />
+            <img src={`${SERVER_BASE}${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100 interactive-lift" />
           );
           return b.link_url ? (
-            <a key={b.id} href={b.link_url} target="_blank" rel="noreferrer" className="block hover:opacity-90 transition-opacity">
+            <a key={b.id} href={b.link_url} target="_blank" rel="noreferrer" className="stagger-item block">
               {img}
             </a>
           ) : (
-            <div key={b.id}>{img}</div>
+            <div key={b.id} className="stagger-item">{img}</div>
           );
         })}
       </div>
-    </section>
+    </Reveal>
   );
 }
 
@@ -52,16 +53,16 @@ function NewsAndFaqSection() {
   if (news.length === 0 && faqs.length === 0) return null;
 
   return (
-    <section className="py-12 px-6 bg-white">
+    <Reveal as="section" className="py-12 px-6 bg-white">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
         {news.length > 0 && (
           <div>
             <h2 className="font-serif font-bold text-dpbj-navy text-2xl mb-6 flex items-center gap-2">
               <Newspaper size={22} className="text-dpbj-gold" /> Berita & Pengumuman
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-4 stagger-list">
               {news.map(item => (
-                <div key={item.id} className="p-4 bg-surface rounded-xl border border-gray-100">
+                <div key={item.id} className="stagger-item p-4 bg-surface rounded-xl border border-gray-100 interactive-lift">
                   <p className="font-bold text-dpbj-navy text-sm">{item.title}</p>
                   <p className="text-xs text-gray-600 mt-1 line-clamp-3">{item.content}</p>
                   <p className="text-[10px] text-gray-400 mt-2">{new Date(item.created_at).toLocaleDateString('id-ID')}</p>
@@ -76,9 +77,9 @@ function NewsAndFaqSection() {
             <h2 className="font-serif font-bold text-dpbj-navy text-2xl mb-6 flex items-center gap-2">
               <HelpCircle size={22} className="text-dpbj-gold" /> Pertanyaan Umum
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-2 stagger-list">
               {faqs.map(item => (
-                <div key={item.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                <div key={item.id} className="stagger-item border border-gray-100 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setOpenFaq(openFaq === item.id ? null : item.id)}
                     className="w-full flex items-center justify-between gap-3 p-4 text-left bg-surface hover:bg-gray-100 transition-colors"
@@ -87,7 +88,7 @@ function NewsAndFaqSection() {
                     <ChevronDown size={16} className={`text-gray-400 transition-transform shrink-0 ${openFaq === item.id ? 'rotate-180' : ''}`} />
                   </button>
                   {openFaq === item.id && (
-                    <p className="p-4 text-xs text-gray-600 leading-relaxed border-t border-gray-100">{item.answer}</p>
+                    <p className="p-4 text-xs text-gray-600 leading-relaxed border-t border-gray-100 animate-fade-in">{item.answer}</p>
                   )}
                 </div>
               ))}
@@ -95,7 +96,7 @@ function NewsAndFaqSection() {
           </div>
         )}
       </div>
-    </section>
+    </Reveal>
   );
 }
 
@@ -254,14 +255,14 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
       </div>
 
       {/* Quick Access Cards */}
-      <section className="py-12 px-6 bg-white">
+      <Reveal as="section" className="py-12 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-center font-serif text-3xl font-bold text-dpbj-navy mb-10">Layanan Utama</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto stagger-grid">
             {/* TENDER CARD */}
             <button
               onClick={() => onNavigate('public_tender')}
-              className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-md border border-gray-100 p-8 flex flex-col items-center gap-6 hover:shadow-2xl hover:-translate-y-3 transition-all duration-500"
+              className="stagger-item group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-md border border-gray-100 p-8 flex flex-col items-center gap-6 hover:shadow-2xl hover:-translate-y-3 transition-all duration-500"
             >
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-400/5 rounded-full blur-3xl group-hover:bg-orange-400/20 transition-all duration-500 pointer-events-none" />
               
@@ -285,7 +286,7 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             {/* REGISTRASI CARD */}
             <button
               onClick={() => onNavigate('registrasi')}
-              className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-md border border-gray-100 p-8 flex flex-col items-center gap-6 hover:shadow-2xl hover:-translate-y-3 transition-all duration-500"
+              className="stagger-item group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-md border border-gray-100 p-8 flex flex-col items-center gap-6 hover:shadow-2xl hover:-translate-y-3 transition-all duration-500"
             >
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-blue-400/5 rounded-full blur-3xl group-hover:bg-blue-400/20 transition-all duration-500 pointer-events-none" />
               
@@ -307,11 +308,11 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             </button>
           </div>
         </div>
-      </section>
+      </Reveal>
 
 
       {/* Pengumuman & Berita */}
-      <section className="py-12 px-6 bg-white border-t border-gray-100">
+      <Reveal as="section" className="py-12 px-6 bg-white border-t border-gray-100">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
             <div>
@@ -330,10 +331,10 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             <p className="text-sm text-gray-500">Informasi akan ditampilkan di sini secara otomatis.</p>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* Anti-Fraud Warning */}
-      <section className="py-10 px-6 bg-amber-50 border-t border-amber-100">
+      <Reveal as="section" className="py-10 px-6 bg-amber-50 border-t border-amber-100">
         <div className="max-w-3xl mx-auto flex items-start gap-6">
           <div className="w-16 h-16 flex-shrink-0 bg-yellow-100 rounded-2xl flex items-center justify-center">
             <AlertTriangle size={36} className="text-yellow-500" strokeWidth={1.5} />
@@ -348,22 +349,22 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             <p className="text-sm text-gray-600 mt-2 font-medium">Terima Kasih</p>
           </div>
         </div>
-      </section>
+      </Reveal>
 
       <BannerSection />
       <NewsAndFaqSection />
 
       {/* Contact Quick Info */}
-      <section className="py-12 px-6 bg-surface">
+      <Reveal as="section" className="py-12 px-6 bg-surface">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-center font-serif font-bold text-dpbj-navy text-3xl mb-10">Kontak & Bantuan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center text-sm stagger-grid">
             {[
               { icon: Phone, label: 'Telepon', value: '(021) 786-7222' },
               { icon: Mail, label: 'Email', value: 'dpbj@ui.ac.id' },
               { icon: MapPin, label: 'Alamat', value: 'Kampus UI Depok, 16424' },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 group hover:shadow-md transition-all">
+              <div key={label} className="stagger-item interactive-lift flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm border border-gray-100 group">
                 <div className="w-12 h-12 bg-dpbj-gold-faint rounded-xl flex items-center justify-center group-hover:bg-dpbj-gold transition-colors">
                   <Icon size={20} className="text-dpbj-navy" />
                 </div>
@@ -375,7 +376,7 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
             ))}
           </div>
         </div>
-      </section>
+      </Reveal>
 
       {/* Footer */}
       <footer className="bg-dpbj-gold text-dpbj-navy-dark text-xs py-8 px-6 mt-auto border-t-4 border-dpbj-navy-dark">

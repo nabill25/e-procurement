@@ -141,7 +141,7 @@ export default function TenderTable({ compact = false }) {
               <th className="px-4 py-3 text-left">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : tenders.length === 0 ? (
@@ -153,7 +153,7 @@ export default function TenderTable({ compact = false }) {
             ) : tenders.map(tender => (
               <tr
                 key={tender.id}
-                className={clsx({ 'bg-dpbj-gold-faint/30': activeRow === tender.id })}
+                className={clsx('stagger-item', { 'bg-dpbj-gold-faint/30': activeRow === tender.id })}
                 onClick={() => setActiveRow(id => id === tender.id ? null : tender.id)}
               >
                 <td>

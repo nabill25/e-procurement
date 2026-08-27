@@ -38,13 +38,13 @@ export default function AuditLog() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 stagger-grid">
         {[
           { label: 'Total Log Hari Ini',  value: logs.length, icon: Shield,       color: 'text-dpbj-navy'    },
           { label: 'Aktivitas Berhasil',  value: logs.filter(l => l.is_success).length,  icon: CheckCircle2, color: 'text-emerald-600' },
           { label: 'Aktivitas Gagal',     value: logs.filter(l => !l.is_success).length, icon: XCircle,     color: 'text-red-500'     },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="section-card flex items-center gap-4">
+          <div key={label} className="stagger-item section-card flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center">
               <Icon size={20} className={color} />
             </div>
@@ -84,13 +84,13 @@ export default function AuditLog() {
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : logs.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada log.</td></tr>
               ) : logs.map(log => (
-                <tr key={log.id}>
+                <tr key={log.id} className="stagger-item">
                   <td><span className="font-mono text-xs text-muted">{new Date(log.created_at).toLocaleString('id-ID')}</span></td>
                   <td><span className="text-xs font-semibold text-dpbj-navy">{log.user_name || 'Sistem'}</span></td>
                   <td>

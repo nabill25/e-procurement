@@ -126,13 +126,13 @@ function SimpleMasterTable({ category }) {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={3} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={3} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="font-mono text-xs">{row.kode || '-'}</td>
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-right">
@@ -251,13 +251,13 @@ function UnitKerjaTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="font-mono text-xs">{row.kode || '-'}</td>
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted">{row.telepon || '-'}</td>
@@ -387,13 +387,13 @@ function VendorRetailTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="font-mono text-xs">{row.npwp || '-'}</td>
                 <td className="text-xs text-muted">{row.telepon || '-'}</td>
@@ -511,13 +511,13 @@ function KatalogCategoryTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="font-mono text-xs">{row.kode || '-'}</td>
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted">{data.find(d => d.id === row.parent_id)?.nama || '-'}</td>
@@ -630,13 +630,13 @@ function MasterChecklistTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted">{row.paket_jenis || 'Semua'}</td>
                 <td className="text-xs">{row.wajib ? <span className="text-red-500 font-semibold">Wajib</span> : '-'}</td>
@@ -758,13 +758,13 @@ function DocumentTemplateTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={4} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted capitalize">{row.target}</td>
                 <td className="text-xs">
@@ -874,13 +874,13 @@ function HolidayTable() {
               <th className="text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={3} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={3} className="py-10 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{new Date(row.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
                 <td className="text-xs text-muted">{row.keterangan || '-'}</td>
                 <td className="text-right">
@@ -1000,11 +1000,11 @@ function RegionTable() {
                   <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="stagger-list">
                 {children.length === 0 ? (
                   <tr><td colSpan={3} className="py-10 text-center text-muted text-sm">Belum ada data di bawah provinsi ini.</td></tr>
                 ) : children.map(row => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className="stagger-item">
                     <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                     <td className="text-xs text-muted capitalize">{row.level}</td>
                     <td className="text-right">
@@ -1087,13 +1087,13 @@ function ComplainTypeTable() {
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Nama</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Memuat...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(d => (
-              <tr key={d.id}>
+              <tr key={d.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{d.name}</td>
                 <td className="text-xs text-muted">{d.description || '-'}</td>
                 <td className="text-right">
@@ -1172,13 +1172,13 @@ function ComplainRecipientTable() {
       <div className="table-scroll">
         <table className="data-table">
           <thead><tr><th>Email</th><th>Keterangan</th><th className="text-right">Aksi</th></tr></thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Memuat...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={3} className="py-8 text-center text-muted text-sm">Belum ada data.</td></tr>
             ) : data.map(d => (
-              <tr key={d.id}>
+              <tr key={d.id} className="stagger-item">
                 <td className="text-sm font-medium text-dpbj-navy">{d.email}</td>
                 <td className="text-xs text-muted">{d.keterangan || '-'}</td>
                 <td className="text-right">
@@ -1292,13 +1292,13 @@ function PenilaianTemplateTable() {
           <thead>
             <tr><th>Kode</th><th>Nama</th><th>Bab</th><th>Bobot</th><th>Skor Maks</th><th className="text-right">Aksi</th></tr>
           </thead>
-          <tbody>
+          <tbody className="stagger-list">
             {isLoading ? (
               <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
             ) : data.length === 0 ? (
               <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Belum ada kriteria penilaian.</td></tr>
             ) : data.map(row => (
-              <tr key={row.id}>
+              <tr key={row.id} className="stagger-item">
                 <td className="font-mono text-xs">{row.kode || '-'}</td>
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted">{data.find(d => d.id === row.parent_id)?.nama || '-'}</td>

@@ -195,13 +195,13 @@ export default function Pengajuan() {
                 <th>Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : requests.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada data.</td></tr>
               ) : requests.map(req => (
-                <tr key={req.id} className={req.is_from_sap ? "bg-emerald-50/30" : ""}>
+                <tr key={req.id} className={`stagger-item ${req.is_from_sap ? "bg-emerald-50/30" : ""}`}>
                   <td>
                     <span className="font-mono text-xs font-semibold text-dpbj-slate">{req.request_number}</span>
                     {req.is_from_sap && (

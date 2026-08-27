@@ -112,7 +112,7 @@ export default function PublicTenderPage({ onNavigateHome }) {
 
       {/* Tender list */}
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 stagger-list">
           {isLoading ? (
             <div className="py-16 text-center text-gray-500 text-sm">Memuat data tender...</div>
           ) : tenders.length === 0 ? (
@@ -122,7 +122,7 @@ export default function PublicTenderPage({ onNavigateHome }) {
               <div
                 key={tender.id}
                 onClick={() => setSelectedTender(tender)}
-                className="bg-white rounded-md border border-[#c4a4e8] p-4 cursor-pointer hover:shadow-md hover:border-[#a274db] transition-all"
+                className="stagger-item interactive-lift bg-white rounded-md border border-[#c4a4e8] p-4 cursor-pointer hover:border-[#a274db]"
               >
                 <p className="text-xs text-gray-500 italic mb-1">
                   No. Paket: {tender.tender_number}

@@ -55,13 +55,13 @@ export default function LoginLogs() {
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={7} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : logs.length === 0 ? (
                 <tr><td colSpan={7} className="py-10 text-center text-muted text-sm">Belum ada catatan login.</td></tr>
               ) : logs.map(l => (
-                <tr key={l.id}>
+                <tr key={l.id} className="stagger-item">
                   <td className="text-sm font-medium text-dpbj-navy">{l.full_name || '-'}</td>
                   <td className="text-xs text-muted">{l.username}</td>
                   <td className="text-xs text-muted">{l.ip_address || '-'}</td>

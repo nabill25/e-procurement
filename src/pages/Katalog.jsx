@@ -195,9 +195,9 @@ export default function Katalog() {
           <p>Belum ada produk di e-katalog.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 stagger-grid">
           {items.map(item => (
-            <div key={item.id} className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col group">
+            <div key={item.id} className="stagger-item interactive-lift bg-white border border-border rounded-xl overflow-hidden flex flex-col group">
               <div className="h-40 bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-gray-200 transition-colors">
                 {item.image_url ? <img src={item.image_url} alt={item.item_name} className="w-full h-full object-cover" /> : <Package size={40} />}
               </div>

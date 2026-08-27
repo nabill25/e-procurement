@@ -136,13 +136,13 @@ export default function UserManagement() {
                 <th className="text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : users.length === 0 ? (
                 <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Belum ada akun staff.</td></tr>
               ) : users.map(u => (
-                <tr key={u.id}>
+                <tr key={u.id} className="stagger-item">
                   <td className="text-sm font-medium text-dpbj-navy">{u.full_name}</td>
                   <td className="text-xs text-muted">{u.username}</td>
                   <td><span className="badge text-[10px] bg-blue-100 text-blue-700">{u.role_label || u.active_role}</span></td>

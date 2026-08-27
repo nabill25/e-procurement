@@ -51,12 +51,12 @@ export default function PublicPolicyPage({ onNavigateHome }) {
           <p className="text-sm text-muted text-center py-10">Belum ada kebijakan yang dipublikasikan.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-1 space-y-1">
+            <div className="md:col-span-1 space-y-1 stagger-list">
               {policies.map(p => (
                 <button
                   key={p.id}
                   onClick={() => setActiveId(p.id)}
-                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${activeId === p.id ? 'bg-dpbj-gold-faint text-dpbj-navy font-bold' : 'text-muted hover:bg-surface'}`}
+                  className={`stagger-item w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${activeId === p.id ? 'bg-dpbj-gold-faint text-dpbj-navy font-bold' : 'text-muted hover:bg-surface'}`}
                 >
                   {p.title}
                 </button>

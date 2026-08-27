@@ -246,10 +246,64 @@
 .stagger-3 { animation-delay: 150ms; }
 .stagger-4 { animation-delay: 200ms; }
 .stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
 
 /* Ensure elements start hidden before animation if they use forwards */
 .animate-fade-in-up, .animate-fade-in, .animate-slide-in-right, .animate-pop-in {
   opacity: 0;
+}
+
+/* ── Stagger otomatis untuk daftar/grid (tabel, kartu, list) ──
+   Beda dari .stagger-1..8 yang harus ditulis manual per elemen (dan mentok di
+   8 item), class ini otomatis kasih delay bertingkat ke SEMUA anak langsung
+   lewat :nth-child, jadi tinggal bungkus satu container - cocok untuk tabel
+   berpuluh-puluh baris atau grid kartu tanpa perlu hitung index manual.
+   Dipakai bareng .stagger-item di tiap anaknya (elemen yang mau dianimasikan). */
+.stagger-list > .stagger-item {
+  opacity: 0;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger-list > .stagger-item:nth-child(1)  { animation-delay: 0ms; }
+.stagger-list > .stagger-item:nth-child(2)  { animation-delay: 40ms; }
+.stagger-list > .stagger-item:nth-child(3)  { animation-delay: 80ms; }
+.stagger-list > .stagger-item:nth-child(4)  { animation-delay: 120ms; }
+.stagger-list > .stagger-item:nth-child(5)  { animation-delay: 160ms; }
+.stagger-list > .stagger-item:nth-child(6)  { animation-delay: 200ms; }
+.stagger-list > .stagger-item:nth-child(7)  { animation-delay: 240ms; }
+.stagger-list > .stagger-item:nth-child(8)  { animation-delay: 280ms; }
+.stagger-list > .stagger-item:nth-child(9)  { animation-delay: 320ms; }
+.stagger-list > .stagger-item:nth-child(10) { animation-delay: 360ms; }
+.stagger-list > .stagger-item:nth-child(n+11) { animation-delay: 400ms; }
+
+/* Versi untuk grid kartu (delay sedikit lebih besar per item, dan pakai fade+scale
+   yang sama seperti .page-transition supaya gaya konsisten di seluruh sistem) */
+.stagger-grid > .stagger-item {
+  opacity: 0;
+  animation: pageEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.stagger-grid > .stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-grid > .stagger-item:nth-child(2) { animation-delay: 60ms; }
+.stagger-grid > .stagger-item:nth-child(3) { animation-delay: 120ms; }
+.stagger-grid > .stagger-item:nth-child(4) { animation-delay: 180ms; }
+.stagger-grid > .stagger-item:nth-child(5) { animation-delay: 240ms; }
+.stagger-grid > .stagger-item:nth-child(6) { animation-delay: 300ms; }
+.stagger-grid > .stagger-item:nth-child(n+7) { animation-delay: 340ms; }
+
+/* Kartu/tombol interaktif - hover lebih "hidup" (angkat + shadow membesar),
+   dipakai di seluruh sistem termasuk portal publik supaya konsisten dengan
+   gaya glass yang sudah dipakai di dashboard. */
+.interactive-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+.interactive-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -8px rgba(26, 39, 68, 0.18);
+}
+.interactive-lift:active {
+  transform: translateY(-1px);
+  transition-duration: 0.1s;
 }
 
 /* ── Transisi pergantian halaman/menu ──

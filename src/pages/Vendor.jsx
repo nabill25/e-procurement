@@ -175,13 +175,13 @@ export default function Vendor() {
                 <th>Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : vendors.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada vendor terdaftar.</td></tr>
               ) : vendors.map(v => (
-                <tr key={v.id} className="cursor-pointer hover:bg-surface" onClick={() => setSelectedVendor(v)}>
+                <tr key={v.id} className="stagger-item cursor-pointer hover:bg-surface" onClick={() => setSelectedVendor(v)}>
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-dpbj-navy/5 flex items-center justify-center flex-shrink-0">

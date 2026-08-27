@@ -82,13 +82,13 @@ export default function MenuAccess() {
                 <th className="text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={ROLES.length + 2} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : menus.length === 0 ? (
                 <tr><td colSpan={ROLES.length + 2} className="py-10 text-center text-muted text-sm">Belum ada data menu.</td></tr>
               ) : menus.map(menu => (
-                <tr key={menu.id}>
+                <tr key={menu.id} className="stagger-item">
                   <td className="text-sm font-medium text-dpbj-navy">{menu.label}</td>
                   {ROLES.map(r => (
                     <td key={r.id} className="text-center">

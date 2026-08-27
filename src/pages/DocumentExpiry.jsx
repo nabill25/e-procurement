@@ -92,11 +92,11 @@ export default function DocumentExpiry() {
             <div className="table-scroll">
               <table className="data-table">
                 <thead><tr><th>Vendor</th><th>Jenis Dokumen</th><th>Jumlah Kirim</th><th>Terakhir Dikirim</th></tr></thead>
-                <tbody>
+                <tbody className="stagger-list">
                   {logs.length === 0 ? (
                     <tr><td colSpan={4} className="py-8 text-center text-muted text-sm">Belum ada riwayat notifikasi.</td></tr>
                   ) : logs.map(l => (
-                    <tr key={l.id}>
+                    <tr key={l.id} className="stagger-item">
                       <td className="text-sm font-medium text-dpbj-navy">{l.vendor_name}</td>
                       <td className="text-xs text-muted">{l.doc_type || '-'}</td>
                       <td className="text-xs text-muted">{l.sent_count}x</td>
@@ -124,13 +124,13 @@ export default function DocumentExpiry() {
                   <th className="text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="stagger-list">
                 {isLoading ? (
                   <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
                 ) : dokumen.length === 0 ? (
                   <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Tidak ada dokumen yang mendekati kedaluwarsa dalam rentang ini.</td></tr>
                 ) : dokumen.map(d => (
-                  <tr key={d.id}>
+                  <tr key={d.id} className="stagger-item">
                     <td className="text-sm font-medium text-dpbj-navy">{d.vendor_name}</td>
                     <td className="text-xs text-muted">{d.doc_type}</td>
                     <td className="text-xs text-muted">{d.doc_number || '-'}</td>

@@ -141,13 +141,13 @@ export default function ApiKeys() {
                 <th className="text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : keys.length === 0 ? (
                 <tr><td colSpan={5} className="py-10 text-center text-muted text-sm">Belum ada API key.</td></tr>
               ) : keys.map(k => (
-                <tr key={k.id}>
+                <tr key={k.id} className="stagger-item">
                   <td className="text-sm font-medium text-dpbj-navy">{k.client_name}</td>
                   <td>
                     <div className="flex items-center gap-2">

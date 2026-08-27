@@ -90,7 +90,7 @@ export default function Blacklist({ onNavigateHome }) {
                 <th>SK</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="stagger-list">
               {isLoading ? (
                 <tr>
                   <td colSpan={4} className="py-10 text-center text-muted text-sm">
@@ -105,7 +105,7 @@ export default function Blacklist({ onNavigateHome }) {
                 </tr>
               ) : (
                 paginated.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className="stagger-item">
                     <td className="font-medium text-dpbj-navy text-sm">{row.nama}</td>
                     <td className="font-mono text-xs text-dpbj-slate">{row.npwp}</td>
                     <td className="text-xs text-muted">{row.tanggal}</td>
