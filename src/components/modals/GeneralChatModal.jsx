@@ -57,7 +57,7 @@ export default function GeneralChatModal({ tenderId, vendorId, vendorName, jenis
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col h-[560px]">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col h-[560px] max-h-[85vh]">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageSquare size={17} className="text-dpbj-navy" />

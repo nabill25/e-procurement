@@ -17,8 +17,8 @@ export default function RoleSwitcherModal() {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-dpbj-navy/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-border bg-surface">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-border bg-surface shrink-0">
           <div className="flex items-center gap-2">
             <Repeat size={18} className="text-dpbj-navy" />
             <h2 className="text-base font-bold text-dpbj-navy">Pilih Role Aktif</h2>
@@ -28,7 +28,7 @@ export default function RoleSwitcherModal() {
           </button>
         </div>
 
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto flex-1">
           <p className="text-xs text-muted mb-4">
             Akun Anda terdaftar dengan lebih dari satu role. Pilih role yang ingin dipakai untuk sesi ini.
           </p>
