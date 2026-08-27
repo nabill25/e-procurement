@@ -14,6 +14,146 @@ import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
 import GeneralChatModal from './GeneralChatModal';
 
+const STAGE_LABELS = {
+  pengumuman: 'Pengumuman Pascakualifikasi',
+  pendaftaran: 'Pendaftaran & Download Dokumen',
+  penawaran: 'Upload Dokumen Penawaran',
+  evaluasi: 'Evaluasi Penawaran',
+  pemenang: 'Penetapan & Pengumuman Pemenang',
+  masa_sanggah: 'Masa Sanggah',
+  kontrak: 'Kontrak & BAST',
+};
+
+function formatTgl(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Panel jadwal tahapan tender dengan tanggal per tahap + reschedule (padanan PAKET_TAHAP eProc lama)
+function StageScheduleSection({ tenderId, canManage }) {
+  const [stages, setStages] = useState([]);
+  const [rescheduling, setRescheduling] = useState(null); // { stage_key, ... }
+  const [form, setForm] = useState({ start_date: '', end_date: '', alasan: '' });
+  const [historyFor, setHistoryFor] = useState(null);
+  const [history, setHistory] = useState([]);
+  const { user } = useApp();
+
+  const fetchStages = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/stages`, { headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) setStages(json.data);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { fetchStages(); }, [tenderId]);
+
+  const openReschedule = (stage) => {
+    setRescheduling(stage);
+    setForm({
+      start_date: stage.start_date ? stage.start_date.slice(0, 10) : '',
+      end_date: stage.end_date ? stage.end_date.slice(0, 10) : '',
+      alasan: '',
+    });
+  };
+
+  const handleSubmitReschedule = async () => {
+    if (!form.start_date && !form.end_date) return alert('Isi minimal satu tanggal baru.');
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/stages/${rescheduling.stage_key}/reschedule`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ ...form, user_id: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) { setRescheduling(null); fetchStages(); }
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menjadwalkan ulang.'); }
+  };
+
+  const openHistory = async (stage) => {
+    setHistoryFor(stage.stage_key);
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/stages/${stage.stage_key}/reschedule-history`, { headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) setHistory(json.data);
+    } catch (err) { console.error(err); }
+  };
+
+  if (stages.length === 0) return null;
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      <p className="text-xs font-bold text-dpbj-navy mb-2">Jadwal Tanggal Tiap Tahap</p>
+      <div className="space-y-1.5">
+        {stages.map(s => (
+          <div key={s.id} className="text-[11px] bg-white border border-border rounded-lg p-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-dpbj-navy">{STAGE_LABELS[s.stage_key]}</span>
+              {s.reschedule_count > 0 && (
+                <button onClick={() => openHistory(s)} className="text-dpbj-gold-dark font-semibold">
+                  {s.reschedule_count}x dijadwal ulang
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between mt-1 text-muted">
+              <span>{formatTgl(s.start_date)} - {formatTgl(s.end_date)}</span>
+              {canManage && (
+                <button onClick={() => openReschedule(s)} className="text-blue-600 font-semibold flex items-center gap-1">
+                  <CalendarClock size={11} /> Reschedule
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {rescheduling && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50" onClick={() => setRescheduling(null)}>
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h4 className="font-bold text-dpbj-navy text-sm mb-3">Reschedule: {STAGE_LABELS[rescheduling.stage_key]}</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-[11px] text-muted font-medium">Tanggal Mulai Baru</label>
+                <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className="w-full text-xs p-2 border border-gray-300 rounded-lg" />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted font-medium">Tanggal Selesai Baru</label>
+                <input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} className="w-full text-xs p-2 border border-gray-300 rounded-lg" />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted font-medium">Alasan</label>
+                <textarea rows={2} value={form.alasan} onChange={e => setForm({ ...form, alasan: e.target.value })} className="w-full text-xs p-2 border border-gray-300 rounded-lg resize-none" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setRescheduling(null)} className="btn-secondary flex-1 text-xs">Batal</button>
+              <button onClick={handleSubmitReschedule} className="btn-primary flex-1 text-xs">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyFor && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50" onClick={() => setHistoryFor(null)}>
+          <div className="bg-white rounded-xl p-5 w-full max-w-sm max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h4 className="font-bold text-dpbj-navy text-sm mb-3">Riwayat Reschedule: {STAGE_LABELS[historyFor]}</h4>
+            <div className="space-y-2">
+              {history.map(h => (
+                <div key={h.id} className="text-[11px] bg-surface p-2 rounded-lg">
+                  <p className="text-dpbj-navy">{formatTgl(h.old_start_date)} → {formatTgl(h.new_start_date)}</p>
+                  {h.alasan && <p className="text-muted mt-0.5">{h.alasan}</p>}
+                  <p className="text-muted mt-0.5">{h.user_name || 'Sistem'} · {new Date(h.created_at).toLocaleString('id-ID')}</p>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setHistoryFor(null)} className="btn-secondary w-full text-xs mt-3">Tutup</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TenderActivityLogTab({ tenderId }) {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -751,7 +891,9 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 );
               })}
             </div>
-            
+
+            <StageScheduleSection tenderId={data.id} canManage={['pokja', 'admin', 'ppk'].includes(user.role)} />
+
             {/* Contextual Actions based on Role & Stage */}
             <div className="mt-6 pt-5 border-t border-border space-y-3">
               {/* Pokja Actions */}

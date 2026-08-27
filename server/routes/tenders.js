@@ -408,6 +408,102 @@ router.post('/:id/winner', async (req, res) => {
   }
 });
 
+// ── TAHAPAN TENDER + RESCHEDULE (padanan PAKET_TAHAP + PAKET_TAHAP_RESCHEDULE eProc lama) ──
+const STAGE_KEYS = ['pengumuman', 'pendaftaran', 'penawaran', 'evaluasi', 'pemenang', 'masa_sanggah', 'kontrak'];
+
+// GET /api/tenders/:id/stages — daftar tahapan + tanggalnya (auto-buat baris kosong kalau belum ada)
+router.get('/:id/stages', async (req, res) => {
+  try {
+    const existing = await pool.query('SELECT * FROM tender_stages WHERE tender_id = $1', [req.params.id]);
+    const existingKeys = existing.rows.map(s => s.stage_key);
+    const missing = STAGE_KEYS.filter(k => !existingKeys.includes(k));
+
+    for (const key of missing) {
+      await pool.query(
+        `INSERT INTO tender_stages (tender_id, stage_key) VALUES ($1, $2) ON CONFLICT (tender_id, stage_key) DO NOTHING`,
+        [req.params.id, key]
+      );
+    }
+
+    const result = await pool.query('SELECT * FROM tender_stages WHERE tender_id = $1', [req.params.id]);
+    const sorted = result.rows.sort((a, b) => STAGE_KEYS.indexOf(a.stage_key) - STAGE_KEYS.indexOf(b.stage_key));
+    res.json({ success: true, data: sorted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/tenders/:id/stages/:stageKey/reschedule — ubah tanggal satu tahap, catat riwayat
+router.post('/:id/stages/:stageKey/reschedule', async (req, res) => {
+  try {
+    const { start_date, end_date, alasan, user_id } = req.body;
+    if (!STAGE_KEYS.includes(req.params.stageKey)) {
+      return res.status(400).json({ success: false, message: 'Tahapan tidak dikenal.' });
+    }
+    if (!start_date && !end_date) {
+      return res.status(400).json({ success: false, message: 'Tanggal baru wajib diisi.' });
+    }
+
+    let stage = await pool.query(
+      'SELECT * FROM tender_stages WHERE tender_id = $1 AND stage_key = $2',
+      [req.params.id, req.params.stageKey]
+    );
+    if (!stage.rows.length) {
+      stage = await pool.query(
+        `INSERT INTO tender_stages (tender_id, stage_key) VALUES ($1, $2) RETURNING *`,
+        [req.params.id, req.params.stageKey]
+      );
+    }
+    const old = stage.rows[0];
+
+    await pool.query(
+      `INSERT INTO tender_stage_reschedule_history
+        (tender_stage_id, old_start_date, old_end_date, new_start_date, new_end_date, alasan, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [old.id, old.start_date, old.end_date, start_date || old.start_date, end_date || old.end_date, alasan || null, user_id || null]
+    );
+
+    const updated = await pool.query(
+      `UPDATE tender_stages
+       SET start_date = COALESCE($1, start_date), end_date = COALESCE($2, end_date),
+           reschedule_count = reschedule_count + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3 RETURNING *`,
+      [start_date || null, end_date || null, old.id]
+    );
+
+    logActivity({
+      tenderId: req.params.id, posisi: `Reschedule Tahapan: ${req.params.stageKey}`,
+      keterangan: alasan, flow: 'tender', userId: user_id, ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'Tahapan berhasil dijadwalkan ulang.', data: updated.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/tenders/:id/stages/:stageKey/reschedule-history — riwayat reschedule satu tahap
+router.get('/:id/stages/:stageKey/reschedule-history', async (req, res) => {
+  try {
+    const stage = await pool.query(
+      'SELECT id FROM tender_stages WHERE tender_id = $1 AND stage_key = $2',
+      [req.params.id, req.params.stageKey]
+    );
+    if (!stage.rows.length) return res.json({ success: true, data: [] });
+
+    const result = await pool.query(`
+      SELECT h.*, u.full_name AS user_name
+      FROM tender_stage_reschedule_history h
+      LEFT JOIN users u ON h.created_by = u.id
+      WHERE h.tender_stage_id = $1
+      ORDER BY h.created_at DESC
+    `, [stage.rows[0].id]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/tenders/:id/activity-log — Timeline rekam jejak tender (padanan REKAM_JEJAK eProc lama) ──
 router.get('/:id/activity-log', async (req, res) => {
   try {
@@ -940,6 +1036,49 @@ router.post('/:id/contract/penalties', async (req, res) => {
     `, [contractId, days_late, penalty_rate || null, work_value || null, penalty_amount || null, notes || null]);
 
     res.status(201).json({ success: true, message: 'Sanksi keterlambatan berhasil dicatat.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PENILAIAN KINERJA PENYEDIA (padanan PAKET_PENILAIAN_REKANAN eProc lama, versi
+// disederhanakan: skor langsung per kriteria template, tanpa approval berjenjang) ──
+
+router.get('/:id/contract/penilaian-kinerja', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const result = await pool.query(`
+      SELECT pk.*, t.nama AS kriteria_nama, t.kode AS kriteria_kode, t.bobot_persen, t.skor_maksimal, u.full_name AS scored_by_name
+      FROM contract_penilaian_kinerja pk
+      JOIN penilaian_kinerja_templates t ON pk.template_id = t.id
+      LEFT JOIN users u ON pk.scored_by = u.id
+      WHERE pk.contract_id = $1
+      ORDER BY t.kode ASC, t.nama ASC
+    `, [contractId]);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/contract/penilaian-kinerja', async (req, res) => {
+  try {
+    const contractId = await getContractId(req.params.id);
+    if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+
+    const { template_id, skor, catatan, scored_by } = req.body;
+    if (!template_id || skor == null) return res.status(400).json({ success: false, message: 'template_id dan skor wajib diisi.' });
+
+    const result = await pool.query(`
+      INSERT INTO contract_penilaian_kinerja (contract_id, template_id, skor, catatan, scored_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (contract_id, template_id) DO UPDATE SET
+        skor = EXCLUDED.skor, catatan = EXCLUDED.catatan, scored_by = EXCLUDED.scored_by
+      RETURNING *
+    `, [contractId, template_id, skor, catatan || null, scored_by || null]);
+
+    res.json({ success: true, message: 'Skor penilaian berhasil disimpan.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

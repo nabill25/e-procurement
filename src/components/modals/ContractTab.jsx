@@ -5,6 +5,7 @@ import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './Co
 import {
   SppbjSpkSection, SpmkSection, JaminanSection, SlaSection, MaterialSection,
   AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection,
+  PenilaianKinerjaSection,
 } from './ContractWorkflowSections';
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
@@ -21,6 +22,7 @@ const WORKFLOW_SUBTABS = [
   { id: 'catatan', label: 'Catatan & Dokumen' },
   { id: 'perubahan', label: 'Perubahan Status' },
   { id: 'pic', label: 'PIC & Tahap' },
+  { id: 'penilaian_kinerja', label: 'Penilaian Kinerja' },
 ];
 
 export default function ContractTab({ tenderId, tenderStatus, participants, user }) {
@@ -294,6 +296,9 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       )}
       {workflowTab === 'pic' && contract && (
         <PicStageSection tenderId={tenderId} contract={contract} canEdit={user.role === 'ppk' || user.role === 'admin'} refreshContract={fetchContract} />
+      )}
+      {workflowTab === 'penilaian_kinerja' && contract && (
+        <PenilaianKinerjaSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
       )}
 
       {/* Termin pembayaran, sanksi keterlambatan, dan progres pekerjaan */}

@@ -27,6 +27,12 @@ const CATEGORIES = [
   { id: 'regions',           label: 'Wilayah' },
   { id: 'complain_types',      label: 'Subjek Komplain' },
   { id: 'complain_recipients', label: 'Penerima Komplain' },
+  { id: 'paket_jenis',         label: 'Jenis Tender' },
+  { id: 'metode_lelang',       label: 'Metode Lelang' },
+  { id: 'metode_kualifikasi',  label: 'Metode Kualifikasi' },
+  { id: 'metode_evaluasi',     label: 'Metode Evaluasi' },
+  { id: 'direktorat',          label: 'Direktorat' },
+  { id: 'penilaian_template',  label: 'Template Penilaian' },
 ];
 
 function SimpleMasterTable({ category }) {
@@ -1156,6 +1162,128 @@ function ComplainRecipientTable() {
   );
 }
 
+function PenilaianTemplateTable() {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [form, setForm] = useState({ kode: '', nama: '', parent_id: '', bobot_persen: '', skor_maksimal: '' });
+  const [saving, setSaving] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/master/penilaian-templates`, { headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.nama.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/master/penilaian-templates`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setForm({ kode: '', nama: '', parent_id: '', bobot_persen: '', skor_maksimal: '' });
+        fetchData();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan data.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Nonaktifkan kriteria penilaian ini?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/master/penilaian-templates/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success) fetchData();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat menghapus data.');
+    }
+  };
+
+  const babList = data.filter(d => !d.parent_id);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted bg-surface p-3 rounded-lg border border-border">
+        Struktur berjenjang: buat "Bab" dulu (tanpa induk), lalu tambah "Pasal" di bawahnya (pilih induk, isi bobot % dan skor maksimal). Dipakai di tab "Penilaian Kinerja" pada detail kontrak.
+      </p>
+      <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-6 gap-3 bg-surface p-4 rounded-xl border border-border items-end">
+        <div>
+          <label className="text-xs text-muted font-medium">Kode</label>
+          <input value={form.kode} onChange={e => setForm({ ...form, kode: e.target.value })} placeholder="I / I.1" className="w-full text-sm p-2 border border-gray-300 rounded-lg" />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs text-muted font-medium">Nama Kriteria</label>
+          <input value={form.nama} onChange={e => setForm({ ...form, nama: e.target.value })} required className="w-full text-sm p-2 border border-gray-300 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Bab Induk</label>
+          <select value={form.parent_id} onChange={e => setForm({ ...form, parent_id: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg">
+            <option value="">- Bab Baru -</option>
+            {babList.map(b => <option key={b.id} value={b.id}>{b.nama}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Bobot %</label>
+          <input type="number" value={form.bobot_persen} onChange={e => setForm({ ...form, bobot_persen: e.target.value })} className="w-full text-sm p-2 border border-gray-300 rounded-lg" />
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium">Skor Maks</label>
+          <input type="number" value={form.skor_maksimal} onChange={e => setForm({ ...form, skor_maksimal: e.target.value })} placeholder="100" className="w-full text-sm p-2 border border-gray-300 rounded-lg" />
+        </div>
+        <button type="submit" disabled={saving} className="btn-primary col-span-2 md:col-span-6 flex items-center justify-center gap-2 disabled:opacity-50">
+          <Plus size={16} /> Tambah
+        </button>
+      </form>
+
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="data-table">
+          <thead>
+            <tr><th>Kode</th><th>Nama</th><th>Bab</th><th>Bobot</th><th>Skor Maks</th><th className="text-right">Aksi</th></tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Memuat data...</td></tr>
+            ) : data.length === 0 ? (
+              <tr><td colSpan={6} className="py-10 text-center text-muted text-sm">Belum ada kriteria penilaian.</td></tr>
+            ) : data.map(row => (
+              <tr key={row.id}>
+                <td className="font-mono text-xs">{row.kode || '-'}</td>
+                <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
+                <td className="text-xs text-muted">{data.find(d => d.id === row.parent_id)?.nama || '-'}</td>
+                <td className="text-xs text-muted">{row.bobot_persen ? `${row.bobot_persen}%` : '-'}</td>
+                <td className="text-xs text-muted">{row.skor_maksimal || '-'}</td>
+                <td className="text-right">
+                  <button onClick={() => handleDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
 
@@ -1205,6 +1333,8 @@ export default function DataMaster() {
           <ComplainTypeTable />
         ) : activeCategory === 'complain_recipients' ? (
           <ComplainRecipientTable />
+        ) : activeCategory === 'penilaian_template' ? (
+          <PenilaianTemplateTable />
         ) : (
           <SimpleMasterTable category={activeCategory} />
         )}

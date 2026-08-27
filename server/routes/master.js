@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Kategori data master yang valid (mengikuti tabel referensi di eProc lama)
-const VALID_CATEGORIES = ['bank', 'mata_uang', 'negara', 'satuan', 'incoterm', 'payment_method', 'analisa_kebutuhan', 'analisa_pasar', 'rekanan_tipe', 'sertifikat_jenis', 'jenis_belanja', 'analisa_kategori', 'ijin_usaha', 'pendidikan'];
+const VALID_CATEGORIES = ['bank', 'mata_uang', 'negara', 'satuan', 'incoterm', 'payment_method', 'analisa_kebutuhan', 'analisa_pasar', 'rekanan_tipe', 'sertifikat_jenis', 'jenis_belanja', 'analisa_kategori', 'ijin_usaha', 'pendidikan', 'paket_jenis', 'metode_lelang', 'metode_kualifikasi', 'metode_evaluasi', 'direktorat'];
 
 function checkCategory(req, res, next) {
   if (!VALID_CATEGORIES.includes(req.params.category)) {
@@ -298,6 +298,40 @@ router.delete('/unit-kerja/:id', async (req, res) => {
     const result = await pool.query('DELETE FROM unit_kerja_master WHERE id = $1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
     res.json({ success: true, message: 'Unit kerja berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── TEMPLATE PENILAIAN KINERJA PENYEDIA (padanan PAKET_PENILAIAN_TEMPLATE eProc lama,
+// versi disederhanakan tanpa approval berjenjang) ──
+router.get('/penilaian-templates', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM penilaian_kinerja_templates WHERE is_active = true ORDER BY kode ASC, nama ASC');
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/penilaian-templates', async (req, res) => {
+  try {
+    const { parent_id, kode, nama, bobot_persen, skor_maksimal, catatan } = req.body;
+    if (!nama) return res.status(400).json({ success: false, message: 'nama wajib diisi.' });
+    const result = await pool.query(`
+      INSERT INTO penilaian_kinerja_templates (parent_id, kode, nama, bobot_persen, skor_maksimal, catatan)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
+    `, [parent_id || null, kode || null, nama, bobot_persen || null, skor_maksimal || null, catatan || null]);
+    res.status(201).json({ success: true, message: 'Kriteria penilaian berhasil ditambahkan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/penilaian-templates/:id', async (req, res) => {
+  try {
+    await pool.query('UPDATE penilaian_kinerja_templates SET is_active = false WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Kriteria penilaian berhasil dinonaktifkan.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

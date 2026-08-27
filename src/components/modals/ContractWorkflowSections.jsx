@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog } from 'lucide-react';
+import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog, ClipboardList } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
@@ -679,6 +679,100 @@ export function PicStageSection({ tenderId, contract, canEdit, refreshContract }
               </select>
             </div>
           ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// ── Penilaian Kinerja Penyedia (padanan PAKET_PENILAIAN_TEMPLATE eProc lama, versi
+// disederhanakan: skor langsung per kriteria berjenjang, tanpa approval bertingkat) ──
+export function PenilaianKinerjaSection({ tenderId, canEdit, user }) {
+  const [templates, setTemplates] = useState([]);
+  const [scores, setScores] = useState([]);
+  const [inputs, setInputs] = useState({});
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [t, s] = await Promise.all([
+        fetch(`${API_BASE}/master/penilaian-templates`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/tenders/${tenderId}/contract/penilaian-kinerja`, { headers: getAuthHeaders() }),
+      ]);
+      const [tj, sj] = await Promise.all([t.json(), s.json()]);
+      if (tj.success) setTemplates(tj.data);
+      if (sj.success) setScores(sj.data);
+    } catch (err) { console.error(err); }
+  }, [tenderId]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const babList = templates.filter(t => !t.parent_id);
+  const pasalOf = (babId) => templates.filter(t => t.parent_id === babId);
+  const scoreFor = (templateId) => scores.find(s => s.template_id === templateId);
+
+  const handleSubmitSkor = async (templateId) => {
+    const skor = inputs[templateId];
+    if (skor === undefined || skor === '') return;
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/contract/penilaian-kinerja`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ template_id: templateId, skor: Number(skor), scored_by: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menyimpan skor.'); }
+  };
+
+  const totalSkor = scores.reduce((sum, s) => {
+    const t = templates.find(tp => tp.id === s.template_id);
+    if (!t?.bobot_persen) return sum;
+    return sum + (s.skor / (t.skor_maksimal || 100)) * (parseFloat(t.bobot_persen) || 0);
+  }, 0);
+
+  return (
+    <Section icon={ClipboardList} title="Penilaian Kinerja Penyedia">
+      {babList.length === 0 ? (
+        <p className="text-xs text-muted text-center py-6">Belum ada kriteria penilaian. Kelola lewat menu Data Master &gt; Template Penilaian.</p>
+      ) : (
+        <div className="space-y-4">
+          {babList.map(bab => (
+            <div key={bab.id}>
+              <p className="text-xs font-bold text-dpbj-navy uppercase mb-2">{bab.kode ? `${bab.kode}. ` : ''}{bab.nama}</p>
+              <div className="space-y-2">
+                {pasalOf(bab.id).map(p => {
+                  const existing = scoreFor(p.id);
+                  return (
+                    <div key={p.id} className="flex items-center justify-between gap-3 bg-surface p-2.5 rounded-lg text-xs">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-dpbj-navy">{p.kode ? `${p.kode} ` : ''}{p.nama}</p>
+                        <p className="text-[10px] text-muted">Bobot {p.bobot_persen || 0}% · Maks {p.skor_maksimal || 100}</p>
+                      </div>
+                      {canEdit ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <input
+                            type="number" min={0} max={p.skor_maksimal || 100}
+                            placeholder={existing ? String(existing.skor) : 'Skor'}
+                            value={inputs[p.id] ?? ''}
+                            onChange={e => setInputs({ ...inputs, [p.id]: e.target.value })}
+                            className="w-16 p-1.5 border border-gray-300 rounded"
+                          />
+                          <button onClick={() => handleSubmitSkor(p.id)} className="text-blue-600 font-bold"><Save size={13} /></button>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-dpbj-navy shrink-0">{existing ? existing.skor : '-'}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          {scores.length > 0 && (
+            <div className="pt-3 border-t border-border flex items-center justify-between">
+              <p className="text-xs font-bold text-dpbj-navy">Total Nilai Tertimbang</p>
+              <p className="text-lg font-bold text-dpbj-gold-dark">{totalSkor.toFixed(1)}</p>
+            </div>
+          )}
         </div>
       )}
     </Section>

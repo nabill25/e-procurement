@@ -3,6 +3,7 @@ import { getAuthHeaders, useApp, API_BASE } from '../context/AppContext';
 import { Search, ShoppingCart, Filter, Plus, Package } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
 import KatalogDetailModal from '../components/modals/KatalogDetailModal';
+import CatalogCartPanel from '../components/modals/CatalogCartPanel';
 
 const EMPTY_FORM = {
   item_name: '', description: '', price: '', unit: 'Pcs',
@@ -26,8 +27,12 @@ export default function Katalog() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
 
-  // Keranjang Belanja (Untuk PPK)
-  const [cart, setCart] = useState([]);
+  // Keranjang Belanja (Untuk PPK) - terikat ke satu pengajuan tertentu, konsisten dengan
+  // alur di sistem lama (katalog itu toko online mini terhubung ke procurement_requests,
+  // bukan sekadar galeri produk lepas)
+  const [approvedRequests, setApprovedRequests] = useState([]);
+  const [selectedRequestId, setSelectedRequestId] = useState('');
+  const [showCartPanel, setShowCartPanel] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -35,6 +40,12 @@ export default function Katalog() {
 
   useEffect(() => {
     fetch(`${API_BASE}/katalog/categories/tree`).then(r => r.json()).then(j => { if (j.success) setCategories(j.data); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (user.role !== 'ppk' && user.role !== 'admin') return;
+    fetch(`${API_BASE}/pengajuan?status=disetujui`, { headers: getAuthHeaders() })
+      .then(r => r.json()).then(j => { if (j.success) setApprovedRequests(j.data); }).catch(() => {});
   }, []);
 
   const fetchItems = async () => {
@@ -103,54 +114,18 @@ export default function Katalog() {
     }));
   };
 
-  const addToCart = (item) => {
-    if (user.role !== 'ppk') return alert('Hanya PPK yang dapat melakukan purchasing langsung.');
-    const existing = cart.find(c => c.id === item.id);
-    if (existing) {
-      setCart(cart.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
-    } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
-    }
-    alert(`${item.item_name} ditambahkan ke keranjang.`);
-  };
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
-    
-    // Group by vendor (e-purchasing assumes 1 order = 1 vendor, but for simplicity here we assume the cart items are from the same vendor, or we group them)
-    // Untuk purwarupa ini, asumsikan checkout 1 per 1 vendor atau group otomatis.
-    const vendorGroups = cart.reduce((acc, item) => {
-      acc[item.vendor_id] = acc[item.vendor_id] || [];
-      acc[item.vendor_id].push(item);
-      return acc;
-    }, {});
-
-    for (const [vendorId, vendorItems] of Object.entries(vendorGroups)) {
-      const totalAmount = vendorItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      
-      const payload = {
-        buyer_id: user.id,
-        vendor_id: vendorId,
-        total_amount: totalAmount,
-        delivery_address: 'Gedung Rektorat Kampus UI Depok',
-        notes: 'Mohon segera diproses.',
-        items: vendorItems.map(i => ({ id: i.id, quantity: i.quantity, price: i.price }))
-      };
-
-      try {
-        await fetch(`${API_BASE}/purchasing`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-          body: JSON.stringify(payload)
-        });
-      } catch (err) {
-        console.error('Checkout error', err);
-      }
-    }
-
-    alert('Checkout berhasil! Purchase Order telah dibuat.');
-    setCart([]);
-    navigateTo('purchasing'); // Arahkan ke halaman riwayat order
+  const addToCart = async (item) => {
+    if (user.role !== 'ppk' && user.role !== 'admin') return alert('Hanya PPK yang dapat melakukan purchasing langsung.');
+    if (!selectedRequestId) return alert('Pilih pengajuan yang akan dibelanjakan terlebih dahulu.');
+    try {
+      const res = await fetch(`${API_BASE}/katalog/cart`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ procurement_request_id: selectedRequestId, katalog_id: item.id, created_by: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) alert(json.message);
+      else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menambah ke keranjang.'); }
   };
 
   return (
@@ -169,17 +144,34 @@ export default function Katalog() {
               <Plus size={18} /> Tambah Produk
             </button>
           )}
-          {user.role === 'ppk' && (
-            <button 
-              onClick={() => cart.length > 0 && navigateTo('purchasing')} // Bisa arahkan ke modal checkout
+          {(user.role === 'ppk' || user.role === 'admin') && selectedRequestId && (
+            <button
+              onClick={() => setShowCartPanel(true)}
               className="btn-secondary flex items-center gap-2 relative bg-surface"
             >
               <ShoppingCart size={18} />
-              Keranjang ({cart.length})
+              Lihat Keranjang
             </button>
           )}
         </div>
       </div>
+
+      {(user.role === 'ppk' || user.role === 'admin') && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <label className="text-xs font-semibold text-dpbj-navy shrink-0">Belanja untuk pengajuan:</label>
+          <select
+            value={selectedRequestId}
+            onChange={e => setSelectedRequestId(e.target.value)}
+            className="flex-1 text-sm p-2 border border-blue-200 rounded-lg bg-white"
+          >
+            <option value="">Pilih pengajuan yang sudah disetujui...</option>
+            {approvedRequests.map(r => (
+              <option key={r.id} value={r.id}>{r.request_number} - {r.title}</option>
+            ))}
+          </select>
+          {!selectedRequestId && <p className="text-[11px] text-blue-700">Pilih pengajuan dulu supaya bisa belanja produk katalog</p>}
+        </div>
+      )}
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-border flex gap-4 items-center">
         <div className="relative flex-1">
@@ -222,10 +214,12 @@ export default function Katalog() {
                     <button onClick={() => setDetailId(item.id)} className="flex-1 py-2 bg-surface text-dpbj-navy hover:bg-gray-200 font-semibold text-sm rounded-lg transition-colors border border-border">
                       Detail
                     </button>
-                    {user.role === 'ppk' && (
+                    {(user.role === 'ppk' || user.role === 'admin') && (
                       <button
                         onClick={() => addToCart(item)}
-                        className="flex-1 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-2"
+                        disabled={!selectedRequestId}
+                        title={!selectedRequestId ? 'Pilih pengajuan dulu' : ''}
+                        className="flex-1 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-sm rounded-lg transition-colors border border-blue-200 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ShoppingCart size={16} /> Tambah
                       </button>
@@ -243,15 +237,8 @@ export default function Katalog() {
         </div>
       )}
 
-      {/* Tampilan Checkout Sementara / Floating Bar */}
-      {user.role === 'ppk' && cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border shadow-[0_-10px_30px_rgba(0,0,0,0.05)] p-4 z-40 flex items-center justify-between px-8 md:pl-[280px]">
-          <div>
-            <p className="text-sm font-bold text-dpbj-navy">{cart.length} Jenis Produk Terpilih</p>
-            <p className="text-xs text-muted">Total Belanja: <span className="font-bold text-blue-600">{formatRupiah(cart.reduce((s,i) => s + (i.price * i.quantity), 0))}</span></p>
-          </div>
-          <button onClick={handleCheckout} className="btn-primary bg-blue-600 hover:bg-blue-700">Checkout Sekarang</button>
-        </div>
+      {showCartPanel && selectedRequestId && (
+        <CatalogCartPanel procurementRequestId={selectedRequestId} user={user} onClose={() => setShowCartPanel(false)} />
       )}
 
       {/* Modal Tambah/Edit Produk */}

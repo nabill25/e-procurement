@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search, CalendarClock, Unlock } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
 
 const DOC_TYPES = [
@@ -44,26 +44,39 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
   const [buSearch, setBuSearch] = useState('');
   const [buResults, setBuResults] = useState([]);
 
+  const [pembukaan1, setPembukaan1] = useState([]);
+  const [pembukaan2, setPembukaan2] = useState([]);
+  const [pembukaanKode, setPembukaanKode] = useState('');
+
+  const [undangan, setUndangan] = useState([]);
+  const [newUndangan, setNewUndangan] = useState({ vendor_id: '', tanggal_undangan: '', jam: '', tempat: '', pelaksanaan: 'Tatap Muka', keterangan: '' });
+
   const canManage = ['pokja', 'admin', 'ppk'].includes(user.role);
   const isVendor = user.role === 'vendor';
 
   const fetchAll = async () => {
     try {
-      const [d, k, p, pl, pr, bu] = await Promise.all([
+      const [d, k, p, pl, pr, bu, p1, p2, uk] = await Promise.all([
         fetch(`${API_BASE}/tenders/${tenderId}/documents`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/klarifikasi-dokumen`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/pakta-integritas`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/pihak-lain`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/peringkat-pemenang`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE}/tenders/${tenderId}/bidang-usaha`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/tenders/${tenderId}/pembukaan/1`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/tenders/${tenderId}/pembukaan/2`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/tenders/${tenderId}/undangan-klarifikasi`, { headers: getAuthHeaders() }),
       ]);
-      const [dj, kj, pj, plj, prj, buj] = await Promise.all([d.json(), k.json(), p.json(), pl.json(), pr.json(), bu.json()]);
+      const [dj, kj, pj, plj, prj, buj, p1j, p2j, ukj] = await Promise.all([d.json(), k.json(), p.json(), pl.json(), pr.json(), bu.json(), p1.json(), p2.json(), uk.json()]);
       if (dj.success) setDocuments(dj.data);
       if (kj.success) setKlarifikasi(kj.data);
       if (pj.success) setPakta(pj.data);
       if (plj.success) setPihakLain(plj.data);
       if (prj.success) setPeringkat(prj.data);
       if (buj.success) setBidangUsaha(buj.data);
+      if (p1j.success) setPembukaan1(p1j.data);
+      if (p2j.success) setPembukaan2(p2j.data);
+      if (ukj.success) setUndangan(ukj.data);
     } catch (err) { console.error(err); }
   };
 
@@ -186,6 +199,32 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
     const res = await fetch(`${API_BASE}/tenders/${tenderId}/peringkat-pemenang/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     const json = await res.json();
     if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
+  };
+
+  const handleValidasiPembukaan = async (tahap) => {
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/pembukaan`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ user_id: user.id, kode: pembukaanKode || null, jenis: user.role, tahap }),
+      });
+      const json = await res.json();
+      if (json.success) { setPembukaanKode(''); fetchAll(); } else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat validasi pembukaan.'); }
+  };
+
+  const handleAddUndangan = async () => {
+    if (!newUndangan.vendor_id || !newUndangan.tanggal_undangan) return alert('Lengkapi vendor dan tanggal undangan.');
+    try {
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/undangan-klarifikasi`, {
+        method: 'POST', headers: getAuthHeaders(),
+        body: JSON.stringify({ ...newUndangan, created_by: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNewUndangan({ vendor_id: '', tanggal_undangan: '', jam: '', tempat: '', pelaksanaan: 'Tatap Muka', keterangan: '' });
+        fetchAll();
+      } else alert('Gagal: ' + json.message);
+    } catch { alert('Terjadi kesalahan saat menyimpan undangan.'); }
   };
 
   return (
@@ -347,6 +386,81 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
               {pihakLain.map(p => (
                 <div key={p.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
                   <span className="font-semibold text-dpbj-navy">{p.full_name} <span className="text-muted font-normal">({p.role_label})</span></span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+
+      <Section icon={Unlock} title="Pembukaan Penawaran" desc="Validasi kehadiran/persetujuan saat pembukaan sampul penawaran, sampul 1 (administrasi & teknis) dan sampul 2 (harga) untuk metode 2 tahap.">
+        {(canManage || isVendor) && (
+          <div className="flex flex-wrap items-end gap-2 mb-3 bg-surface p-3 rounded-lg border border-border">
+            <input placeholder="Kode/catatan (opsional)" value={pembukaanKode} onChange={e => setPembukaanKode(e.target.value)} className="flex-1 min-w-[140px] text-xs p-2 border border-gray-300 rounded-lg" />
+            <button onClick={() => handleValidasiPembukaan(1)} className="btn-secondary text-xs">Validasi Sampul 1</button>
+            <button onClick={() => handleValidasiPembukaan(2)} className="btn-secondary text-xs">Validasi Sampul 2</button>
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <p className="text-[10px] font-bold text-muted uppercase mb-1.5">Sampul 1</p>
+            {pembukaan1.length === 0 ? (
+              <p className="text-xs text-muted text-center py-3">Belum ada validasi.</p>
+            ) : (
+              <div className="space-y-1">
+                {pembukaan1.map(v => (
+                  <div key={v.id} className="text-xs bg-surface p-2 rounded-lg">
+                    <span className="font-semibold text-dpbj-navy">{v.user_name}</span>
+                    {v.kode && <span className="text-muted"> · {v.kode}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-muted uppercase mb-1.5">Sampul 2</p>
+            {pembukaan2.length === 0 ? (
+              <p className="text-xs text-muted text-center py-3">Belum ada validasi.</p>
+            ) : (
+              <div className="space-y-1">
+                {pembukaan2.map(v => (
+                  <div key={v.id} className="text-xs bg-surface p-2 rounded-lg">
+                    <span className="font-semibold text-dpbj-navy">{v.user_name}</span>
+                    {v.kode && <span className="text-muted"> · {v.kode}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Section>
+
+      {canManage && (
+        <Section icon={CalendarClock} title="Undangan Klarifikasi" desc="Jadwal pertemuan klarifikasi resmi ke vendor (beda dari chat aanwijzing).">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3 bg-surface p-3 rounded-lg border border-border">
+            <select value={newUndangan.vendor_id} onChange={e => setNewUndangan({ ...newUndangan, vendor_id: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg">
+              <option value="">Pilih vendor...</option>
+              {participants.map(p => <option key={p.vendor_id} value={p.vendor_id}>{p.company_name}</option>)}
+            </select>
+            <input type="date" value={newUndangan.tanggal_undangan} onChange={e => setNewUndangan({ ...newUndangan, tanggal_undangan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+            <input type="time" value={newUndangan.jam} onChange={e => setNewUndangan({ ...newUndangan, jam: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+            <select value={newUndangan.pelaksanaan} onChange={e => setNewUndangan({ ...newUndangan, pelaksanaan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg">
+              <option value="Tatap Muka">Tatap Muka</option>
+              <option value="Daring">Daring</option>
+            </select>
+            <input placeholder="Tempat/Link" value={newUndangan.tempat} onChange={e => setNewUndangan({ ...newUndangan, tempat: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+            <input placeholder="Keterangan" value={newUndangan.keterangan} onChange={e => setNewUndangan({ ...newUndangan, keterangan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+            <button onClick={handleAddUndangan} className="btn-primary text-xs sm:col-span-2">Kirim Undangan</button>
+          </div>
+          {undangan.length === 0 ? (
+            <p className="text-xs text-muted text-center py-3">Belum ada undangan klarifikasi.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {undangan.map(u => (
+                <div key={u.id} className="text-xs bg-surface p-2.5 rounded-lg">
+                  <p className="font-semibold text-dpbj-navy">{u.vendor_name} <span className="text-muted font-normal">· {u.vendor_email}</span></p>
+                  <p className="text-muted mt-0.5">{new Date(u.tanggal_undangan).toLocaleDateString('id-ID')} {u.jam || ''} · {u.pelaksanaan} {u.tempat ? `· ${u.tempat}` : ''}</p>
+                  {u.keterangan && <p className="text-muted">{u.keterangan}</p>}
                 </div>
               ))}
             </div>
