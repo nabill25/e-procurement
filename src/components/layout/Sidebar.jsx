@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X, RefreshCw
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X, RefreshCw, LayoutGrid
 } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound, RefreshCw };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound, RefreshCw, LayoutGrid };
 
 // Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
@@ -16,7 +16,7 @@ function getDefaultAllowedMenus(role) {
   // "vendor_profile" (Profil & Kualifikasi Vendor) sengaja dikecualikan dari Admin:
   // halaman itu untuk vendor kelola profil perusahaan sendiri, bukan untuk Admin.
   if (role === 'admin') return navItems.map(item => item.id).filter(id => id !== 'vendor_profile');
-  if (role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing'];
+  if (role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing', 'executive_dashboard'];
   if (role === 'pokja') return ['dashboard', 'tender', 'vendor', 'blacklist'];
   if (role === 'vendor') return ['dashboard', 'tender', 'blacklist', 'vendor_profile', 'katalog', 'purchasing'];
   return ['dashboard'];

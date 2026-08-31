@@ -23,6 +23,7 @@ import LoginLogs from './pages/LoginLogs';
 import ApiKeys from './pages/ApiKeys';
 import DocumentExpiry from './pages/DocumentExpiry';
 import Integration from './pages/Integration';
+import ExecutiveDashboard from './pages/ExecutiveDashboard';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -270,6 +271,7 @@ function AppShell() {
     api_keys: <ApiKeys />,
     document_expiry: <DocumentExpiry />,
     integration_oracle: <Integration />,
+    executive_dashboard: <ExecutiveDashboard />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;
