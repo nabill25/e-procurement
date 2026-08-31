@@ -242,4 +242,5 @@ export const navItems = [
   { id: 'login_logs', label: 'Riwayat Login',    icon: 'History' },
   { id: 'api_keys',   label: 'API Key',           icon: 'KeyRound' },
   { id: 'document_expiry', label: 'Dokumen Kedaluwarsa', icon: 'AlertTriangle' },
+  { id: 'integration_oracle', label: 'Integrasi Oracle', icon: 'RefreshCw' },
 ];
