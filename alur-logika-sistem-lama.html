@@ -1,0 +1,738 @@
+<title>Alur Logika Sistem eProc Lama</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --surface-2:#eef1f6;
+  --ink:#161c2b; --ink-2:#4a5268; --ink-3:#7d8496;
+  --line:#dde1ea; --line-2:#e8eaf0;
+  --navy:#0e2a4d; --navy-2:#163a66; --gold:#b8863b; --gold-bg:#faf3e6;
+  --get:#1a7a4c; --get-bg:#e8f6ee;
+  --post:#b8863b; --post-bg:#faf3e6;
+  --patch:#2563a8; --patch-bg:#e9f1fb;
+  --delete:#b3382c; --delete-bg:#fbeae8;
+  --code-bg:#f1f3f7; --code-ink:#1f2937;
+  --focus:#2563a8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1420; --surface:#161d2c; --surface-2:#1d2537;
+    --ink:#eef1f6; --ink-2:#b7bfd1; --ink-3:#8891a6;
+    --line:#2a3348; --line-2:#242c40;
+    --navy:#7fa8d9; --navy-2:#5f8fc9; --gold:#e0b46f; --gold-bg:#2c2213;
+    --get:#5cc994; --get-bg:#12291e;
+    --post:#e0b46f; --post-bg:#2c2213;
+    --patch:#7fb0ea; --patch-bg:#132538;
+    --delete:#f0897b; --delete-bg:#2e1613;
+    --code-bg:#101624; --code-ink:#dbe2f0;
+    --focus:#7fb0ea;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1420; --surface:#161d2c; --surface-2:#1d2537;
+  --ink:#eef1f6; --ink-2:#b7bfd1; --ink-3:#8891a6;
+  --line:#2a3348; --line-2:#242c40;
+  --navy:#7fa8d9; --navy-2:#5f8fc9; --gold:#e0b46f; --gold-bg:#2c2213;
+  --get:#5cc994; --get-bg:#12291e;
+  --post:#e0b46f; --post-bg:#2c2213;
+  --patch:#7fb0ea; --patch-bg:#132538;
+  --delete:#f0897b; --delete-bg:#2e1613;
+  --code-bg:#101624; --code-ink:#dbe2f0;
+  --focus:#7fb0ea;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Source Sans 3', 'Segoe UI', -apple-system, sans-serif;
+  font-size:15.5px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{ font-family:'Source Serif 4', Georgia, serif; font-weight:600; text-wrap:balance; color:var(--ink); margin:0; }
+a{color:var(--patch)}
+a:focus-visible, button:focus-visible, summary:focus-visible{outline:2px solid var(--focus); outline-offset:2px; border-radius:4px}
+code, .mono{ font-family:'JetBrains Mono', ui-monospace, Consolas, monospace; }
+
+.shell{ display:grid; grid-template-columns:272px 1fr; min-height:100vh; }
+@media (max-width:900px){ .shell{ grid-template-columns:1fr; } }
+
+.toc{
+  background:var(--surface); border-right:1px solid var(--line);
+  padding:28px 20px 60px; position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+@media (max-width:900px){ .toc{ position:static; height:auto; border-right:none; border-bottom:1px solid var(--line); padding-bottom:24px; } }
+.toc-brand{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.toc-brand-mark{
+  width:34px; height:34px; border-radius:8px; flex:none;
+  background:linear-gradient(155deg, #4a5568, #262f3d);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-family:'Source Serif 4', serif; font-weight:700; font-size:14px;
+}
+.toc-brand-text{ font-size:12.5px; line-height:1.35; color:var(--ink-3); }
+.toc-brand-text b{ display:block; color:var(--ink); font-size:13.5px; font-weight:700; }
+.toc-meta{ font-size:11.5px; color:var(--ink-3); margin:14px 0 22px; padding-bottom:18px; border-bottom:1px solid var(--line-2); }
+.toc-meta div + div{ margin-top:3px; }
+.toc-group{ margin-bottom:4px; }
+.toc a.toc-link{
+  display:flex; align-items:baseline; gap:8px; padding:6px 8px; border-radius:6px;
+  color:var(--ink-2); text-decoration:none; font-size:13.5px;
+}
+.toc a.toc-link:hover{ background:var(--surface-2); color:var(--ink); }
+.toc a.toc-link .n{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--ink-3); flex:none; min-width:18px; }
+
+main{ padding:56px 64px 120px; max-width:900px; }
+@media (max-width:900px){ main{ padding:36px 20px 90px; } }
+
+.hero{ margin-bottom:56px; }
+.hero-eyebrow{
+  display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3);
+  background:var(--surface-2); padding:5px 11px; border-radius:100px; margin-bottom:18px;
+}
+h1.hero-title{ font-size:clamp(28px,4vw,38px); line-height:1.15; margin-bottom:16px; }
+.hero-lede{ font-size:16.5px; color:var(--ink-2); max-width:64ch; line-height:1.65; }
+.hero-lede + .hero-lede{ margin-top:12px; }
+
+.stat-row{ display:flex; gap:28px; flex-wrap:wrap; margin-top:32px; padding-top:28px; border-top:1px solid var(--line); }
+.stat{ min-width:110px; }
+.stat b{ display:block; font-family:'Source Serif 4', serif; font-size:26px; color:var(--navy-2); }
+.stat span{ font-size:12px; color:var(--ink-3); }
+
+.howto{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:22px 26px; margin-bottom:56px; display:grid; gap:14px;
+}
+.howto h3{ font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-family:'Source Sans 3',sans-serif; }
+.howto-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px 24px; }
+.howto-item{ display:flex; gap:10px; align-items:flex-start; font-size:13.5px; color:var(--ink-2); }
+.howto-item .dot{ width:9px; height:9px; border-radius:3px; flex:none; margin-top:5px; }
+
+.module{ padding-top:70px; margin-top:-24px; scroll-margin-top:24px; }
+.module:first-of-type{ padding-top:0; }
+.module-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:8px; }
+.module-num{
+  font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--ink-3);
+  border:1px solid var(--line); border-radius:100px; padding:3px 10px; flex:none; margin-top:6px;
+}
+h2.module-title{ font-size:25px; }
+.module-sub{ color:var(--ink-3); font-size:13.5px; margin:6px 0 26px; }
+.module-desc{ color:var(--ink-2); margin-bottom:28px; max-width:70ch; }
+.module-desc p + p{ margin-top:10px; }
+
+.flow{ list-style:none; margin:0 0 32px; padding:0; position:relative; }
+.flow::before{
+  content:''; position:absolute; left:17px; top:8px; bottom:8px; width:1.5px;
+  background:var(--line);
+}
+.flow-step{ position:relative; padding:0 0 26px 52px; }
+.flow-step:last-child{ padding-bottom:2px; }
+.flow-step-num{
+  position:absolute; left:0; top:0; width:36px; height:36px; border-radius:10px;
+  background:var(--surface); border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px; color:var(--navy-2);
+  z-index:1;
+}
+.flow-step-actor{ font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
+.flow-step-title{ font-size:15.5px; font-weight:600; color:var(--ink); margin-bottom:5px; }
+.flow-step-body{ color:var(--ink-2); font-size:14px; }
+.flow-step-body p + p{ margin-top:8px; }
+.flow-step-endpoint{
+  display:inline-flex; align-items:center; gap:8px; margin-top:9px; font-family:'JetBrains Mono', monospace; font-size:12px;
+  background:var(--code-bg); color:var(--code-ink); padding:5px 10px; border-radius:6px; flex-wrap:wrap;
+}
+.php-ctrl{ font-weight:700; padding:1px 6px; border-radius:4px; font-size:10.5px; background:var(--patch-bg); color:var(--patch); }
+.flow-step-check{
+  margin-top:10px; padding:10px 13px; border-radius:8px; background:var(--gold-bg);
+  border:1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  font-size:13px; color:var(--ink-2); display:flex; gap:9px;
+}
+.flow-step-check b{ color:var(--gold); flex:none; }
+
+.branch{
+  margin:0 0 32px 52px; border:1px dashed var(--line); border-radius:10px; padding:16px 18px;
+  background:var(--surface-2);
+}
+.branch-label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); margin-bottom:10px; }
+.branch-opt{ display:flex; gap:10px; padding:7px 0; font-size:13.5px; color:var(--ink-2); border-top:1px solid var(--line-2); }
+.branch-opt:first-of-type{ border-top:none; }
+.branch-opt b{ color:var(--ink); flex:none; min-width:150px; }
+
+.status-flow{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 32px 52px; }
+.status-pill{
+  font-family:'JetBrains Mono', monospace; font-size:12px; padding:5px 12px; border-radius:100px;
+  background:var(--surface); border:1px solid var(--line); color:var(--ink-2);
+}
+.status-pill.now{ border-color:var(--navy-2); color:var(--navy-2); font-weight:700; background:var(--patch-bg); }
+.status-arrow{ color:var(--ink-3); font-size:14px; }
+
+.module-note{
+  margin:8px 0 0 52px; padding:14px 16px; border-radius:10px; border:1px solid var(--line);
+  background:var(--surface); font-size:13.5px; color:var(--ink-2);
+}
+.module-note b{ color:var(--ink); }
+.module-note.dead{ border-color:color-mix(in srgb, var(--delete) 35%, var(--line)); background:var(--delete-bg); }
+
+hr.rule{ border:none; border-top:1px solid var(--line); margin:70px 0 0; }
+footer{ margin-top:80px; padding-top:28px; border-top:1px solid var(--line); color:var(--ink-3); font-size:12.5px; }
+
+@media (prefers-reduced-motion: no-preference){
+  .module{ animation:fadeIn .4s ease both; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+
+<div class="shell">
+
+  <nav class="toc" aria-label="Daftar modul">
+    <div class="toc-brand">
+      <div class="toc-brand-mark">CI</div>
+      <div class="toc-brand-text"><b>eProc UI (Lama)</b>Alur logika modul</div>
+    </div>
+    <div class="toc-meta">
+      <div>CodeIgniter 3 · PHP</div>
+      <div>Sistem berjalan di production sekarang</div>
+    </div>
+
+    <div class="toc-group">
+      <a class="toc-link" href="#modul-vendor"><span class="n">01</span> Vendor / Rekanan</a>
+      <a class="toc-link" href="#modul-tender"><span class="n">02</span> Paket / Tender</a>
+      <a class="toc-link" href="#modul-aanwijzing"><span class="n">03</span> Aanwijzing</a>
+      <a class="toc-link" href="#modul-evaluasi"><span class="n">04</span> Evaluasi</a>
+      <a class="toc-link" href="#modul-negosiasi"><span class="n">05</span> Negosiasi</a>
+      <a class="toc-link" href="#modul-sanggah"><span class="n">06</span> Sanggah</a>
+      <a class="toc-link" href="#modul-kontrak"><span class="n">07</span> Contracting / Kontrak</a>
+      <a class="toc-link" href="#modul-purchasing"><span class="n">08</span> Purchasing</a>
+      <a class="toc-link" href="#modul-katalog"><span class="n">09</span> Katalog</a>
+      <a class="toc-link" href="#modul-rup"><span class="n">10</span> Permohonan Paket / RUP</a>
+      <a class="toc-link" href="#modul-blacklist"><span class="n">11</span> Blacklist</a>
+      <a class="toc-link" href="#modul-user"><span class="n">12</span> User &amp; Hak Akses Menu</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <span class="hero-eyebrow">Referensi · sistem lama (production)</span>
+      <h1 class="hero-title">Alur logika sistem eProc lama</h1>
+      <p class="hero-lede">Dokumen ini memetakan alur kerja 12 modul besar sistem eProc yang <b>sedang berjalan di production sekarang</b> (CodeIgniter 3 / PHP), langsung dari pembacaan kode controller aslinya di <code>eproc/application/controllers/</code>. Dipakai sebagai pembanding saat menilai kelengkapan migrasi ke sistem baru, atau sebagai rujukan cepat kalau perlu memahami perilaku sistem lama tanpa harus menelusuri kode dari nol.</p>
+      <p class="hero-lede">Beberapa alur di sistem lama jauh lebih rumit dari yang terlihat sekilas dari nama tabel database saja &mdash; itulah sumber kesan sistem lama "lebih kompleks", dan dokumen ini menunjukkan persisnya di mana letak kerumitan itu.</p>
+
+      <div class="stat-row">
+        <div class="stat"><b>12</b><span>modul dibahas</span></div>
+        <div class="stat"><b>184</b><span>controller aktif</span></div>
+        <div class="stat"><b>618</b><span>file view (folder utama)</span></div>
+        <div class="stat"><b>218</b><span>tabel database</span></div>
+      </div>
+    </div>
+
+    <div class="howto">
+      <h3>Cara membaca dokumen ini</h3>
+      <div class="howto-grid">
+        <div class="howto-item"><span class="dot" style="background:var(--navy-2)"></span> Kode kecil biru adalah <b>controller::fungsi()</b> PHP yang benar-benar menjalankan langkah itu, dicocokkan langsung ke file di <code>eproc/application/controllers/</code>.</div>
+        <div class="howto-item"><span class="dot" style="background:var(--gold)"></span> Kotak kuning berisi <b>hal penting/aturan bisnis</b> yang ditemukan di kode, bukan tebakan dari nama fungsi.</div>
+        <div class="howto-item"><span class="dot" style="background:var(--delete)"></span> Kotak merah menandai <b>kode mati</b> &mdash; controller yang ada tapi terkonfirmasi tidak pernah dipanggil dari halaman manapun.</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-vendor">
+      <div class="module-head">
+        <span class="module-num">01</span>
+        <div>
+          <h2 class="module-title">Vendor / Rekanan</h2>
+          <div class="module-sub">controllers/rekanan_json.php &mdash; ±3700 baris, inti seluruh siklus hidup vendor</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>Registrasi mandiri, verifikasi tatap muka, sampai kualifikasi lengkap (SIKaP). Berbeda dari sistem baru, verifikasi di sistem lama secara eksplisit mensyaratkan kehadiran fisik.</p></div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Calon Vendor</div>
+          <div class="flow-step-title">Registrasi mandiri lewat form publik</div>
+          <div class="flow-step-body"><p>Mengisi data dasar perusahaan, sistem membuat akun dengan <code>USER_STATUS='0'</code> (belum aktif) dan token aktivasi (<code>USER_AUTH = sha1(email)</code>).</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">rekanan_json</span>::excRekananInsert()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Sistem</div>
+          <div class="flow-step-title">Kirim email aktivasi akun</div>
+          <div class="flow-step-body"><p>Email berisi link aktivasi (<code>main/index/aktivasi_akun?auth=...</code>) dikirim ke alamat yang didaftarkan.</p></div>
+          <div class="flow-step-endpoint">view: email/registrasi_rekanan.php</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Vendor</div>
+          <div class="flow-step-title">Lengkapi dokumen &amp; data kualifikasi (SIKaP)</div>
+          <div class="flow-step-body"><p>Akta, NPWP, izin usaha, pajak, pengurus, tenaga ahli (+riwayat pendidikan/pengalaman/sertifikat per orang), peralatan, neraca, rekening koran bulanan, bidang usaha (dicari dari database KBLI/SBU resmi).</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">rekanan_akta_json</span> · <span class="php-ctrl">rekanan_tenaga_ahli_json</span> · <span class="php-ctrl">bidang_usaha_json</span> dst.</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-actor">Pimpinan/Direksi Vendor</div>
+          <div class="flow-step-title">Datang langsung ke kantor DPBJ untuk verifikasi</div>
+          <div class="flow-step-body"><p>Membawa dokumen fisik asli + surat kuasa (kalau diwakilkan), verifikasi cuma dilayani Senin-Jumat jam 09.00-15.00 dengan konfirmasi kedatangan dulu &mdash; ini persyaratan eksplisit yang tercantum di email registrasi, bukan cuma prosedur internal.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">5</div>
+          <div class="flow-step-actor">Admin/Verifikator DPBJ</div>
+          <div class="flow-step-title">Validasi dokumen di sistem</div>
+          <div class="flow-step-body"><p>Status berubah, email "Informasi Verifikasi" dikirim ke vendor.</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">rekanan_json</span>::excValidasi()</div>
+          <div class="flow-step-check"><b>Cek:</b> vendor yang belum lengkap dokumennya bisa ditolak, statusnya kembali ke draft dengan catatan.</div>
+        </li>
+      </ol>
+      <div class="module-note"><b>Beda mencolok dari sistem baru:</b> verifikasi wajib tatap muka fisik (bukan cuma tinjau dokumen online), dan detail tenaga ahli tersimpan berjenjang per-orang (pendidikan/pengalaman/sertifikat masing-masing tabel terpisah), bukan data datar.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-tender">
+      <div class="module-head">
+        <span class="module-num">02</span>
+        <div>
+          <h2 class="module-title">Paket / Tender</h2>
+          <div class="module-sub">controllers/paket_json.php &mdash; modul tunggal terbesar, puluhan fungsi publish terpisah</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>Berbeda dari sistem baru yang memakai satu kolom <code>status</code>, sistem lama memakai <b>rangkaian fungsi "publish" terpisah</b> per tahap &mdash; tiap tahap adalah aksi eksplisit tersendiri, bukan transisi status otomatis.</p></div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Pokja/PPK</div>
+          <div class="flow-step-title">Buat paket</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::add()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Pokja/PPK</div>
+          <div class="flow-step-title">Publish paket (umumkan ke publik)</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::set_publish_paket() &middot; set_validasi_publish_paket()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Vendor</div>
+          <div class="flow-step-title">Mendaftar &amp; mengunggah penawaran</div>
+          <div class="flow-step-body"><p>Terikat validasi <code>LULUS_PENDAFTARAN</code> dan <code>LULUS_KUALIFIKASI</code> &mdash; kalau salah satu belum lulus, dokumen penawaran vendor itu ditandai "TIDAK DAPAT DIBUKA / TIDAK LENGKAP" saat pembukaan.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Publish pembukaan penawaran (sampul 1)</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::set_publish_pembukaan()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">5</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Publish evaluasi (kualifikasi/administrasi/teknis)</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::set_publish_evaluasi() &middot; set_publish_kualifikasi() &middot; publish_evaluasi_kualifikasi()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">6</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Publish pembukaan sampul 2 (khusus metode 2 sampul)</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::set_publish_pembukaan_sampul2() &middot; set_publish_evaluasi2()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">7</div>
+          <div class="flow-step-actor">Panitia/PPK</div>
+          <div class="flow-step-title">Publish pemenang</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::pemenang_publish_json() &middot; pemenang_publish_json2()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">8</div>
+          <div class="flow-step-actor">PPK/Pokja &harr; Vendor pemenang</div>
+          <div class="flow-step-title">Negosiasi &amp; publish hasil negosiasi</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::addEditNegosiasi() &middot; setPublishNegosiasi()</div>
+        </li>
+      </ol>
+      <div class="module-note"><b>Kompleksitas kunci:</b> setiap tahap adalah fungsi "publish" tersendiri yang harus dipicu manual satu-satu oleh panitia, bukan transisi status otomatis berdasarkan tanggal. Ini yang membuat alur tender di sistem lama terasa "berlapis" &mdash; ada langkah eksplisit "publish" di titik yang di sistem baru cukup jadi perubahan kolom <code>status</code>.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-aanwijzing">
+      <div class="module-head">
+        <span class="module-num">03</span>
+        <div>
+          <h2 class="module-title">Aanwijzing</h2>
+          <div class="module-sub">controllers/paket_aanwijzing_json.php + email/aanwijzing_publish.php</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Buka jadwal aanwijzing &amp; kirim email publikasi</div>
+          <div class="flow-step-body"><p>Email <code>aanwijzing_publish.php</code> dikirim ke seluruh vendor terdaftar begitu jadwal dipublikasikan.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Vendor</div>
+          <div class="flow-step-title">Konfirmasi kehadiran (PHPSHOUTBOX, pesan khusus)</div>
+          <div class="flow-step-body"><p>Baris chat dengan penanda <code>PESAN='CONFIRMED'</code> menandai kehadiran &mdash; bukan tabel terpisah, melainkan konvensi nilai khusus di tabel chat yang sama.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Panitia &harr; Vendor</div>
+          <div class="flow-step-title">Tanya-jawab dalam satu ruang chat bersama (broadcast)</div>
+          <div class="flow-step-body"><p>Setiap pertanyaan/jawaban punya relasi <code>PARENT_ID</code> untuk menandai balasan bersarang.</p></div>
+        </li>
+      </ol>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-evaluasi">
+      <div class="module-head">
+        <span class="module-num">04</span>
+        <div>
+          <h2 class="module-title">Evaluasi</h2>
+          <div class="module-sub">controllers/rekanan_evaluasi_*_json.php (9 kategori) + allfunc.js (rumus)</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>Modul paling detail di seluruh sistem: 9 kategori evaluasi terpisah, sebagian pakai rumus otomatis, sebagian manual.</p></div>
+
+      <div class="branch">
+        <div class="branch-label">Dua cara penilaian, tergantung kategori (dikonfirmasi lewat allfunc.js + halaman aktif mana yang benar-benar memanggilnya)</div>
+        <div class="branch-opt"><b>Manual murni</b> Administrasi, Teknis, Harga, Kualifikasi, Pengalaman &mdash; walau ada fungsi rumus kompleks <code>hitungBidangPekerjaan()</code> untuk kategori Pengalaman, fungsi itu <b>tidak pernah dipanggil</b> dari halaman aktif manapun (kode mati).</div>
+        <div class="branch-opt"><b>Rumus otomatis aktif</b> Personil, Peralatan, Sertifikat Lain &mdash; <code>hitungPersonil()</code>, <code>hitungPeralatan()</code>, <code>hitungSertifikat()</code> di <code>allfunc.js</code> benar-benar dipanggil dari <code>evaluasi_kualifikasi_personil.php</code> dst.</div>
+      </div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Buka halaman evaluasi kualifikasi per kategori</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Nilai tiap item yang diajukan vendor (S/TS/manual)</div>
+          <div class="flow-step-body"><p>Untuk Personil/Peralatan/Sertifikat: skor dihitung otomatis dari kesesuaian item + faktor kepemilikan/kecukupan jumlah.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Validasi hasil evaluasi &amp; publish</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::set_validasi_publish_hasil_kualifikasi_paket()</div>
+        </li>
+      </ol>
+      <div class="module-note dead"><b>Kode mati yang ditemukan:</b> rumus <code>hitungBidangPekerjaan()</code> untuk kategori Pengalaman (memakai field BP_NILAI, NK1/NK2/NK3, STBU) ada di kode tapi tidak pernah dipanggil &mdash; kategori Pengalaman di halaman yang benar-benar aktif tetap input manual murni.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-negosiasi">
+      <div class="module-head">
+        <span class="module-num">05</span>
+        <div>
+          <h2 class="module-title">Negosiasi</h2>
+          <div class="module-sub">controllers/paket_negoisasi_json.php</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Panitia/PPK</div>
+          <div class="flow-step-title">Mulai negosiasi dengan vendor pemenang</div>
+          <div class="flow-step-body"><p>Email undangan dikirim (chat biasa vs reverse auction, dua alur email berbeda: <code>undangan_negosiasi_chat.php</code> / <code>undangan_negosiasi_reverse.php</code>).</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Panitia/PPK &harr; Vendor</div>
+          <div class="flow-step-title">Tawar-menawar via chat (NEGOSHOUTBOX)</div>
+        </li>
+      </ol>
+      <div class="branch">
+        <div class="branch-label">Dua mode negosiasi berbeda</div>
+        <div class="branch-opt"><b>Satu pemenang</b> Chat langsung dengan 1 vendor pemenang, email <code>negosiasi_paket.php</code>.</div>
+        <div class="branch-opt"><b>Multi pemenang</b> Beberapa vendor sekaligus (paket dipecah item), email khusus <code>negosiasi_paket_multipemenang.php</code> per unit/satuan.</div>
+        <div class="branch-opt"><b>Reverse auction</b> Vendor saling menurunkan harga kompetitif secara real-time, email <code>undangan_negosiasi_reverse.php</code>.</div>
+      </div>
+      <li class="flow-step" style="margin-top:-20px">
+        <div class="flow-step-num">3</div>
+        <div class="flow-step-actor">Panitia/PPK</div>
+        <div class="flow-step-title">Publish hasil negosiasi final</div>
+        <div class="flow-step-endpoint"><span class="php-ctrl">paket_json</span>::setPublishNegosiasi()</div>
+      </li>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-sanggah">
+      <div class="module-head">
+        <span class="module-num">06</span>
+        <div>
+          <h2 class="module-title">Sanggah</h2>
+          <div class="module-sub">controllers/paket_sanggah_json.php</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Vendor</div>
+          <div class="flow-step-title">Ajukan dokumen sanggahan</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_sanggah_json</span>::dokumen_sanggah_rekanan()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Panitia</div>
+          <div class="flow-step-title">Tanggapi sanggahan</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">paket_sanggah_json</span>::dokumen_sanggah_tanggapan()</div>
+        </li>
+      </ol>
+      <div class="module-note"><b>Catatan:</b> sanggah kualifikasi punya jalur terpisah persis sama (<code>dokumen_sanggah_kualifikasi_rekanan()</code> / <code>dokumen_sanggah_kualifikasi_tanggapan()</code>) &mdash; dua alur paralel identik, dibedakan cuma dari tahap prosesnya (sanggah hasil vs sanggah kualifikasi).</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-kontrak">
+      <div class="module-head">
+        <span class="module-num">07</span>
+        <div>
+          <h2 class="module-title">Contracting / Kontrak</h2>
+          <div class="module-sub">controllers/contracting_json.php &mdash; 4756 baris, ~65 fungsi, modul terbesar di seluruh sistem</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>Berjalan lewat folder view terpisah <code>views/kontrak/</code> (175 file) dikendalikan controller dinamis <code>kontrak.php</code> &mdash; arsitektur beda sendiri dari modul lain yang kebanyakan lewat <code>views/main/</code>.</p></div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">PPK</div>
+          <div class="flow-step-title">Terbitkan SPPBJ</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">contracting_json</span>::addSppbj() &middot; addSppbjMulti() &middot; addSppbjNon()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">PPK</div>
+          <div class="flow-step-title">Terbitkan SPMK</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">contracting_json</span>::addSpmk()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">PPK</div>
+          <div class="flow-step-title">Terbitkan SPK/PKS/Surat Perjanjian</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">contracting_json</span>::addSPK() &middot; addSPKPKS() &middot; proseskontrak()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-actor">PPK/Penyedia</div>
+          <div class="flow-step-title">Kontrak berjalan lewat 4 tahap</div>
+          <div class="flow-step-body"><p>Persiapan (kode 0/1/2) &rarr; Pengendalian (3) &rarr; Penyelesaian (4/5) &rarr; Selesai (6), field <code>CONTRACTINGPROSESID</code>. Termin pembayaran, sanksi keterlambatan, deliverable, jaminan, SLA dikelola dalam tahap ini.</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">contracting_json</span>::addPayment() &middot; addSanksi() &middot; addDeliverable() &middot; addSLA()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">5</div>
+          <div class="flow-step-actor">PPK</div>
+          <div class="flow-step-title">BAST Hasil Pekerjaan, lalu BAST Masa Pemeliharaan</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">contracting_json</span>::addBASTHasil() &middot; addBASTPemeliharaan()</div>
+        </li>
+      </ol>
+      <div class="status-flow" aria-label="7 kode status kontrak">
+        <span class="status-pill">0 Persiapan</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill">1</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill">2</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill">3 Pengendalian</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill">4</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill">5 Penyelesaian</span><span class="status-arrow">&rarr;</span>
+        <span class="status-pill now">6 Selesai</span>
+      </div>
+      <div class="module-note"><b>Percabangan tambahan:</b> 7 jenis perubahan status kontrak masing-masing fungsi sendiri dengan pola identik (flag+alasan+file) &mdash; <code>addPerubahanKontrak</code>, <code>addPenyesuaianKontrak</code>, <code>addKaharKontrak</code> (force majeure), <code>addBerakhirKontrak</code>, <code>addPemutusanKontrak</code>, <code>addKesempatanKontrak</code>, <code>addDendaKontrak</code>. Addendum butuh 2 approval terpisah (Kasubdit dan Penyedia) sebelum status berubah "selesai".</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-purchasing">
+      <div class="module-head">
+        <span class="module-num">08</span>
+        <div>
+          <h2 class="module-title">Purchasing</h2>
+          <div class="module-sub">controllers/katalog_offline_json.php + katalog_pemerintah_json.php</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>Bukan tentang katalog produk sama sekali (nama controllernya menyesatkan) &mdash; ini alur pembelian langsung tanpa tender penuh (metode Pembelian Langsung/Offline/Pemerintah), operasinya ke tabel <code>Paket</code> dan <code>Purchasingfile</code>.</p></div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Pokja/PPK</div>
+          <div class="flow-step-title">Pilih paket dengan metode pembelian langsung</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">katalog_offline_json</span>::json_pejabat_offline()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Pokja/PPK</div>
+          <div class="flow-step-title">Unggah dokumen bukti pembelian (nota, kuitansi)</div>
+          <div class="flow-step-body"><p>File tersimpan ke folder <code>uploads/purchasing/</code>, tercatat di tabel <code>Purchasingfile</code> dengan jenis dan keterangan, otomatis tercatat ke Rekam Jejak (kode posisi 359).</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">katalog_offline_json</span>::addfile()</div>
+        </li>
+      </ol>
+      <div class="module-note dead"><b>Kode mati ditemukan:</b> <code>purchasing_json.php</code> (1485 baris, berisi salinan hampir semua fungsi <code>contracting_json.php</code> seperti addSppbj/addSPK/addBASTHasil) terkonfirmasi <b>tidak pernah dipanggil dari view manapun</b> &mdash; kemungkinan versi awal/percobaan dari modul Kontrak yang ditinggalkan, bukan modul Purchasing sungguhan.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-katalog">
+      <div class="module-head">
+        <span class="module-num">09</span>
+        <div>
+          <h2 class="module-title">Katalog</h2>
+          <div class="module-sub">controllers/katalog_json.php &mdash; ±1400 baris, toko online mini terhubung ke RUP</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Vendor</div>
+          <div class="flow-step-title">Tayangkan produk (foto, kategori, harga)</div>
+          <div class="flow-step-body"><p>Perubahan harga otomatis tercatat ke riwayat harga &mdash; tapi cuma kalau harga baru benar-benar beda dari harga lama (dibandingkan eksplisit sebelum insert).</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Pembeli (PPK/Pokja)</div>
+          <div class="flow-step-title">Pilih pengajuan (RUP) sebagai wadah belanja, lalu masukkan ke keranjang</div>
+          <div class="flow-step-body"><p>Produk yang sama ditambah dua kali otomatis menambah kuantitas baris yang ada, bukan bikin baris baru.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Pembeli &harr; Vendor</div>
+          <div class="flow-step-title">Negosiasi harga + ongkos kirim</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-actor">Pembeli</div>
+          <div class="flow-step-title">Alur status pesanan, 6 tahap berurutan ketat</div>
+          <div class="flow-step-body"><p>Proses Pemilihan &rarr; Negosiasi &rarr; Penyedia Setuju &rarr; Surat Pesanan &rarr; Diproses &rarr; Dikirim &rarr; Diterima. Nomor invoice otomatis terbit di transisi tahap pertama dan kedua saja.</p></div>
+        </li>
+      </ol>
+      <div class="module-note dead"><b>Kode mati ditemukan:</b> <code>katalog_surat_pernyataan</code> (tabel database) tidak punya controller sama sekali &mdash; tidak pernah benar-benar dipakai.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-rup">
+      <div class="module-head">
+        <span class="module-num">10</span>
+        <div>
+          <h2 class="module-title">Permohonan Paket / RUP</h2>
+          <div class="module-sub">controllers/permohonan_paket_usulan_json.php + permohonan_paket_approval_json.php</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Unit Kerja</div>
+          <div class="flow-step-title">Susun usulan kebutuhan, generate kode RUP resmi</div>
+          <div class="flow-step-body"><p>Fungsi <code>generateKodeRUP()</code> membuat nomor resmi mengikuti format standar LKPP.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Unit Kerja</div>
+          <div class="flow-step-title">Posting usulan ke SIRUP</div>
+          <div class="flow-step-body"><p>Fungsi <code>posting_usulan()</code> &mdash; integrasi ke Sistem Informasi Rencana Umum Pengadaan milik LKPP.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-actor">Approval berjenjang (6 level)</div>
+          <div class="flow-step-title">Staff &rarr; Kasubdit &rarr; Divisi &rarr; Validator 1 &rarr; Validator 2 &rarr; KPA</div>
+          <div class="flow-step-body"><p>Setiap level punya baris approval sendiri (bukan status tunggal), fungsi <code>tunjuk_pic()</code> menetapkan siapa penanggung jawab tiap tahap.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-actor">Sistem</div>
+          <div class="flow-step-title">Sinkron dengan SAP (Purchase Requisition)</div>
+          <div class="flow-step-body"><p><code>excUpdatePR()</code>/<code>getUpdatePR()</code> &mdash; integrasi PR dari SAP ERP kampus.</p></div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">5</div>
+          <div class="flow-step-actor">KPA</div>
+          <div class="flow-step-title">Tetapkan metode pengadaan, paket resmi terbentuk</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">permohonan_paket_json</span>::tetapkan_metode()</div>
+        </li>
+      </ol>
+      <div class="module-note"><b>Kompleksitas terbesar di modul ini:</b> approval 6 level + integrasi SIRUP + integrasi SAP PR, semuanya jauh lebih matang dari yang tersirat dari nama tabel database saja. Sistem baru sengaja menyederhanakan bagian SIRUP/SAP ini (butuh akses API eksternal resmi yang tidak dimiliki).</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-blacklist">
+      <div class="module-head">
+        <span class="module-num">11</span>
+        <div>
+          <h2 class="module-title">Blacklist</h2>
+          <div class="module-sub">controllers/blacklist_json.php</div>
+        </div>
+      </div>
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Admin</div>
+          <div class="flow-step-title">Tambah entri blacklist + unggah SK</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">blacklist_json</span>::blacklist_add_coba() &middot; addfile()</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Publik</div>
+          <div class="flow-step-title">Lihat daftar (transparansi)</div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">blacklist_json</span>::json()</div>
+        </li>
+      </ol>
+      <div class="module-note">Modul paling sederhana di seluruh sistem &mdash; cuma 426 baris, CRUD lurus tanpa alur bertingkat.</div>
+    </section>
+
+    <hr class="rule">
+
+    <!-- ============================================================ -->
+    <section class="module" id="modul-user">
+      <div class="module-head">
+        <span class="module-num">12</span>
+        <div>
+          <h2 class="module-title">User &amp; Hak Akses Menu</h2>
+          <div class="module-sub">controllers/login.php + users_base_json.php + models/userloginmulti.php</div>
+        </div>
+      </div>
+      <div class="module-desc"><p>14 role aktif, dan satu akun bisa terdaftar dengan <b>lebih dari satu role sekaligus</b> &mdash; mekanisme yang sama sekali tidak ada di sistem baru sampai fondasinya dibangun ulang khusus untuk migrasi ini.</p></div>
+
+      <ol class="flow">
+        <li class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-actor">Pengguna</div>
+          <div class="flow-step-title">Login (manual atau lewat SSO)</div>
+          <div class="flow-step-body"><p>SSO terhubung ke <code>sso.ui.ac.id</code> (CAS). Validasi manual dan SSO sama-sama masuk lewat controller yang sama.</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">login</span>::action() &middot; eprocsso()</div>
+        </li>
+        <li class="branch">
+          <div class="branch-label">Percabangan setelah login</div>
+          <div class="branch-opt"><b>1 role</b> Langsung masuk ke sistem.</div>
+          <div class="branch-opt"><b>&gt;1 role</b> Popup <code>user_login_multi.php</code> muncul, minta pilih role aktif untuk sesi ini.</div>
+        </li>
+        <li class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-actor">Pengguna (kalau multi role)</div>
+          <div class="flow-step-title">Pilih role, sistem menyalin ke akun utama</div>
+          <div class="flow-step-body"><p>Fungsi <code>excSplitRole()</code> menyalin role terpilih ke <code>user_login.USER_TYPE_ID</code>, mencatat riwayat di <code>USER_LOGIN_MULTI_REKAM</code>, lalu sesi di-refresh.</p></div>
+          <div class="flow-step-endpoint"><span class="php-ctrl">users_base_json</span>::excSplitRole()</div>
+        </li>
+      </ol>
+      <div class="module-note"><b>14 role aktif</b> (dari total 24 yang pernah dibuat, 10 nonaktif): Administrator, Admin VMS, Pokja, Administrator Approval, Penyedia, Manager Pengadaan, Pengguna, Audit, Pelaksana Pengadaan, Pengelola Kontrak, Approval VMS, Kasubdit Kontrak, Perencanaan, PPK. Sebagian punya jenjang level sendiri (mis. Perencanaan: Staff/Kasi/Kasubdit).</div>
+    </section>
+
+    <footer>
+      Dokumen disusun dari pembacaan langsung kode controller PHP sistem lama di <code>eproc/application/controllers/</code>, dikonfirmasi silang ke folder view aktif (<code>views/main/</code>, <code>views/kontrak/</code>) untuk memastikan setiap fungsi yang disebut memang benar-benar dipakai, bukan kode yang sudah ditinggalkan.
+    </footer>
+
+  </main>
+</div>
