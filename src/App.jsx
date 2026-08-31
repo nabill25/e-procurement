@@ -28,6 +28,10 @@ import KontakKami from './pages/KontakKami';
 import RegistrasiVendor from './pages/RegistrasiVendor';
 import QrVerify from './pages/QrVerify';
 import PublicPolicyPage from './pages/PublicPolicyPage';
+import PrintPembukaanPenawaran from './pages/print/PrintPembukaanPenawaran';
+import PrintAanwijzing from './pages/print/PrintAanwijzing';
+import PrintPaktaIntegritas from './pages/print/PrintPaktaIntegritas';
+import PrintSppbj from './pages/print/PrintSppbj';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -159,6 +163,7 @@ function AppShell() {
   const {
     activePage, setActivePage,
     qrVerifyCode,
+    printDeepLink,
     isAuthLoading,
     isAuthenticated, user,
     showNewProcurementModal, closeNewProcurementModal,
@@ -226,6 +231,20 @@ function AppShell() {
         <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} onNavigateRegister={navigateTo} />
       </>
     );
+  }
+
+  // Halaman cetak dokumen resmi - full-screen tanpa sidebar/topbar, supaya hasil cetak/PDF
+  // bersih (lihat src/pages/print/). Ditaruh di sini (sesudah guard login) karena butuh akun
+  // yang sudah login, beda dari /verify/KODE yang publik.
+  if (activePage === 'print_document' && printDeepLink) {
+    const backToTender = () => { setActivePage('tender'); window.history.replaceState({}, '', '/'); };
+    const printPages = {
+      'pembukaan-penawaran': <PrintPembukaanPenawaran tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'aanwijzing': <PrintAanwijzing tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'pakta-integritas': <PrintPaktaIntegritas tenderId={printDeepLink.tenderId} vendorId={printDeepLink.vendorId} onBack={backToTender} />,
+      'sppbj': <PrintSppbj tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+    };
+    return printPages[printDeepLink.jenis] || <Dashboard />;
   }
 
   const pages = {

@@ -24,9 +24,16 @@ const DEFAULT_DEMO_USER = mockUsers[0];
 
 // ── Deep-link: buka /verify/KODE langsung ke halaman verifikasi QR ──
 // (misalnya saat kode QR di dokumen dipindai lewat kamera HP)
+// ── Deep-link: buka /cetak/JENIS/TENDER_ID(/VENDOR_ID) langsung ke halaman cetak dokumen
+// resmi (BAPP, Berita Acara Aanwijzing, Pakta Integritas, SPPBJ) - dibuka di tab baru dari
+// tombol "Cetak" di detail tender, supaya hasil cetak/PDF bersih tanpa sidebar aplikasi.
 function getDeepLinkFromUrl() {
-  const match = window.location.pathname.match(/^\/verify\/([A-Za-z0-9]+)$/);
-  if (match) return { page: 'public_qr_verify', code: match[1].toUpperCase() };
+  const verifyMatch = window.location.pathname.match(/^\/verify\/([A-Za-z0-9]+)$/);
+  if (verifyMatch) return { page: 'public_qr_verify', code: verifyMatch[1].toUpperCase() };
+
+  const cetakMatch = window.location.pathname.match(/^\/cetak\/([a-z-]+)\/([A-Za-z0-9-]+)(?:\/([A-Za-z0-9-]+))?$/);
+  if (cetakMatch) return { page: 'print_document', code: null, printJenis: cetakMatch[1], printTenderId: cetakMatch[2], printVendorId: cetakMatch[3] || null };
+
   return { page: 'public_home', code: null };
 }
 const initialDeepLink = getDeepLinkFromUrl();
@@ -34,6 +41,11 @@ const initialDeepLink = getDeepLinkFromUrl();
 export function AppProvider({ children }) {
   const [activePage, setActivePage] = useState(initialDeepLink.page);
   const [qrVerifyCode] = useState(initialDeepLink.code);
+  const [printDeepLink] = useState(
+    initialDeepLink.printJenis
+      ? { jenis: initialDeepLink.printJenis, tenderId: initialDeepLink.printTenderId, vendorId: initialDeepLink.printVendorId }
+      : null
+  );
   const [user, setUser] = useState(null);           // null = belum login
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true); // cek session awal
@@ -247,6 +259,7 @@ export function AppProvider({ children }) {
   const value = {
     activePage, setActivePage,
     qrVerifyCode,
+    printDeepLink,
     user, setUser,
     isAuthenticated,
     isAuthLoading,

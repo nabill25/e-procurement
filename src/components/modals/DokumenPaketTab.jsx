@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search, CalendarClock, Unlock } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search, CalendarClock, Unlock, Printer } from 'lucide-react';
 import { API_BASE, SERVER_BASE } from '../../context/AppContext';
 
 const DOC_TYPES = [
@@ -227,8 +227,32 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
     } catch { alert('Terjadi kesalahan saat menyimpan undangan.'); }
   };
 
+  const bukaCetak = (jenis, vendorId) => {
+    const url = `/cetak/${jenis}/${tenderId}${vendorId ? `/${vendorId}` : ''}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="space-y-5 animate-fade-in">
+
+      <Section icon={Printer} title="Cetak Dokumen Resmi" desc="Berita acara dan dokumen resmi, siap dicetak atau disimpan sebagai PDF.">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => bukaCetak('pembukaan-penawaran')} className="btn-secondary text-xs">
+            <Printer size={13} /> Berita Acara Pembukaan Penawaran
+          </button>
+          <button onClick={() => bukaCetak('aanwijzing')} className="btn-secondary text-xs">
+            <Printer size={13} /> Berita Acara Aanwijzing
+          </button>
+          {user?.role === 'vendor'
+            ? <button onClick={() => bukaCetak('pakta-integritas', user.id)} className="btn-secondary text-xs">
+                <Printer size={13} /> Pakta Integritas Saya
+              </button>
+            : <button onClick={() => bukaCetak('pakta-integritas')} className="btn-secondary text-xs">
+                <Printer size={13} /> Pakta Integritas Panitia
+              </button>
+          }
+        </div>
+      </Section>
 
       <Section icon={FileText} title="Dokumen Tender" desc="Dokumen resmi paket: lelang, kualifikasi, koreksi aritmatika, laporan.">
         {canManage && (

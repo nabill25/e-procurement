@@ -82,6 +82,7 @@ app.use('/api/inbox', require('./routes/inbox'));         // proteksi per-route 
 app.use('/api/cms', require('./routes/cms'));             // proteksi per-route di dalam file (konten publik)
 app.use('/api/qr', require('./routes/qr'));               // proteksi per-route di dalam file (verifikasi QR publik)
 app.use('/api/users', requireAuth, require('./routes/users')); // proteksi per-route di dalam file (GET / dan GET /roles dipakai PPK juga untuk dropdown staff)
+app.use('/api/print', require('./routes/print'));         // 100% privat (requireAuth dipasang di dalam file sendiri)
 
 // ── Default Route / Health Check ──
 app.get('/api', (req, res) => {

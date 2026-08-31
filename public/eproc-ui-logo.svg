@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="uiGoldGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD84D"/>
+      <stop offset="1" stop-color="#F5A800"/>
+    </linearGradient>
+    <linearGradient id="uiNavyGrad" x1="150" y1="150" x2="380" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22406E"/>
+      <stop offset="1" stop-color="#0E2041"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dasar kuning khas UI -->
+  <rect width="512" height="512" rx="112" fill="url(#uiGoldGrad)"/>
+
+  <!-- Perisai (lambang institusi/kepercayaan), garis navy di atas dasar kuning -->
+  <path d="M256 84 L376 126 V246 C376 332 324 392 256 430 C188 392 136 332 136 246 V126 Z"
+        fill="#FFFFFF" fill-opacity="0.22" stroke="#0E2041" stroke-opacity="0.85" stroke-width="7"/>
+
+  <!-- Dokumen -->
+  <rect x="198" y="162" width="118" height="150" rx="10" fill="#0E2041"/>
+  <rect x="218" y="190" width="78" height="9" rx="4.5" fill="#FFD84D"/>
+  <rect x="218" y="212" width="78" height="9" rx="4.5" fill="#FFD84D"/>
+  <rect x="218" y="234" width="50" height="9" rx="4.5" fill="#FFD84D"/>
+
+  <!-- Badge centang navy dengan cincin putih (verifikasi/persetujuan) -->
+  <circle cx="316" cy="296" r="55" fill="#FFFFFF"/>
+  <circle cx="316" cy="296" r="47" fill="url(#uiNavyGrad)"/>
+  <path d="M291 296 L308 313 L343 276" stroke="#FFD84D" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

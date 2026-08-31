@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog, ClipboardList } from 'lucide-react';
+import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrench, Package, FileEdit, MessageSquare, Bell, Paperclip, AlertTriangle, UserCog, ClipboardList, Printer } from 'lucide-react';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
@@ -84,6 +84,11 @@ export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }
             <p><span className="text-muted">Kode:</span> {contract?.sppbj_code || '-'}</p>
             <p><span className="text-muted">Nilai:</span> {contract?.sppbj_nilai ? formatRupiah(contract.sppbj_nilai, true) : '-'}</p>
           </div>
+        )}
+        {contract?.sppbj_code && (
+          <button onClick={() => window.open(`/cetak/sppbj/${tenderId}`, '_blank')} className="btn-secondary text-xs flex items-center gap-1 mt-3">
+            <Printer size={12} /> Cetak SPPBJ
+          </button>
         )}
       </Section>
 
