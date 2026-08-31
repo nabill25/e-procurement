@@ -34,6 +34,9 @@ function getDeepLinkFromUrl() {
   const cetakMatch = window.location.pathname.match(/^\/cetak\/([a-z-]+)\/([A-Za-z0-9-]+)(?:\/([A-Za-z0-9-]+))?$/);
   if (cetakMatch) return { page: 'print_document', code: null, printJenis: cetakMatch[1], printTenderId: cetakMatch[2], printVendorId: cetakMatch[3] || null };
 
+  const resetMatch = window.location.pathname.match(/^\/reset-password\/([A-Za-z0-9]+)$/);
+  if (resetMatch) return { page: 'reset_password', code: null, resetToken: resetMatch[1] };
+
   return { page: 'public_home', code: null };
 }
 const initialDeepLink = getDeepLinkFromUrl();
@@ -46,6 +49,7 @@ export function AppProvider({ children }) {
       ? { jenis: initialDeepLink.printJenis, tenderId: initialDeepLink.printTenderId, vendorId: initialDeepLink.printVendorId }
       : null
   );
+  const [resetPasswordToken] = useState(initialDeepLink.resetToken || null);
   const [user, setUser] = useState(null);           // null = belum login
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true); // cek session awal
@@ -260,6 +264,7 @@ export function AppProvider({ children }) {
     activePage, setActivePage,
     qrVerifyCode,
     printDeepLink,
+    resetPasswordToken,
     user, setUser,
     isAuthenticated,
     isAuthLoading,

@@ -28,6 +28,7 @@ import KontakKami from './pages/KontakKami';
 import RegistrasiVendor from './pages/RegistrasiVendor';
 import QrVerify from './pages/QrVerify';
 import PublicPolicyPage from './pages/PublicPolicyPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import PrintPembukaanPenawaran from './pages/print/PrintPembukaanPenawaran';
 import PrintAanwijzing from './pages/print/PrintAanwijzing';
 import PrintPaktaIntegritas from './pages/print/PrintPaktaIntegritas';
@@ -40,7 +41,7 @@ import LoginModal from './components/modals/LoginModal';
 import RoleSwitcherModal from './components/modals/RoleSwitcherModal';
 
 // Halaman yang menggunakan full public layout (tanpa sidebar/topbar)
-const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify', 'public_policy'];
+const PUBLIC_PAGES = ['public_home', 'public_tender', 'kontak', 'registrasi', 'public_blacklist', 'public_qr_verify', 'public_policy', 'reset_password'];
 
 // Loading screen saat cek session awal
 function AuthLoadingScreen() {
@@ -164,6 +165,7 @@ function AppShell() {
     activePage, setActivePage,
     qrVerifyCode,
     printDeepLink,
+    resetPasswordToken,
     isAuthLoading,
     isAuthenticated, user,
     showNewProcurementModal, closeNewProcurementModal,
@@ -202,6 +204,7 @@ function AppShell() {
       public_tender: <PublicTenderPage onNavigateHome={() => navigateTo('public_home')} />,
       public_blacklist: <Blacklist onNavigateHome={() => navigateTo('public_home')} />,
       public_qr_verify: <QrVerify initialCode={qrVerifyCode} onNavigateHome={() => navigateTo('public_home')} />,
+      reset_password: <ResetPasswordPage token={resetPasswordToken} onNavigateHome={() => navigateTo('public_home')} onLoginClick={() => setShowLogin(true)} />,
       kontak: <KontakKami onNavigateHome={() => navigateTo('public_home')} />,
       registrasi: <RegistrasiVendor onNavigateHome={() => navigateTo('public_home')} onLoginClick={() => setShowLogin(true)} />,
       public_policy: <PublicPolicyPage onNavigateHome={() => navigateTo('public_home')} />,

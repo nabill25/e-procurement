@@ -3,6 +3,7 @@ const router  = express.Router();
 const { pool } = require('../db');
 const { createUpload, handleUploadError } = require('../lib/upload');
 const { requireRole } = require('../lib/authMiddleware');
+const { sendMail } = require('../lib/mailer');
 const requireAdmin = requireRole('admin');
 
 // Kalau yang login adalah vendor, pastikan dia cuma mengelola datanya sendiri (:id di path
@@ -221,7 +222,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/verify', requireAdmin, async (req, res) => {
   try {
     const { verified_by } = req.body;
-    const result = await pool.query('SELECT company_name FROM vendors WHERE id = $1', [req.params.id]);
+    const result = await pool.query('SELECT company_name, user_id FROM vendors WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
 
     await pool.query(
@@ -234,6 +235,21 @@ router.patch('/:id/verify', requireAdmin, async (req, res) => {
       `INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'Vendor', $1, true)`,
       [`Vendor diverifikasi: ${result.rows[0].company_name}`]
     );
+
+    // Email pemberitahuan lulus verifikasi - meniru email/validasi_konfirmasi.php di sistem lama
+    const userEmail = await pool.query('SELECT email, full_name FROM users WHERE id = $1', [result.rows[0].user_id]);
+    if (userEmail.rows.length && userEmail.rows[0].email) {
+      sendMail({
+        to: userEmail.rows[0].email,
+        subject: 'Verifikasi Akun Berhasil - Sistem e-Procurement DPBJ Universitas Indonesia',
+        html: `
+          <p>Yth. ${result.rows[0].company_name},</p>
+          <p>Selamat, akun perusahaan Anda telah <strong>berhasil diverifikasi</strong> oleh Admin Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia.</p>
+          <p>Anda sekarang dapat mendaftar dan mengikuti tender pengadaan yang dipublikasikan di sistem.</p>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      }).catch(err => console.error('[VERIFY MAIL]', err));
+    }
 
     res.json({ success: true, message: 'Vendor berhasil diverifikasi.' });
   } catch (err) {

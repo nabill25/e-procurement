@@ -367,7 +367,7 @@ router.post('/:id/bids', upload.single('document'), async (req, res) => {
     const document_path = req.file ? `/uploads/${req.file.filename}` : null;
 
     // Cek status tender
-    const tender = await pool.query('SELECT status FROM tenders WHERE id = $1', [tenderId]);
+    const tender = await pool.query('SELECT status, title FROM tenders WHERE id = $1', [tenderId]);
     if (tender.rows.length === 0) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
     if (tender.rows[0].status !== 'penawaran') {
       return res.status(400).json({ success: false, message: 'Tender tidak dalam tahap penawaran.' });
@@ -383,10 +383,28 @@ router.post('/:id/bids', upload.single('document'), async (req, res) => {
 
     // Update participants
     await pool.query(`
-      UPDATE tender_participants 
+      UPDATE tender_participants
       SET bid_price = $1, document_path = $2, status = 'bidded'
       WHERE tender_id = $3 AND vendor_id = $4
     `, [bid_price, document_path, tenderId, vendor_id]);
+
+    // Email konfirmasi ke vendor - meniru email/dokumen_penawaran_upload.php di sistem lama
+    const vendorInfo = await pool.query(
+      `SELECT u.email, v.company_name FROM users u JOIN vendors v ON v.user_id = u.id WHERE u.id = $1`,
+      [vendor_id]
+    );
+    if (vendorInfo.rows.length && vendorInfo.rows[0].email) {
+      sendMail({
+        to: vendorInfo.rows[0].email,
+        subject: `Konfirmasi Penawaran Diterima: ${tender.rows[0].title || tenderId}`,
+        html: `
+          <p>Yth. ${vendorInfo.rows[0].company_name},</p>
+          <p>Penawaran Anda untuk paket pengadaan <strong>${tender.rows[0].title || ''}</strong> telah <strong>berhasil kami terima</strong> dengan nilai penawaran Rp ${Number(bid_price).toLocaleString('id-ID')}.</p>
+          <p>Anda dapat memantau perkembangan proses evaluasi lewat menu "Paket Pengadaan" pada akun Anda.</p>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      }).catch(err => console.error('[BID CONFIRM MAIL]', err));
+    }
 
     res.json({ success: true, message: 'Penawaran berhasil dikirim.' });
   } catch (err) {
@@ -508,6 +526,38 @@ router.post('/:id/stages/:stageKey/reschedule', async (req, res) => {
       keterangan: alasan, flow: 'tender', userId: user_id, ip: req.ip,
     });
 
+    // Email pemberitahuan ke seluruh vendor peserta - meniru email/reschedule_jadwal.php
+    (async () => {
+      try {
+        const tenderInfo = await pool.query('SELECT title FROM tenders WHERE id = $1', [req.params.id]);
+        const vendors = await pool.query(`
+          SELECT u.email, v.company_name FROM tender_participants tp
+          JOIN users u ON u.id = tp.vendor_id JOIN vendors v ON v.user_id = u.id
+          WHERE tp.tender_id = $1 AND u.email IS NOT NULL
+        `, [req.params.id]);
+        const title = tenderInfo.rows[0]?.title || '';
+        const fmt = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+        for (const v of vendors.rows) {
+          sendMail({
+            to: v.email,
+            subject: `Perubahan Jadwal Tahapan ${req.params.stageKey}: ${title}`,
+            html: `
+              <p>Yth. ${v.company_name},</p>
+              <p>Jadwal tahapan <strong>${req.params.stageKey}</strong> pada paket pengadaan <strong>${title}</strong> telah diubah menjadi:</p>
+              <ul>
+                <li>Tanggal mulai: ${fmt(updated.rows[0].start_date)}</li>
+                <li>Tanggal selesai: ${fmt(updated.rows[0].end_date)}</li>
+              </ul>
+              ${alasan ? `<p>Alasan perubahan: ${alasan}</p>` : ''}
+              <p>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+            `,
+          }).catch(err => console.error('[RESCHEDULE MAIL]', err));
+        }
+      } catch (mailErr) {
+        console.error('[RESCHEDULE MAIL BATCH]', mailErr);
+      }
+    })();
+
     res.json({ success: true, message: 'Tahapan berhasil dijadwalkan ulang.', data: updated.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -606,12 +656,39 @@ router.post('/:id/negotiation/:vendorId', async (req, res) => {
       RETURNING *
     `, [req.params.id, req.params.vendorId, user_id, message, offered_price || null]);
 
-    // Tandai negosiasi sudah berlangsung (kalau masih 'belum')
-    await pool.query(`
+    // Tandai negosiasi sudah berlangsung (kalau masih 'belum') - dan kalau memang barusan
+    // berubah (rowCount > 0) DAN pemicunya panitia (bukan vendor sendiri yang mulai chat),
+    // kirim email undangan negosiasi ke vendor, meniru email/negosiasi_paket.php /
+    // undangan_negosiasi_chat.php di sistem lama.
+    const transition = await pool.query(`
       UPDATE tender_participants
       SET negotiation_status = 'berlangsung'
       WHERE tender_id = $1 AND vendor_id = $2 AND negotiation_status = 'belum'
+      RETURNING tender_id
     `, [req.params.id, req.params.vendorId]);
+
+    if (transition.rows.length) {
+      const sender = await pool.query('SELECT role FROM users WHERE id = $1', [user_id]);
+      if (sender.rows.length && sender.rows[0].role !== 'vendor') {
+        const info = await pool.query(`
+          SELECT t.title, u.email, v.company_name
+          FROM tenders t, users u JOIN vendors v ON v.user_id = u.id
+          WHERE t.id = $1 AND u.id = $2
+        `, [req.params.id, req.params.vendorId]);
+        if (info.rows.length && info.rows[0].email) {
+          sendMail({
+            to: info.rows[0].email,
+            subject: `Undangan Negosiasi: ${info.rows[0].title}`,
+            html: `
+              <p>Yth. ${info.rows[0].company_name},</p>
+              <p>Anda diundang untuk melakukan negosiasi harga terkait paket pengadaan <strong>${info.rows[0].title}</strong> dengan Pokja Pemilihan.</p>
+              <p>Silakan masuk ke akun Anda dan buka tab "Negosiasi" pada detail paket untuk menanggapi.</p>
+              <p>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+            `,
+          }).catch(err => console.error('[NEGOTIATION INVITE MAIL]', err));
+        }
+      }
+    }
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
@@ -749,16 +826,50 @@ router.get('/:id/aanwijzing', async (req, res) => {
 router.post('/:id/aanwijzing', async (req, res) => {
   try {
     const { user_id, message } = req.body;
-    
+
     if (!user_id || !message) {
       return res.status(400).json({ success: false, message: 'user_id dan message diperlukan.' });
     }
+
+    // Cek dulu apakah ini pesan PERTAMA dari panitia (bukan vendor) di paket ini - kalau ya,
+    // ini dianggap "sesi aanwijzing dibuka" dan dikirim email ke seluruh vendor peserta, meniru
+    // email/aanwijzing_publish.php di sistem lama. Dicek SEBELUM insert supaya baris yang baru
+    // saja dibuat tidak ikut terhitung "sudah pernah ada".
+    const senderRole = await pool.query('SELECT role FROM users WHERE id = $1', [user_id]);
+    const isFirstStaffMessage = senderRole.rows.length && senderRole.rows[0].role !== 'vendor'
+      ? (await pool.query(`
+          SELECT 1 FROM tender_aanwijzing_chats c JOIN users u ON c.user_id = u.id
+          WHERE c.tender_id = $1 AND u.role != 'vendor' LIMIT 1
+        `, [req.params.id])).rows.length === 0
+      : false;
 
     const result = await pool.query(`
       INSERT INTO tender_aanwijzing_chats (tender_id, user_id, message)
       VALUES ($1, $2, $3)
       RETURNING *
     `, [req.params.id, user_id, message]);
+
+    if (isFirstStaffMessage) {
+      const tenderInfo = await pool.query('SELECT title FROM tenders WHERE id = $1', [req.params.id]);
+      const vendors = await pool.query(`
+        SELECT u.email, v.company_name FROM tender_participants tp
+        JOIN users u ON u.id = tp.vendor_id JOIN vendors v ON v.user_id = u.id
+        WHERE tp.tender_id = $1 AND u.email IS NOT NULL
+      `, [req.params.id]);
+      const title = tenderInfo.rows[0]?.title || '';
+      for (const v of vendors.rows) {
+        sendMail({
+          to: v.email,
+          subject: `Sesi Aanwijzing Dibuka: ${title}`,
+          html: `
+            <p>Yth. ${v.company_name},</p>
+            <p>Sesi rapat penjelasan (aanwijzing) untuk paket pengadaan <strong>${title}</strong> telah dibuka oleh Pokja Pemilihan.</p>
+            <p>Silakan masuk ke akun Anda dan buka tab "Aanwijzing" pada detail paket untuk mengikuti tanya jawab.</p>
+            <p>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+          `,
+        }).catch(err => console.error('[AANWIJZING PUBLISH MAIL]', err));
+      }
+    }
 
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {

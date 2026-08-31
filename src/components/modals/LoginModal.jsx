@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Eye, EyeOff, User, Lock, Shield, AlertCircle } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { X, Eye, EyeOff, User, Lock, Shield, AlertCircle, Mail, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useApp, API_BASE } from '../../context/AppContext';
 
 function CaptchaWidget({ onVerify }) {
   const [chars] = useState(() => {
@@ -39,6 +39,13 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState(''); // Error dari backend
 
+  // Mode "Lupa Password" - toggle tampilan di dalam modal yang sama, bukan modal terpisah
+  const [mode, setMode] = useState('login'); // 'login' | 'forgot'
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -47,6 +54,9 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
       setErrors({});
       setServerError('');
       setCaptchaOk(false);
+      setMode('login');
+      setForgotEmail('');
+      setForgotSent(false);
     } else {
       document.body.style.overflow = '';
     }
@@ -54,6 +64,27 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+      if (!res.ok) throw new Error('server_error');
+      // Server sengaja selalu balas sukses generik (tidak bocorkan apakah email itu terdaftar)
+      setForgotSent(true);
+    } catch {
+      setForgotError('Tidak bisa terhubung ke server. Silakan coba lagi.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -96,7 +127,14 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-[400px] flex flex-col animate-pop-in relative overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-dpbj-navy">Login</h2>
+          <div className="flex items-center gap-2">
+            {mode === 'forgot' && (
+              <button onClick={() => setMode('login')} className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-dpbj-navy rounded transition-colors">
+                <ArrowLeft size={14} />
+              </button>
+            )}
+            <h2 className="text-base font-semibold text-dpbj-navy">{mode === 'forgot' ? 'Lupa Password' : 'Login'}</h2>
+          </div>
           <button
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
@@ -105,7 +143,52 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
           </button>
         </div>
 
-        {/* Form */}
+        {mode === 'forgot' ? (
+          <form onSubmit={handleForgotPassword} className="px-6 py-4 space-y-4">
+            {forgotSent ? (
+              <div className="flex flex-col items-center text-center gap-2 py-4">
+                <CheckCircle2 size={32} className="text-emerald-500" />
+                <p className="text-sm text-dpbj-navy font-medium">Silakan cek email Anda</p>
+                <p className="text-xs text-muted">Kalau email <strong>{forgotEmail}</strong> terdaftar, kami sudah mengirimkan tautan untuk membuat password baru (berlaku 1 jam).</p>
+                <button type="button" onClick={() => setMode('login')} className="mt-2 text-xs text-dpbj-gold hover:text-dpbj-gold-dark underline">
+                  Kembali ke halaman login
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted">Masukkan email yang terdaftar pada akun Anda. Kami akan mengirimkan tautan untuk membuat password baru.</p>
+                {forgotError && (
+                  <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-600">{forgotError}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Email:</label>
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      placeholder="nama@email.com"
+                      autoComplete="email"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-dpbj-gold/30 focus:border-dpbj-gold transition-all"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-dpbj-navy border border-dpbj-navy rounded-full text-sm text-white hover:bg-dpbj-navy-dark transition-colors disabled:opacity-50 active:scale-95 shadow-sm"
+                >
+                  {forgotLoading ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Kirim Tautan Reset'}
+                </button>
+              </>
+            )}
+          </form>
+        ) : (
         <form onSubmit={handleLogin} className="px-6 py-4 space-y-4">
 
           {/* Error dari server */}
@@ -161,7 +244,7 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
 
           {/* Lupa Password */}
           <div className="text-left -mt-2">
-            <button type="button" className="text-xs text-dpbj-gold hover:text-dpbj-gold-dark underline transition-colors">
+            <button type="button" onClick={() => setMode('forgot')} className="text-xs text-dpbj-gold hover:text-dpbj-gold-dark underline transition-colors">
               Lupa Password ?
             </button>
           </div>
@@ -198,6 +281,7 @@ export default function LoginModal({ isOpen, onClose, onNavigateRegister }) {
 
 
         </form>
+        )}
       </div>
     </div>,
     document.body
