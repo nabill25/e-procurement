@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="navyGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22406E"/>
+      <stop offset="1" stop-color="#0E2041"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="150" y1="150" x2="380" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE55C"/>
+      <stop offset="1" stop-color="#CCAA00"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#navyGrad)"/>
+
+  <!-- Perisai (lambang institusi/kepercayaan) -->
+  <path d="M256 88 L372 128 V244 C372 328 322 388 256 424 C190 388 140 328 140 244 V128 Z"
+        fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="6"/>
+
+  <!-- Dokumen -->
+  <rect x="196" y="164" width="120" height="152" rx="10" fill="#FFFFFF" fill-opacity="0.92"/>
+  <rect x="216" y="192" width="80" height="9" rx="4.5" fill="#1A3668" fill-opacity="0.45"/>
+  <rect x="216" y="214" width="80" height="9" rx="4.5" fill="#1A3668" fill-opacity="0.45"/>
+  <rect x="216" y="236" width="52" height="9" rx="4.5" fill="#1A3668" fill-opacity="0.45"/>
+
+  <!-- Badge centang emas (persetujuan/verifikasi) -->
+  <circle cx="316" cy="298" r="54" fill="url(#goldGrad)" stroke="#0E2041" stroke-width="6"/>
+  <path d="M292 298 L309 315 L343 279" stroke="#0E2041" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

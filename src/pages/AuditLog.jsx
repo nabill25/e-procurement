@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, CheckCircle2, XCircle, Download, MoveHorizontal } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle, Download } from 'lucide-react';
 import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 
@@ -68,10 +68,8 @@ export default function AuditLog() {
           </button>
         </div>
 
-        <p className="table-scroll-hint">
-          <MoveHorizontal size={13} /> Geser tabel ke kiri/kanan untuk lihat kolom lainnya
-        </p>
-        <div className="table-scroll">
+        {/* Tabel biasa - cuma di layar >= sm, tempat 7 kolom masih muat wajar */}
+        <div className="hidden sm:block table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -111,6 +109,36 @@ export default function AuditLog() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Tampilan kartu - khusus mobile, supaya tidak perlu geser tabel 7 kolom di layar sempit */}
+        <div className="sm:hidden space-y-2.5 stagger-list">
+          {isLoading ? (
+            <p className="py-12 text-center text-muted text-sm">Memuat data...</p>
+          ) : logs.length === 0 ? (
+            <p className="py-12 text-center text-muted text-sm">Tidak ada log.</p>
+          ) : logs.map(log => (
+            <div key={log.id} className="stagger-item rounded-xl border border-border p-3.5 bg-surface">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-mono text-[11px] text-muted">{new Date(log.created_at).toLocaleString('id-ID')}</span>
+                {log.is_success
+                  ? <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold flex-none"><CheckCircle2 size={12} />Berhasil</span>
+                  : <span className="flex items-center gap-1 text-[11px] text-red-500 font-semibold flex-none"><XCircle size={12} />Gagal</span>
+                }
+              </div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={clsx('badge text-[10px]', ACTION_STYLE[log.action] || ACTION_STYLE.VIEW)}>
+                  {log.action}
+                </span>
+                <span className="text-xs font-semibold text-dpbj-navy">{log.user_name || 'Sistem'}</span>
+              </div>
+              <p className="text-xs text-dpbj-navy mb-1.5">{log.description}</p>
+              <div className="flex items-center justify-between text-[11px] text-dpbj-slate">
+                <span className="font-mono">{log.entity_type}</span>
+                <span className="font-mono text-muted">{log.ip_address}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
