@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Path env di-set eksplisit ke server/.env (bukan .env di folder tempat proses dijalankan).
+// Tanpa ini, dotenv baca .env dari current working directory - kalau server dinyalakan lewat
+// `npm run server` dari folder root (cara resmi yang didokumentasikan), yang kebaca malah
+// .env di ROOT (cuma berisi SUPABASE_DB_URL), bukan server/.env yang berisi JWT_SECRET/SMTP dst.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');

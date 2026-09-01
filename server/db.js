@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+// Path eksplisit ke server/.env - lihat catatan lengkap di server/index.js soal kenapa ini wajib.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 let poolConfig = {};
 
