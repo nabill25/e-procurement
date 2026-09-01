@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Home, Eye, EyeOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import VendorPolicyModal from '../components/modals/VendorPolicyModal';
 import { API_BASE } from '../context/AppContext';
 import { formatNPWP, npwpErrorMessage } from '../utils/npwp';
@@ -16,15 +17,25 @@ function Breadcrumb({ onHome }) {
   );
 }
 
+const generateCaptcha = () => {
+  const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('');
+};
+
 function CaptchaWidget({ onVerify }) {
-  const [chars] = useState(() => {
-    const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('');
-  });
+  const [chars, setChars] = useState(generateCaptcha);
   const [input, setInput] = useState('');
-  
+
   const check = (val) => {
     onVerify(val.toLowerCase() === chars.toLowerCase());
+  };
+
+  // Tombol ini sebelumnya dekoratif saja (tidak ada onClick sama sekali) - klik tidak
+  // berefek apapun, kode CAPTCHA tidak pernah bisa diganti tanpa reload halaman penuh.
+  const refresh = () => {
+    setChars(generateCaptcha());
+    setInput('');
+    onVerify(false);
   };
 
   return (
@@ -39,9 +50,16 @@ function CaptchaWidget({ onVerify }) {
           placeholder="Ketik kode security di atas..."
           className="form-input w-full pr-10"
         />
-        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dpbj-gold transition-colors" title="Refresh">
+        <motion.button
+          type="button"
+          onClick={refresh}
+          whileTap={{ rotate: 180 }}
+          transition={{ duration: 0.3 }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dpbj-gold transition-colors"
+          title="Ganti kode CAPTCHA"
+        >
           🔄
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -120,24 +138,36 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
 
   if (submitted) {
     return (
-      <div className="animate-fade-in space-y-4">
+      <div className="space-y-4">
         <Breadcrumb onHome={onNavigateHome} />
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center animate-pop-in max-w-2xl mx-auto">
-          <div className="text-6xl mb-6">🎉</div>
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center max-w-2xl mx-auto"
+        >
+          <motion.div
+            className="text-6xl mb-6"
+            initial={{ scale: 0, rotate: -15 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 300, damping: 12 }}
+          >
+            🎉
+          </motion.div>
           <h2 className="font-bold text-dpbj-navy text-2xl mb-3">Registrasi Berhasil Dikirim!</h2>
           <p className="text-base text-gray-500 max-w-md mx-auto leading-relaxed">
             Akun Anda sedang dalam proses verifikasi oleh tim DPBJ UI. Sistem akan mengirimkan email aktivasi ke <strong className="text-dpbj-navy">{form.email}</strong>.
             Setelah aktivasi berhasil, silakan login dan lengkapi data identitas perusahaan Anda.
           </p>
           <button onClick={onNavigateHome} className="btn-primary px-8 py-3 mt-8">Kembali ke Beranda</button>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="animate-fade-in">
+      <div>
         <Breadcrumb onHome={onNavigateHome} />
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -148,12 +178,20 @@ export default function RegistrasiVendor({ onNavigateHome, onLoginClick }) {
               <p className="text-sm text-gray-500">Lengkapi formulir di bawah ini untuk mendaftarkan perusahaan Anda ke dalam Sistem Pengadaan Barang Jasa DPBJ Universitas Indonesia.</p>
             </div>
 
-            {apiError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl flex items-center gap-2 animate-fade-in">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" />
-                {apiError}
-              </div>
-            )}
+            <AnimatePresence>
+              {apiError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="p-4 bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl flex items-center gap-2 overflow-hidden"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0" />
+                  {apiError}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

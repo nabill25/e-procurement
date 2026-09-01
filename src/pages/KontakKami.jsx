@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Home } from 'lucide-react';
+import { User, Home, Send, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../context/AppContext';
 
 function Breadcrumb({ onHome }) {
@@ -15,11 +16,13 @@ function Breadcrumb({ onHome }) {
 }
 
 // Simple text CAPTCHA simulator
+const generateCaptcha = () => {
+  const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('');
+};
+
 function CaptchaWidget({ onVerify }) {
-  const [chars] = useState(() => {
-    const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    return Array.from({ length: 4 }, () => pool[Math.floor(Math.random() * pool.length)]).join('');
-  });
+  const [chars, setChars] = useState(generateCaptcha);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
 
@@ -33,6 +36,15 @@ function CaptchaWidget({ onVerify }) {
     }
   };
 
+  // Ganti ke kode baru tanpa reload halaman penuh (versi lama pakai window.location.reload()
+  // yang membuang seluruh isian form lain hanya untuk minta kode CAPTCHA baru).
+  const refresh = () => {
+    setChars(generateCaptcha());
+    setInput('');
+    setError('');
+    onVerify(false);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-4">
@@ -41,14 +53,16 @@ function CaptchaWidget({ onVerify }) {
             {chars}
           </span>
         </div>
-        <button
+        <motion.button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={refresh}
+          whileTap={{ rotate: 180 }}
+          transition={{ duration: 0.3 }}
           className="text-muted hover:text-dpbj-gold transition-colors"
-          title="Refresh CAPTCHA"
+          title="Ganti kode CAPTCHA"
         >
           🔄
-        </button>
+        </motion.button>
       </div>
       <input
         value={input}
@@ -140,19 +154,33 @@ export default function KontakKami({ onNavigateHome }) {
     <div className="animate-fade-in space-y-4">
       <Breadcrumb onHome={onNavigateHome} />
 
-      <div className="bg-white rounded-xl border border-border shadow-card p-6 max-w-2xl">
-        <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
-          <User size={18} className="text-dpbj-navy" />
+      <div className="section-card max-w-2xl">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+          <div className="w-10 h-10 rounded-xl bg-dpbj-gold-faint flex items-center justify-center shrink-0">
+            <User size={18} className="text-dpbj-navy" />
+          </div>
           <h2 className="font-bold text-dpbj-navy text-base">Kontak <span className="font-light">kami</span></h2>
         </div>
 
         {submitted ? (
-          <div className="py-10 text-center animate-pop-in">
-            <div className="text-4xl mb-3">✅</div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="py-10 text-center"
+          >
+            <motion.div
+              className="text-4xl mb-3"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 400, damping: 14 }}
+            >
+              ✅
+            </motion.div>
             <h3 className="font-bold text-dpbj-navy text-lg">Pesan Terkirim!</h3>
             <p className="text-sm text-muted mt-1">Terima kasih, pesan Anda telah kami terima. Kami akan merespons segera.</p>
             <button onClick={handleReset} className="btn-primary mt-4">Kirim Pesan Lagi</button>
-          </div>
+          </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
@@ -235,11 +263,11 @@ export default function KontakKami({ onNavigateHome }) {
             </div>
 
             <div className="flex items-center gap-3 pt-2 border-t border-border">
-              <button type="submit" disabled={sending} className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-full flex items-center gap-2 transition-colors active:scale-95 disabled:opacity-50">
-                ✓ {sending ? 'Mengirim...' : 'Kirim'}
+              <button type="submit" disabled={sending} className="btn-primary disabled:opacity-50">
+                <Send size={14} /> {sending ? 'Mengirim...' : 'Kirim'}
               </button>
-              <button type="button" onClick={handleReset} className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 transition-colors active:scale-95">
-                ↺ Reset
+              <button type="button" onClick={handleReset} className="btn-ghost">
+                <RotateCcw size={14} /> Reset
               </button>
             </div>
           </form>
