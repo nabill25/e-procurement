@@ -35,6 +35,7 @@ import PrintPembukaanPenawaran from './pages/print/PrintPembukaanPenawaran';
 import PrintAanwijzing from './pages/print/PrintAanwijzing';
 import PrintPaktaIntegritas from './pages/print/PrintPaktaIntegritas';
 import PrintSppbj from './pages/print/PrintSppbj';
+import PrintKontrak from './pages/print/PrintKontrak';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -248,6 +249,7 @@ function AppShell() {
       'aanwijzing': <PrintAanwijzing tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'pakta-integritas': <PrintPaktaIntegritas tenderId={printDeepLink.tenderId} vendorId={printDeepLink.vendorId} onBack={backToTender} />,
       'sppbj': <PrintSppbj tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'kontrak': <PrintKontrak tenderId={printDeepLink.tenderId} onBack={backToTender} />,
     };
     return printPages[printDeepLink.jenis] || <Dashboard />;
   }

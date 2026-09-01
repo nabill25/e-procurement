@@ -116,6 +116,11 @@ export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }
             <p><span className="text-muted">Jenis:</span> {contract?.jenis_pekerjaan || '-'}</p>
           </div>
         )}
+        {(contract?.legal_nomor_pks || contract?.spk_code) && (
+          <button onClick={() => window.open(`/cetak/kontrak/${tenderId}`, '_blank')} className="btn-secondary text-xs flex items-center gap-1 mt-3">
+            <Printer size={12} /> Cetak Data Kontrak
+          </button>
+        )}
       </Section>
     </div>
   );

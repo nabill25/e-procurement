@@ -3,6 +3,9 @@ import clsx from 'clsx';
 
 /** Format Indonesian Rupiah */
 export function formatRupiah(value, compact = false) {
+  if (value === null || value === undefined || value === '') return '-';
+  value = Number(value);
+  if (Number.isNaN(value)) return '-';
   if (compact) {
     if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
     if (value >= 1_000_000)     return `Rp ${(value / 1_000_000).toFixed(1)} Jt`;

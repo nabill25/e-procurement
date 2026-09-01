@@ -229,4 +229,80 @@ router.get('/tenders/:id/sppbj', async (req, res) => {
   }
 });
 
+// ── GET /api/print/tenders/:id/kontrak ──
+// Data Kontrak/SPK, padanan dokumen "DATA KONTRAK" (eproc/application/views/report/kontrak.php)
+// di sistem lama: data pokok kontrak + deliverable pekerjaan + termin pembayaran + SLA (kalau ada).
+router.get('/tenders/:id/kontrak', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const c = await pool.query(`
+      SELECT ct.*, v.company_name, v.npwp, v.phone, v.email, v.province, v.city
+      FROM contracts ct
+      JOIN vendors v ON ct.vendor_id = v.user_id
+      WHERE ct.tender_id = $1
+    `, [id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const contract = c.rows[0];
+
+    const nomorLegal = contract.legal_nomor_pks || contract.spk_code || contract.contract_number;
+    if (!nomorLegal) {
+      return res.status(400).json({ success: false, message: 'Nomor SPK/PKS belum diisi untuk kontrak ini.' });
+    }
+
+    const deliverables = await pool.query(
+      `SELECT scope, deliverable_name, progress_percent, status FROM contract_deliverables WHERE contract_id = $1 ORDER BY created_at ASC`,
+      [contract.id]
+    );
+    const paymentTerms = await pool.query(
+      `SELECT term_name, amount, progress_percent, status FROM contract_payment_terms WHERE contract_id = $1 ORDER BY created_at ASC`,
+      [contract.id]
+    );
+    const sla = await pool.query(
+      `SELECT availability, waktu, denda, biaya_maintenance, nilai_denda FROM contract_sla WHERE contract_id = $1 ORDER BY created_at ASC`,
+      [contract.id]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kalimat_tanggal: kalimatTanggalTerbilang(contract.legal_tanggal || contract.contract_date),
+        kontrak: {
+          nomor_legal: nomorLegal,
+          jenis_dokumen: contract.dokumen_jenis === 'pks' ? 'PKS' : 'SPK',
+          tanggal_legal: formatTanggalIndo(contract.legal_tanggal || contract.contract_date),
+          nilai: contract.contract_value,
+          metode_pembayaran: contract.metode_pembayaran,
+          jenis_pengadaan: contract.jenis_pengadaan,
+          jenis_pekerjaan: contract.jenis_pekerjaan,
+          jenis_kontrak: contract.jenis_kontrak,
+          waktu_pelaksanaan_dari: formatTanggalIndo(contract.waktu_pelaksanaan_dari),
+          waktu_pelaksanaan_sampai: formatTanggalIndo(contract.waktu_pelaksanaan_sampai),
+          lingkup_pekerjaan: contract.lingkup_pekerjaan,
+          pihak1_nama: contract.pihak1_nama,
+          pihak1_jabatan: contract.pihak1_jabatan,
+          pihak2_nama: contract.pihak2_nama || contract.company_name,
+          pihak2_jabatan: contract.pihak2_jabatan,
+        },
+        vendor: {
+          nama: contract.company_name,
+          npwp: contract.npwp,
+          telepon: contract.phone,
+          email: contract.email,
+          alamat: [contract.city, contract.province].filter(Boolean).join(', ') || '-',
+        },
+        deliverables: deliverables.rows,
+        payment_terms: paymentTerms.rows,
+        sla: sla.rows,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/kontrak]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
 module.exports = router;
