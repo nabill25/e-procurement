@@ -84,7 +84,12 @@ function StageScheduleSection({ tenderId, canManage }) {
 
   return (
     <div className="mt-4 pt-4 border-t border-border">
-      <p className="text-xs font-bold text-dpbj-navy mb-2">Jadwal Tanggal Tiap Tahap</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-bold text-dpbj-navy">Jadwal Tanggal Tiap Tahap</p>
+        <button onClick={() => window.open(`/cetak/jadwal/${tenderId}`, '_blank')} className="text-[10px] text-dpbj-gold-dark font-semibold hover:underline">
+          Cetak
+        </button>
+      </div>
       <div className="space-y-1.5">
         {stages.map(s => (
           <div key={s.id} className="text-[11px] bg-white border border-border rounded-lg p-2">
@@ -167,7 +172,12 @@ function TenderActivityLogTab({ tenderId }) {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h3 className="font-bold text-dpbj-navy text-sm">Rekam Jejak Tender</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-dpbj-navy text-sm">Rekam Jejak Tender</h3>
+        <button onClick={() => window.open(`/cetak/rekam-jejak/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
+          Cetak
+        </button>
+      </div>
       {isLoading ? (
         <p className="text-sm text-muted">Memuat...</p>
       ) : logs.length === 0 ? (
@@ -521,7 +531,14 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h3 className="font-bold text-dpbj-navy text-sm">Peserta & Evaluasi Penawaran</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-dpbj-navy text-sm">Peserta & Evaluasi Penawaran</h3>
+        {participants.length > 0 && (
+          <button onClick={() => window.open(`/cetak/daftar-peserta/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
+            Cetak Daftar Peserta
+          </button>
+        )}
+      </div>
       {participants.length === 0 ? (
         <p className="text-sm text-muted">Belum ada vendor yang mendaftar pada tender ini.</p>
       ) : (

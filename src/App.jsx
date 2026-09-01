@@ -41,6 +41,15 @@ import PrintEvaluasiKualifikasi from './pages/print/PrintEvaluasiKualifikasi';
 import PrintEvaluasiRekapitulasi from './pages/print/PrintEvaluasiRekapitulasi';
 import PrintPengajuan from './pages/print/PrintPengajuan';
 import PrintSkt from './pages/print/PrintSkt';
+import PrintJadwal from './pages/print/PrintJadwal';
+import PrintRekamJejak from './pages/print/PrintRekamJejak';
+import PrintPernyataanMinat from './pages/print/PrintPernyataanMinat';
+import PrintKlarifikasi from './pages/print/PrintKlarifikasi';
+import PrintNegosiasi from './pages/print/PrintNegosiasi';
+import PrintSpmk from './pages/print/PrintSpmk';
+import PrintSppjb from './pages/print/PrintSppjb';
+import PrintSuratPesanan from './pages/print/PrintSuratPesanan';
+import PrintDaftarPeserta from './pages/print/PrintDaftarPeserta';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -165,6 +174,15 @@ function AppShell() {
       'evaluasi-rekapitulasi': <PrintEvaluasiRekapitulasi tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'pengajuan': <PrintPengajuan pengajuanId={printDeepLink.tenderId} onBack={backToPengajuan} />,
       'skt': <PrintSkt vendorId={printDeepLink.tenderId} onBack={backToVendor} />,
+      'jadwal': <PrintJadwal tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'rekam-jejak': <PrintRekamJejak tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'pernyataan-minat': <PrintPernyataanMinat tenderId={printDeepLink.tenderId} vendorId={printDeepLink.vendorId} onBack={backToTender} />,
+      'klarifikasi': <PrintKlarifikasi tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'negosiasi': <PrintNegosiasi tenderId={printDeepLink.tenderId} vendorId={printDeepLink.vendorId} onBack={backToTender} />,
+      'spmk': <PrintSpmk tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'sppjb': <PrintSppjb tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'surat-pesanan': <PrintSuratPesanan tenderId={printDeepLink.tenderId} spId={printDeepLink.vendorId} onBack={backToTender} />,
+      'daftar-peserta': <PrintDaftarPeserta tenderId={printDeepLink.tenderId} onBack={backToTender} />,
     };
     return printPages[printDeepLink.jenis] || <Dashboard />;
   }

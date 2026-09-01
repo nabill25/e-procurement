@@ -559,4 +559,338 @@ router.get('/vendors/:id/skt', async (req, res) => {
   }
 });
 
+// ── GET /api/print/tenders/:id/jadwal — Jadwal Tahapan Tender ──
+// Mengikuti eproc/application/views/report/jadwal.php (tabel tahapan + tanggal mulai/selesai).
+// Label tahapan diambil dari data yang dikirim, biar cocok persis dengan procurementPhases.js
+// yang sudah dipakai di seluruh frontend (bukan diduplikasi di backend).
+router.get('/tenders/:id/jadwal', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const stages = await pool.query(
+      `SELECT stage_key, start_date, end_date, reschedule_count FROM tender_stages WHERE tender_id = $1`,
+      [id]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number, method: tender.method },
+        stages: stages.rows.map(s => ({
+          stage_key: s.stage_key,
+          tanggal_mulai: formatTanggalIndo(s.start_date),
+          tanggal_selesai: formatTanggalIndo(s.end_date),
+          reschedule_count: s.reschedule_count,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/jadwal]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/rekam-jejak — Timeline aktivitas tender ──
+// Mengikuti eproc/application/views/report/rekamjejak.php (isinya cuma daftar log berurutan
+// dari librekamjejak->viewRJCetak(), jadi disederhanakan jadi tabel waktu+aktivitas+pelaku).
+router.get('/tenders/:id/rekam-jejak', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const logs = await pool.query(`
+      SELECT l.posisi, l.keterangan, l.flow, l.created_at, u.full_name AS user_name
+      FROM tender_activity_logs l
+      LEFT JOIN users u ON l.user_id = u.id
+      WHERE l.tender_id = $1
+      ORDER BY l.created_at ASC
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        logs: logs.rows.map(l => ({
+          posisi: l.posisi,
+          keterangan: l.keterangan,
+          user_name: l.user_name || 'Sistem',
+          waktu: formatTanggalIndo(l.created_at) + ' ' + new Date(l.created_at).toLocaleTimeString('id-ID'),
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/rekam-jejak]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/pernyataan-minat/:vendorId — Surat Pernyataan Minat ──
+// Mengikuti eproc/application/views/report/pernyataan_minat_excel.php.
+router.get('/tenders/:id/pernyataan-minat/:vendorId', async (req, res) => {
+  try {
+    const { id, vendorId } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const r = await pool.query(`
+      SELECT pm.*, v.company_name, v.npwp, v.city, v.province
+      FROM tender_pernyataan_minat pm
+      JOIN vendors v ON pm.vendor_id = v.user_id
+      WHERE pm.tender_id = $1 AND pm.vendor_id = $2
+    `, [id, vendorId]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Pernyataan minat belum diisi vendor ini.' });
+    const pm = r.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kalimat_tanggal: kalimatTanggalTerbilang(pm.created_at),
+        vendor: { company_name: pm.company_name, npwp: pm.npwp, alamat: [pm.city, pm.province].filter(Boolean).join(', ') || '-' },
+        pernyataan: {
+          nama: pm.nama, jabatan: pm.jabatan, alamat: pm.alamat, telepon: pm.telepon, email: pm.email,
+          penerima_kuasa: pm.penerima_kuasa, penerima_kuasa_jabatan: pm.penerima_kuasa_jabatan, penerima_kuasa_ktp: pm.penerima_kuasa_ktp,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/pernyataan-minat/:vendorId]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/klarifikasi — Dokumen Klarifikasi + Tanggapan ──
+// Mengikuti eproc/application/views/report/klarifikasi_cetak.php, disederhanakan jadi daftar
+// dokumen klarifikasi (dari rekanan) berikut tanggapan aanwijzing-nya (pola parent_id).
+router.get('/tenders/:id/klarifikasi', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const docs = await pool.query(`
+      SELECT d.*, v.company_name
+      FROM tender_klarifikasi_dokumen d
+      LEFT JOIN vendors v ON d.vendor_id = v.user_id
+      WHERE d.tender_id = $1
+      ORDER BY d.created_at ASC
+    `, [id]);
+
+    const induk = docs.rows.filter(d => !d.parent_id);
+    const tanggapan = docs.rows.filter(d => d.parent_id);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        klarifikasi: induk.map(d => ({
+          nama: d.nama,
+          vendor: d.company_name || '-',
+          notes: d.notes,
+          waktu: formatTanggalIndo(d.created_at),
+          tanggapan: tanggapan.filter(t => t.parent_id === d.id).map(t => ({
+            nama: t.nama, notes: t.notes, waktu: formatTanggalIndo(t.created_at),
+          })),
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/klarifikasi]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/negosiasi/:vendorId — Berita Acara Negosiasi ──
+// Mengikuti eproc/application/views/report/negosiasi_cetak.php, bagian rincian per-item
+// tidak ditiru (modul Negosiasi sistem baru sengaja satu harga total, bukan per-item BOQ).
+router.get('/tenders/:id/negosiasi/:vendorId', async (req, res) => {
+  try {
+    const { id, vendorId } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const p = await pool.query(`
+      SELECT tp.*, v.company_name, v.npwp
+      FROM tender_participants tp JOIN vendors v ON tp.vendor_id = v.user_id
+      WHERE tp.tender_id = $1 AND tp.vendor_id = $2
+    `, [id, vendorId]);
+    if (!p.rows.length) return res.status(404).json({ success: false, message: 'Peserta tidak ditemukan.' });
+    const participant = p.rows[0];
+
+    const chats = await pool.query(`
+      SELECT c.message, c.offered_price, c.created_at, u.full_name, u.role
+      FROM tender_negotiation_chats c LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.tender_id = $1 AND c.vendor_id = $2
+      ORDER BY c.created_at ASC
+    `, [id, vendorId]);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kalimat_tanggal: kalimatTanggalTerbilang(new Date()),
+        vendor: { company_name: participant.company_name, npwp: participant.npwp },
+        harga_penawaran: participant.bid_price,
+        harga_final: participant.negotiated_price,
+        status: participant.negotiation_status,
+        chats: chats.rows.map(c => ({
+          nama: c.full_name || (c.role === 'vendor' ? participant.company_name : 'Panitia'),
+          pihak: c.role === 'vendor' ? 'Penyedia' : 'Panitia',
+          pesan: c.message,
+          harga_tawar: c.offered_price,
+          waktu: formatTanggalIndo(c.created_at) + ' ' + new Date(c.created_at).toLocaleTimeString('id-ID'),
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/negosiasi/:vendorId]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/spmk — Surat Perintah Mulai Kerja ──
+router.get('/tenders/:id/spmk', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const c = await pool.query(`
+      SELECT ct.*, v.company_name, v.npwp, v.city, v.province
+      FROM contracts ct JOIN vendors v ON ct.vendor_id = v.user_id
+      WHERE ct.tender_id = $1
+    `, [id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const contract = c.rows[0];
+
+    const s = await pool.query(`SELECT * FROM contract_spmk WHERE contract_id = $1 ORDER BY created_at DESC LIMIT 1`, [contract.id]);
+    if (!s.rows.length) return res.status(400).json({ success: false, message: 'SPMK belum diterbitkan untuk kontrak ini.' });
+    const spmk = s.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kalimat_tanggal: kalimatTanggalTerbilang(spmk.created_at),
+        vendor: { company_name: contract.company_name, npwp: contract.npwp, alamat: [contract.city, contract.province].filter(Boolean).join(', ') || '-' },
+        contract: { nomor_spk: contract.spk_code || contract.legal_nomor_pks, nilai: contract.contract_value, pihak1_nama: contract.pihak1_nama, pihak1_jabatan: contract.pihak1_jabatan, pihak2_nama: contract.pihak2_nama, pihak2_jabatan: contract.pihak2_jabatan },
+        spmk: { nomor: spmk.nomor, dari: formatTanggalIndo(spmk.spmk_dari), sampai: formatTanggalIndo(spmk.spmk_sampai), keterangan: spmk.keterangan },
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/spmk]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/sppjb — Surat Perjanjian (versi konstruksi) ──
+router.get('/tenders/:id/sppjb', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const c = await pool.query(`
+      SELECT ct.*, v.company_name, v.npwp
+      FROM contracts ct JOIN vendors v ON ct.vendor_id = v.user_id
+      WHERE ct.tender_id = $1
+    `, [id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const contract = c.rows[0];
+
+    const s = await pool.query(`SELECT * FROM contract_sppjb WHERE contract_id = $1 ORDER BY created_at DESC LIMIT 1`, [contract.id]);
+    if (!s.rows.length) return res.status(400).json({ success: false, message: 'SPPJB belum diterbitkan untuk kontrak ini.' });
+    const sppjb = s.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        vendor: { company_name: contract.company_name, npwp: contract.npwp },
+        nilai: contract.contract_value,
+        nilai_terbilang: contract.contract_value ? terbilang(Math.floor(contract.contract_value)) : null,
+        sppjb: {
+          kode: sppjb.kode,
+          tanggal: formatTanggalIndo(sppjb.tanggal),
+          nama_dirut: sppjb.nama_dirut, alamat_dirut: sppjb.alamat_dirut, kota_dirut: sppjb.kota_dirut,
+          ppn: sppjb.ppn, persen_jaminan: sppjb.persen_jaminan,
+          tmt_jaminan: formatTanggalIndo(sppjb.tmt_jaminan),
+          jangka_waktu: sppjb.jangka_waktu, jangka_waktu_jaminan: sppjb.jangka_waktu_jaminan,
+          jangka_waktu_terbilang: sppjb.jangka_waktu ? terbilang(parseInt(sppjb.jangka_waktu)) : null,
+          jangka_waktu_jaminan_terbilang: sppjb.jangka_waktu_jaminan ? terbilang(parseInt(sppjb.jangka_waktu_jaminan)) : null,
+          penanda_tangan: sppjb.penanda_tangan, penanda_tangan_jabatan: sppjb.penanda_tangan_jabatan,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/sppjb]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/surat-pesanan/:spId — Surat Pesanan (Kontrak Payung) ──
+router.get('/tenders/:id/surat-pesanan/:spId', async (req, res) => {
+  try {
+    const { id, spId } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const sp = await pool.query(`
+      SELECT sp.*, ct.company_name, ct.npwp FROM contract_surat_pesanan sp
+      JOIN contracts c ON sp.contract_id = c.id
+      JOIN (SELECT ctr.id, v.company_name, v.npwp FROM contracts ctr JOIN vendors v ON ctr.vendor_id = v.user_id) ct ON ct.id = c.id
+      WHERE sp.id = $1 AND c.tender_id = $2
+    `, [spId, id]);
+    if (!sp.rows.length) return res.status(404).json({ success: false, message: 'Surat pesanan tidak ditemukan.' });
+    const suratPesanan = sp.rows[0];
+
+    const items = await pool.query(`SELECT * FROM contract_surat_pesanan_items WHERE surat_pesanan_id = $1 ORDER BY created_at ASC`, [spId]);
+    const total = items.rows.reduce((sum, it) => sum + Number(it.total || 0), 0);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kalimat_tanggal: kalimatTanggalTerbilang(suratPesanan.tanggal),
+        vendor: { company_name: suratPesanan.company_name, npwp: suratPesanan.npwp },
+        surat_pesanan: { nomor_surat: suratPesanan.nomor_surat, tanggal: formatTanggalIndo(suratPesanan.tanggal) },
+        items: items.rows.map(it => ({ nama: it.nama, qty: it.qty, satuan: it.satuan, harga_satuan: it.harga_satuan, total: it.total })),
+        total, total_terbilang: total ? terbilang(Math.floor(total)) : null,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/surat-pesanan/:spId]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/daftar-peserta — Daftar Peserta Lelang ──
+router.get('/tenders/:id/daftar-peserta', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const p = await pool.query(`
+      SELECT tp.registered_at, v.company_name
+      FROM tender_participants tp JOIN vendors v ON tp.vendor_id = v.user_id
+      WHERE tp.tender_id = $1 ORDER BY tp.registered_at ASC
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number, method: tender.method },
+        peserta: p.rows.map(r => ({ company_name: r.company_name, tanggal_daftar: formatTanggalIndo(r.registered_at) })),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/daftar-peserta]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
 module.exports = router;

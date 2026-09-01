@@ -10,17 +10,18 @@ const DOC_TYPES = [
   { value: 'laporan', label: 'Laporan Paket' },
 ];
 
-function Section({ icon: Icon, title, desc, children }) {
+function Section({ icon: Icon, title, desc, action, children }) {
   return (
     <div className="bg-white border border-border rounded-xl overflow-hidden">
       <div className="flex items-center gap-3 p-4 bg-surface border-b border-border">
         <div className="w-8 h-8 rounded-lg bg-dpbj-navy/10 text-dpbj-navy flex items-center justify-center shrink-0">
           <Icon size={16} />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h4 className="font-bold text-dpbj-navy text-xs">{title}</h4>
           {desc && <p className="text-[10px] text-muted">{desc}</p>}
         </div>
+        {action}
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -52,6 +53,14 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
   const [undangan, setUndangan] = useState([]);
   const [newUndangan, setNewUndangan] = useState({ vendor_id: '', tanggal_undangan: '', jam: '', tempat: '', pelaksanaan: 'Tatap Muka', keterangan: '' });
 
+  // Sebelumnya backend (dari Kelompok A) sudah punya endpoint pernyataan minat, tapi belum
+  // ada satupun UI untuk mengisi/melihatnya - ditambahkan di sini sekalian waktu bikin halaman
+  // cetaknya, supaya fiturnya benar-benar bisa dipakai ujung ke ujung, bukan cuma bisa dicetak
+  // dokumen yang tidak pernah bisa diisi.
+  const [myPernyataan, setMyPernyataan] = useState(undefined); // undefined = belum dicek, null = belum diisi
+  const [pmForm, setPmForm] = useState({ nama: '', jabatan: '', alamat: '', telepon: '', email: '' });
+  const [pmSaving, setPmSaving] = useState(false);
+
   const canManage = ['pokja', 'admin', 'ppk'].includes(user.role);
   const isVendor = user.role === 'vendor';
 
@@ -78,7 +87,36 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
       if (p1j.success) setPembukaan1(p1j.data);
       if (p2j.success) setPembukaan2(p2j.data);
       if (ukj.success) setUndangan(ukj.data);
+
+      if (isVendor) {
+        const pmRes = await fetch(`${API_BASE}/tenders/${tenderId}/pernyataan-minat/${user.id}`, { headers: getAuthHeaders() });
+        const pmJson = await pmRes.json();
+        setMyPernyataan(pmJson.success && pmJson.data ? pmJson.data : null);
+      }
     } catch (err) { console.error(err); }
+  };
+
+  const handleSubmitPernyataanMinat = async (e) => {
+    e.preventDefault();
+    if (!pmForm.nama.trim() || !pmForm.jabatan.trim() || !pmForm.alamat.trim()) {
+      return toast('Nama, jabatan, dan alamat wajib diisi.');
+    }
+    setPmSaving(true);
+    try {
+      // Endpoint ini pakai multer (menerima file kuasa opsional), jadi harus FormData -
+      // bukan JSON.stringify seperti kebanyakan endpoint lain.
+      const fd = new FormData();
+      fd.append('vendor_id', user.id);
+      Object.entries(pmForm).forEach(([k, v]) => fd.append(k, v));
+      const res = await fetch(`${API_BASE}/tenders/${tenderId}/pernyataan-minat`, {
+        method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` },
+        body: fd,
+      });
+      const json = await res.json();
+      if (json.success) { toast('Pernyataan minat berhasil dikirim.'); fetchAll(); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengirim pernyataan minat.'); }
+    finally { setPmSaving(false); }
   };
 
   useEffect(() => {
@@ -321,7 +359,53 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         )}
       </Section>
 
-      <Section icon={MessageSquare} title="Klarifikasi & Tanggapan Aanwijzing" desc="Dokumen formal, berbeda dari chat aanwijzing.">
+      <Section icon={FileText} title="Pernyataan Minat" desc="Surat pernyataan minat mengikuti tender (dari penyedia yang mendaftar).">
+        {isVendor ? (
+          myPernyataan === undefined ? (
+            <p className="text-xs text-muted text-center py-3">Memuat...</p>
+          ) : myPernyataan ? (
+            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs text-emerald-700 font-semibold">Pernyataan minat Anda sudah tersimpan.</p>
+              <button onClick={() => window.open(`/cetak/pernyataan-minat/${tenderId}/${user.id}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">Cetak</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmitPernyataanMinat} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input placeholder="Nama *" value={pmForm.nama} onChange={e => setPmForm({ ...pmForm, nama: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+              <input placeholder="Jabatan *" value={pmForm.jabatan} onChange={e => setPmForm({ ...pmForm, jabatan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+              <input placeholder="Alamat *" value={pmForm.alamat} onChange={e => setPmForm({ ...pmForm, alamat: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg sm:col-span-2" />
+              <input placeholder="Telepon" value={pmForm.telepon} onChange={e => setPmForm({ ...pmForm, telepon: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+              <input placeholder="Email" value={pmForm.email} onChange={e => setPmForm({ ...pmForm, email: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+              <button type="submit" disabled={pmSaving} className="btn-primary text-xs sm:col-span-2 justify-center disabled:opacity-50">
+                {pmSaving ? 'Mengirim...' : 'Kirim Pernyataan Minat'}
+              </button>
+            </form>
+          )
+        ) : (
+          participants.length === 0 ? (
+            <p className="text-xs text-muted text-center py-3">Belum ada vendor yang mendaftar.</p>
+          ) : (
+            <div className="space-y-1">
+              {participants.map(p => (
+                <div key={p.vendor_id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
+                  <span>{p.company_name}</span>
+                  <button onClick={() => window.open(`/cetak/pernyataan-minat/${tenderId}/${p.vendor_id}`, '_blank')} className="text-dpbj-gold-dark font-semibold hover:underline">Cetak</button>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </Section>
+
+      <Section
+        icon={MessageSquare}
+        title="Klarifikasi & Tanggapan Aanwijzing"
+        desc="Dokumen formal, berbeda dari chat aanwijzing."
+        action={klarifikasi.length > 0 && (
+          <button onClick={() => window.open(`/cetak/klarifikasi/${tenderId}`, '_blank')} className="text-[10px] text-dpbj-gold-dark font-semibold hover:underline shrink-0">
+            Cetak
+          </button>
+        )}
+      >
         <form onSubmit={handleUploadKlarifikasi} className="flex items-center gap-2 mb-4 bg-surface p-3 rounded-lg border border-border">
           <input type="file" onChange={e => setKlarFile(e.target.files[0])} className="text-xs flex-1" />
           <button type="submit" className="btn-secondary text-xs flex items-center gap-1"><Upload size={12} /> Kirim</button>

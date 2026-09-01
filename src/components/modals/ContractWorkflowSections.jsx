@@ -5,13 +5,14 @@ import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
 import { toast } from '../../lib/toast';
 
-function Section({ icon: Icon, title, children, tone = 'navy' }) {
+function Section({ icon: Icon, title, children, tone = 'navy', action }) {
   const toneClass = tone === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-white border-border';
   return (
     <div className={clsx('border rounded-xl overflow-hidden', toneClass)}>
       <div className="flex items-center gap-2 p-3 border-b border-border bg-surface">
         <Icon size={15} className="text-dpbj-navy" />
-        <h4 className="font-bold text-dpbj-navy text-xs">{title}</h4>
+        <h4 className="font-bold text-dpbj-navy text-xs flex-1">{title}</h4>
+        {action}
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -148,7 +149,13 @@ export function SpmkSection({ tenderId, canEdit, user }) {
   };
 
   return (
-    <Section icon={FileSignature} title="SPMK (Surat Perintah Mulai Kerja)">
+    <Section
+      icon={FileSignature}
+      title="SPMK (Surat Perintah Mulai Kerja)"
+      action={items.length > 0 && (
+        <button onClick={() => window.open(`/cetak/spmk/${tenderId}`, '_blank')} className="text-[10px] text-dpbj-gold-dark font-semibold hover:underline">Cetak</button>
+      )}
+    >
       {canEdit && (
         <div className="flex flex-wrap items-end gap-2 mb-3 bg-surface p-3 rounded-lg">
           <input placeholder="Nomor" value={form.nomor} onChange={e => setForm({ ...form, nomor: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg flex-1 min-w-[100px]" />
@@ -162,6 +169,69 @@ export function SpmkSection({ tenderId, canEdit, user }) {
           {items.map(it => (
             <div key={it.id} className="text-xs bg-surface p-2 rounded-lg">
               <span className="font-bold text-dpbj-navy">{it.nomor}</span> {it.spmk_dari?.split('T')[0]} s/d {it.spmk_sampai?.split('T')[0]}
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// ── SPPJB (Surat Perjanjian, versi konstruksi) ──
+// Backend-nya (GET/POST /contract/sppjb) sudah ada sejak Kelompok C, tapi belum pernah punya
+// UI sama sekali - ditambahkan di sini sekalian waktu bikin halaman cetaknya, supaya datanya
+// benar-benar bisa diisi (bukan cuma bisa dicetak dokumen yang tidak pernah bisa diisi).
+export function SppjbSection({ tenderId, canEdit, user }) {
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({
+    kode: '', tanggal: '', nama_dirut: '', alamat_dirut: '', kota_dirut: '',
+    ppn: '', persen_jaminan: '', tmt_jaminan: '', jangka_waktu: '', jangka_waktu_jaminan: '',
+    penanda_tangan: '', penanda_tangan_jabatan: '',
+  });
+
+  const fetchItems = useCallback(async () => {
+    const res = await fetch(`${API_BASE}/tenders/${tenderId}/contract/sppjb`, { headers: getAuthHeaders() });
+    const json = await res.json();
+    if (json.success) setItems(json.data ? [json.data] : []);
+  }, [tenderId]);
+
+  useEffect(() => { fetchItems(); }, [fetchItems]);
+
+  const handleAdd = async () => {
+    if (!form.kode) return toast('Kode/nomor SPPJB wajib diisi.');
+    await fetch(`${API_BASE}/tenders/${tenderId}/contract/sppjb`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ...form, created_by: user.id }) });
+    fetchItems();
+  };
+
+  return (
+    <Section
+      icon={FileSignature}
+      title="SPPJB (Surat Perjanjian) - khusus kontrak konstruksi"
+      action={items.length > 0 && (
+        <button onClick={() => window.open(`/cetak/sppjb/${tenderId}`, '_blank')} className="text-[10px] text-dpbj-gold-dark font-semibold hover:underline">Cetak</button>
+      )}
+    >
+      {canEdit && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 bg-surface p-3 rounded-lg">
+          <input placeholder="Kode/Nomor" value={form.kode} onChange={e => setForm({ ...form, kode: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input type="date" value={form.tanggal} onChange={e => setForm({ ...form, tanggal: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Persen Jaminan (%)" type="number" value={form.persen_jaminan} onChange={e => setForm({ ...form, persen_jaminan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Nama Direktur" value={form.nama_dirut} onChange={e => setForm({ ...form, nama_dirut: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Alamat Direktur" value={form.alamat_dirut} onChange={e => setForm({ ...form, alamat_dirut: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Kota Direktur" value={form.kota_dirut} onChange={e => setForm({ ...form, kota_dirut: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Jangka Waktu Pekerjaan (hari)" type="number" value={form.jangka_waktu} onChange={e => setForm({ ...form, jangka_waktu: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Jangka Waktu Jaminan (hari)" type="number" value={form.jangka_waktu_jaminan} onChange={e => setForm({ ...form, jangka_waktu_jaminan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input type="date" placeholder="TMT Jaminan" value={form.tmt_jaminan} onChange={e => setForm({ ...form, tmt_jaminan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Penanda Tangan" value={form.penanda_tangan} onChange={e => setForm({ ...form, penanda_tangan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <input placeholder="Jabatan Penanda Tangan" value={form.penanda_tangan_jabatan} onChange={e => setForm({ ...form, penanda_tangan_jabatan: e.target.value })} className="text-xs p-2 border border-gray-300 rounded-lg" />
+          <button onClick={handleAdd} className="btn-secondary text-xs">Simpan</button>
+        </div>
+      )}
+      {items.length === 0 ? <p className="text-xs text-muted text-center py-2">SPPJB belum diterbitkan.</p> : (
+        <div className="space-y-1">
+          {items.map(it => (
+            <div key={it.id} className="text-xs bg-surface p-2 rounded-lg">
+              <span className="font-bold text-dpbj-navy">{it.kode}</span> - {it.tanggal?.split('T')[0]}
             </div>
           ))}
         </div>
@@ -401,7 +471,10 @@ export function MaterialSection({ tenderId, canEdit, user }) {
           <div className="space-y-2">
             {suratPesanan.map(sp => (
               <div key={sp.id} className="bg-surface p-2 rounded-lg text-xs">
-                <p className="font-bold text-dpbj-navy">{sp.nomor_surat} - {sp.tanggal?.split('T')[0]}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-dpbj-navy">{sp.nomor_surat} - {sp.tanggal?.split('T')[0]}</p>
+                  <button onClick={() => window.open(`/cetak/surat-pesanan/${tenderId}/${sp.id}`, '_blank')} className="text-dpbj-gold-dark font-semibold hover:underline shrink-0">Cetak</button>
+                </div>
                 {sp.items.map(it => <p key={it.id} className="ml-2 text-muted">{it.nama} x{it.qty} = {formatRupiah(it.total, true)} {it.status_terima && `(${it.status_terima})`}</p>)}
               </div>
             ))}

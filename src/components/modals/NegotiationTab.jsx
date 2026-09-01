@@ -129,7 +129,14 @@ export default function NegotiationTab({ tenderId, vendorId, user, getAuthHeader
             </p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${sc.className}`}>{sc.label}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-2 py-1 rounded-md text-xs font-semibold ${sc.className}`}>{sc.label}</span>
+          {user?.role !== 'vendor' && (
+            <button onClick={() => window.open(`/cetak/negosiasi/${tenderId}/${vendorId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-2.5">
+              Cetak
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>

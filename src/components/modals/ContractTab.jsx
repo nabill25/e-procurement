@@ -3,7 +3,7 @@ import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/App
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import {
-  SppbjSpkSection, SpmkSection, JaminanSection, SlaSection, MaterialSection,
+  SppbjSpkSection, SpmkSection, SppjbSection, JaminanSection, SlaSection, MaterialSection,
   AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection,
   PenilaianKinerjaSection,
 } from './ContractWorkflowSections';
@@ -282,7 +282,10 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
         <SppbjSpkSection tenderId={tenderId} contract={contract} canEdit={canManageContract} refreshContract={fetchContract} />
       )}
       {workflowTab === 'spmk' && contract && (
-        <SpmkSection tenderId={tenderId} canEdit={canManageContract} user={user} />
+        <div className="space-y-4">
+          <SpmkSection tenderId={tenderId} canEdit={canManageContract} user={user} />
+          <SppjbSection tenderId={tenderId} canEdit={canManageContract} user={user} />
+        </div>
       )}
       {workflowTab === 'jaminan' && contract && (
         <JaminanSection tenderId={tenderId} canEdit={canManageContract} user={user} />
