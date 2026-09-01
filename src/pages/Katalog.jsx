@@ -19,6 +19,7 @@ export default function Katalog() {
   const { user, navigateTo } = useApp();
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [detailId, setDetailId] = useState(null);
@@ -37,7 +38,7 @@ export default function Katalog() {
 
   useEffect(() => {
     fetchItems();
-  }, [search]);
+  }, [search, categoryFilter]);
 
   useEffect(() => {
     fetch(`${API_BASE}/katalog/categories/tree`, { headers: getAuthHeaders() }).then(r => r.json()).then(j => { if (j.success) setCategories(j.data); }).catch(() => {});
@@ -52,9 +53,10 @@ export default function Katalog() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const url = user.role === 'vendor' 
-        ? `${API_BASE}/katalog?vendor_id=${user.id}&search=${search}` 
-        : `${API_BASE}/katalog?search=${search}`;
+      const categoryParam = categoryFilter ? `&category_id=${categoryFilter}` : '';
+      const url = user.role === 'vendor'
+        ? `${API_BASE}/katalog?vendor_id=${user.id}&search=${search}${categoryParam}`
+        : `${API_BASE}/katalog?search=${search}${categoryParam}`;
       const res = await fetch(url, { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) setItems(json.data);
@@ -185,7 +187,20 @@ export default function Katalog() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <button className="btn-secondary flex items-center justify-center gap-2 px-4 whitespace-nowrap"><Filter size={18}/> Filter</button>
+        {/* Sebelumnya tombol "Filter" ini dekoratif (tidak ada onClick sama sekali), padahal
+            backend sudah lama mendukung filter kategori (?category_id=) - tinggal disambungkan
+            ke daftar kategori yang sudah diambil (dipakai juga di form tambah produk). */}
+        <div className="relative min-w-[180px]">
+          <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="form-select pl-9 w-full"
+          >
+            <option value="">Semua Kategori</option>
+            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.nama}</option>)}
+          </select>
+        </div>
       </div>
 
       {loading ? (

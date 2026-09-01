@@ -29,6 +29,11 @@ const pageTitles = {
   login_logs:      { title: 'Riwayat Login', subtitle: 'Histori login per akun' },
   api_keys:        { title: 'API Key', subtitle: 'Kelola kunci akses integrasi pihak ketiga' },
   document_expiry: { title: 'Dokumen Kedaluwarsa', subtitle: 'Pemantauan dokumen vendor akan kedaluwarsa' },
+  // Kedua ini sebelumnya belum terdaftar di sini sama sekali, jadi walau menu & halamannya
+  // sudah ada dan berfungsi, judul di TopBar salah nampilin "Dashboard" begitu dibuka
+  // (jatuh ke pageTitles.dashboard sebagai fallback).
+  integration_oracle: { title: 'Integrasi Oracle', subtitle: 'Sinkronisasi RKA, Purchase Requisition, dan data Supplier/PO ke Oracle ERP' },
+  executive_dashboard: { title: 'Dashboard Pimpinan', subtitle: 'Rekap portofolio dan efisiensi anggaran' },
   public_home:     { title: 'Portal Publik', subtitle: 'Halaman publik e-Procurement UI' },
   public_tender:   { title: 'Daftar Tender', subtitle: 'Informasi paket tender yang sedang dibuka' },
   public_blacklist:{ title: 'Daftar Hitam Publik', subtitle: 'Informasi sanksi daftar hitam penyedia' },
