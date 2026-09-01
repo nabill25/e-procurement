@@ -253,10 +253,15 @@ export default function Dashboard() {
 
       {user.role === 'admin' || user.role === 'ppk' ? (
         <AdminPPKView dashboardStats={dashboardStats} analytics={analytics} refreshTrigger={refreshTrigger} />
-      ) : user.role === 'pokja' ? (
-        <PokjaView dashboardStats={dashboardStats} analytics={analytics} refreshTrigger={refreshTrigger} />
-      ) : (
+      ) : user.role === 'vendor' ? (
         <VendorView dashboardStats={dashboardStats} />
+      ) : (
+        // Role internal lain (pokja, dan 10 role tambahan seperti pengelola_kontrak,
+        // manager_pengadaan, dst) - pakai tampilan staf umum ini sebagai default yang aman,
+        // BUKAN VendorView (yang isinya soal "akun Anda terverifikasi" dkk, tidak masuk akal
+        // untuk akun staf internal). Kalau nanti ada role yang butuh dashboard khusus sendiri,
+        // tambahkan cabang baru di sini sebelum fallback ini.
+        <PokjaView dashboardStats={dashboardStats} analytics={analytics} refreshTrigger={refreshTrigger} />
       )}
     </div>
   );

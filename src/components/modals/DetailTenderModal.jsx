@@ -650,7 +650,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
 
   useEffect(() => {
     if (!isOpen || !data) return;
-    const isInternal = user.role === 'pokja' || user.role === 'admin' || user.role === 'ppk';
+    const isInternal = ['pokja', 'admin', 'ppk', 'pengelola_kontrak', 'kasubdit_kontrak'].includes(user.role);
     const endpoint = isInternal
       ? `${API_BASE}/tenders/${data.id}/participants`
       : `${API_BASE}/tenders/${data.id}/participants/me`;
@@ -729,8 +729,11 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
           </button>
         </div>
 
-        {/* Tabs (Pokja/Admin/PPK) */}
-        {['pokja', 'admin', 'ppk', 'vendor'].includes(user.role) && (
+        {/* Tabs (Pokja/Admin/PPK/Vendor + Pengelola Kontrak/Kasubdit Kontrak yang tugasnya khusus
+            kontrak - lihat CONTRACT_MANAGER_ROLES di ContractTab.jsx untuk hak edit di dalam tab
+            Kontrak & BAST-nya sendiri; tab-tab lain di sini tetap read-only untuk mereka karena
+            gate-nya masing-masing tidak diubah) */}
+        {['pokja', 'admin', 'ppk', 'vendor', 'pengelola_kontrak', 'kasubdit_kontrak'].includes(user.role) && (
           <div className="flex px-6 pt-3 border-b border-border bg-white gap-6 overflow-x-auto tab-scroll-fade">
             <button onClick={() => setActiveTab('detail')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'detail' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <FileText size={16} /> Detail Tender

@@ -19,6 +19,16 @@ function getDefaultAllowedMenus(role) {
   if (role === 'ppk') return ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing', 'executive_dashboard'];
   if (role === 'pokja') return ['dashboard', 'tender', 'vendor', 'blacklist'];
   if (role === 'vendor') return ['dashboard', 'tender', 'blacklist', 'vendor_profile', 'katalog', 'purchasing'];
+  // 10 role tambahan (fondasi multi-role) - sebagian sudah dipetakan ke modul yang cocok
+  // (dicek langsung ke data menu sistem lama, lihat migrations/032), sisanya masih cuma
+  // Dashboard sampai fitur khususnya dibangun.
+  if (role === 'pengguna') return ['dashboard', 'pengajuan'];
+  if (role === 'manager_pengadaan') return ['dashboard', 'executive_dashboard'];
+  if (role === 'pelaksana_pengadaan') return ['dashboard', 'katalog', 'purchasing'];
+  if (role === 'pengelola_kontrak') return ['dashboard', 'tender'];
+  if (role === 'kasubdit_kontrak') return ['dashboard', 'tender'];
+  if (role === 'approval_vms') return ['dashboard', 'vendor'];
+  if (role === 'audit') return ['dashboard', 'audit'];
   return ['dashboard'];
 }
 

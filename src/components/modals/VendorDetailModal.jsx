@@ -124,7 +124,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
         <div className="p-4 sm:p-6 border-t border-border bg-surface flex flex-col sm:flex-row sm:flex-wrap sm:justify-end gap-2 sm:gap-3">
           <button onClick={onClose} className="btn-ghost w-full sm:w-auto">Tutup</button>
           
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'approval_vms') && (
             <>
               {/* Blokir — eProc: status_validasi = 4 */}
               {vendor.status !== 'diblokir' && (

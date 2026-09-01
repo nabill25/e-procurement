@@ -25,7 +25,14 @@ const WORKFLOW_SUBTABS = [
   { id: 'penilaian_kinerja', label: 'Penilaian Kinerja' },
 ];
 
+// Role yang boleh mengelola (isi/ubah) data kontrak - PPK/Admin seperti semula, plus 2 role
+// tambahan yang padanan tugasnya di sistem lama memang khusus kontrak: Pengelola Kontrak
+// (menu "Manajemen Kontrak" yang sangat luas, 57 menu di sistem lama) dan Kasubdit Kontrak
+// (approval/pemeriksa kontrak, role 20 "PEMERIKSA KONTRAK" di sistem lama).
+const CONTRACT_MANAGER_ROLES = ['ppk', 'admin', 'pengelola_kontrak', 'kasubdit_kontrak'];
+
 export default function ContractTab({ tenderId, tenderStatus, participants, user }) {
+  const canManageContract = CONTRACT_MANAGER_ROLES.includes(user.role);
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
@@ -180,9 +187,9 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
         </div>
       )}
 
-      {workflowTab === 'utama' && user.role === 'ppk' && (
+      {workflowTab === 'utama' && canManageContract && (
         <form onSubmit={handleSubmit} className="border border-border rounded-xl p-5 bg-white shadow-sm space-y-4">
-          <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2">Formulir Kontrak (PPK)</h4>
+          <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2">Formulir Kontrak</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-dpbj-navy mb-1">Nomor SPK / Kontrak</label>
@@ -271,47 +278,47 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       )}
 
       {workflowTab === 'sppbj_spk' && contract && (
-        <SppbjSpkSection tenderId={tenderId} contract={contract} canEdit={user.role === 'ppk' || user.role === 'admin'} refreshContract={fetchContract} />
+        <SppbjSpkSection tenderId={tenderId} contract={contract} canEdit={canManageContract} refreshContract={fetchContract} />
       )}
       {workflowTab === 'spmk' && contract && (
-        <SpmkSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <SpmkSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'jaminan' && contract && (
-        <JaminanSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <JaminanSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'sla' && contract && (
-        <SlaSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <SlaSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'material' && contract && (
-        <MaterialSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <MaterialSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'addendum' && contract && (
-        <AddendumSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <AddendumSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'catatan' && contract && (
-        <NotesRemindersDocsSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} isVendor={isVendorWinner} user={user} />
+        <NotesRemindersDocsSection tenderId={tenderId} canEdit={canManageContract} isVendor={isVendorWinner} user={user} />
       )}
       {workflowTab === 'perubahan' && contract && (
-        <StatusChangeSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <StatusChangeSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
       {workflowTab === 'pic' && contract && (
-        <PicStageSection tenderId={tenderId} contract={contract} canEdit={user.role === 'ppk' || user.role === 'admin'} refreshContract={fetchContract} />
+        <PicStageSection tenderId={tenderId} contract={contract} canEdit={canManageContract} refreshContract={fetchContract} />
       )}
       {workflowTab === 'penilaian_kinerja' && contract && (
-        <PenilaianKinerjaSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} user={user} />
+        <PenilaianKinerjaSection tenderId={tenderId} canEdit={canManageContract} user={user} />
       )}
 
       {/* Termin pembayaran, sanksi keterlambatan, dan progres pekerjaan */}
       {workflowTab === 'utama' && contract && (
         <>
-          <PaymentTermsSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
-          <DeliverablesSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
-          <PenaltiesSection tenderId={tenderId} canEdit={user.role === 'ppk' || user.role === 'admin'} />
+          <PaymentTermsSection tenderId={tenderId} canEdit={canManageContract} />
+          <DeliverablesSection tenderId={tenderId} canEdit={canManageContract} />
+          <PenaltiesSection tenderId={tenderId} canEdit={canManageContract} />
         </>
       )}
 
       {/* Kode QR verifikasi keaslian dokumen kontrak (Admin/PPK) */}
-      {workflowTab === 'utama' && contract && (user.role === 'ppk' || user.role === 'admin') && (
+      {workflowTab === 'utama' && contract && canManageContract && (
         <div className="border border-border rounded-xl p-5 bg-white shadow-sm space-y-3">
           <h4 className="font-bold text-sm text-dpbj-navy border-b border-border pb-2 flex items-center gap-2">
             <QrCode size={16} className="text-dpbj-gold" /> Kode QR Verifikasi Dokumen

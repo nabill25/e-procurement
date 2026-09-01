@@ -5,6 +5,10 @@ const { createUpload, handleUploadError } = require('../lib/upload');
 const { requireRole } = require('../lib/authMiddleware');
 const { sendMail } = require('../lib/mailer');
 const requireAdmin = requireRole('admin');
+// Padanan role "APPROVAL VMS" di sistem lama (menu "Daftar Rekanan Approval") - staf yang
+// tugasnya khusus meninjau dan menyetujui/menolak status kualifikasi vendor, tanpa akses admin
+// penuh ke seluruh sistem.
+const requireVendorApproval = requireRole('admin', 'approval_vms');
 
 // Kalau yang login adalah vendor, pastikan dia cuma mengelola datanya sendiri (:id di path
 // selalu berarti users.id milik vendor tersebut). Admin/PPK/Pokja tetap boleh bertindak atas
@@ -219,7 +223,7 @@ router.post('/', async (req, res) => {
 
 // ── PATCH /api/vendors/:id/verify — Verifikasi vendor (status → terverifikasi) ──
 // Mengikuti eProc: status_validasi = 2
-router.patch('/:id/verify', requireAdmin, async (req, res) => {
+router.patch('/:id/verify', requireVendorApproval, async (req, res) => {
   try {
     const { verified_by } = req.body;
     const result = await pool.query('SELECT company_name, user_id FROM vendors WHERE id = $1', [req.params.id]);
@@ -259,7 +263,7 @@ router.patch('/:id/verify', requireAdmin, async (req, res) => {
 
 // ── POST /api/vendors/:id/status — Update status vendor (general) ──
 // Mengikuti eProc: mapping status_validasi ke berbagai status
-router.post('/:id/status', requireAdmin, async (req, res) => {
+router.post('/:id/status', requireVendorApproval, async (req, res) => {
   try {
     const { status, reason } = req.body;
 
@@ -295,7 +299,7 @@ router.post('/:id/status', requireAdmin, async (req, res) => {
 
 // ── PATCH /api/vendors/:id/suspend — Tangguhkan vendor ──
 // Mengikuti eProc: status_validasi = 3 (ditangguhkan)
-router.patch('/:id/suspend', requireAdmin, async (req, res) => {
+router.patch('/:id/suspend', requireVendorApproval, async (req, res) => {
   try {
     const { reason } = req.body;
     const result = await pool.query('SELECT company_name FROM vendors WHERE id = $1', [req.params.id]);
@@ -316,7 +320,7 @@ router.patch('/:id/suspend', requireAdmin, async (req, res) => {
 
 // ── PATCH /api/vendors/:id/block — Blokir vendor (masuk blacklist) ──
 // Mengikuti eProc: status_validasi = 4 (diblokir)
-router.patch('/:id/block', requireAdmin, async (req, res) => {
+router.patch('/:id/block', requireVendorApproval, async (req, res) => {
   try {
     const { reason } = req.body;
     const result = await pool.query('SELECT user_id, company_name, npwp, city FROM vendors WHERE id = $1', [req.params.id]);

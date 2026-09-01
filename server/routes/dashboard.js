@@ -6,7 +6,9 @@ const { requireRole } = require('../lib/authMiddleware');
 // Khusus admin/PPK - rekap portofolio & efisiensi anggaran lintas organisasi tidak untuk
 // ditampilkan ke vendor/pokja biasa (req.user sudah pasti terisi, requireAuth dipasang di
 // index.js untuk seluruh /api/dashboard/*).
-const requireLeadership = requireRole('admin', 'ppk');
+// manager_pengadaan ditambahkan: padanan role "MANAGER PENGADAAN" di sistem lama yang menu
+// SATU-SATUNYA memang "Dashboard Manager" (dashboardhead) - persis dashboard rekap ini.
+const requireLeadership = requireRole('admin', 'ppk', 'manager_pengadaan');
 
 // ── GET /api/dashboard ──
 router.get('/', async (req, res) => {

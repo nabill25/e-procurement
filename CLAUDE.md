@@ -886,3 +886,35 @@ Pengguna minta cetak dokumen dituntaskan dulu (khususnya evaluasi kualifikasi da
 Sudah dites end-to-end (curl dengan verifikasi angka manual + browser sungguhan Playwright untuk ketiga jenis dokumen baru, nol error console) dan seluruh 17 test regresi tetap lulus bersih setelah perubahan. Data uji dibersihkan.
 
 **Sisa cetak dokumen yang masih belum dibuat** (dianggap prioritas lebih rendah - dokumen internal/jarang dipakai, bukan dokumen resmi legal yang wajib): rekam jejak, SPPJB (surat perjanjian versi konstruksi, sudah ada endpoint backend-nya dari Kelompok C tapi belum ada halaman cetak), surat pesanan (kontrak payung/katalog), jadwal tahapan, pernyataan minat, klarifikasi, negosiasi, dokumen katalog (SKT/surat pesanan), laporan VMS. Total cetak dokumen sekarang mencakup 8 dari ~23 kategori sistem lama (naik dari 4).
+
+## Lanjutan 2026-09-01: mulai kerjakan 10 role tambahan (gelombang pertama, 7 dari 10 role dapat akses)
+
+Setelah cetak dokumen dilengkapi, pengguna minta lanjut ke 10 role tambahan (fondasi multi-role sudah ada sejak tahap ketiga, tapi belum satupun punya halaman/fitur sendiri).
+
+**Metodologi**: sebelum menebak-nebak, saya query LANGSUNG ke data `tbl_m_menu` di `eproc/eproc_migrasi.sql` (bukan `tbl_m_menu_akses` yang ternyata KOSONG di dump produksi - kolom `hakakses` di `tbl_m_menu` sendiri yang menyimpan `user_type_id` pemilik tiap menu) untuk tahu PERSIS menu apa saja yang bisa diakses tiap satu dari 10 role di sistem lama. Temuan penting: sebagian besar role ini TERNYATA tidak butuh halaman baru dari nol, cuma butuh akses ke modul yang SUDAH ADA di sistem baru:
+
+| Role lama | Jumlah menu lama | Menu baru yang cocok |
+|---|---|---|
+| PENGGUNA | 7 (semua soal "Input Permohonan") | `pengajuan` (submit RUP - ternyata SUDAH bisa dilakukan siapa saja yang login, tidak ada gate role, tidak perlu ubah backend) |
+| MANAGER PENGADAAN | 1 ("Dashboard Manager") | `dashboard` + `executive_dashboard` (Dashboard Pimpinan yang baru dibuat, cocok persis) |
+| PELAKSANA PENGADAAN | 5 (katalog & pembelian langsung) | `katalog` + `purchasing` |
+| PENGELOLA KONTRAK | 57 (paling banyak, semua tahapan kontrak) | `tender` (untuk buka tab Kontrak & BAST di detail tender) |
+| KASUBDIT KONTRAK | 0 menu sendiri (nempel ke kontrak, tugasnya approval/pemeriksa) | sama seperti Pengelola Kontrak |
+| APPROVAL VMS | 1 ("Daftar Rekanan Approval") | `vendor` (dengan hak verifikasi/blokir/tangguhkan) |
+| AUDIT | 2 ("Contracting Audit Dokumen", "Paket Laporan Audit BAHP") | `audit` (versi generik yang sudah ada, BELUM 100% sama - dicatat sebagai keterbatasan) |
+| ADMIN VMS | 7 (blacklist, hapus vendor, SKT, survei, komplain) | **belum dikerjakan** - sebagian sudah ada (blacklist tambah), sebagian perlu fitur baru (hapus vendor, validasi SKT, survei persepsi) |
+| ADMINISTRATOR APPROVAL | 2 (approve user baru, approve role) | **belum dikerjakan**, niche |
+| PERENCANAAN | 0 menu sendiri di data lama | **belum diriset lebih lanjut** |
+
+Migrasi `migrations/032_akses_menu_role_tambahan.sql` mendaftarkan akses menu untuk 7 role di atas (yang benar-benar diberi menu baru: pengguna, manager_pengadaan, pelaksana_pengadaan, pengelola_kontrak, kasubdit_kontrak, approval_vms, audit) ke sistem Hak Akses Menu yang sudah ada, plus `getDefaultAllowedMenus()` di `Sidebar.jsx` disamakan sebagai jaring pengaman.
+
+**3 bug ditemukan dan diperbaiki lewat testing** (semua ini bug lama yang sudah ada sebelum sesi ini, baru ketahuan sekarang karena baru kali ini ada role selain admin/ppk/pokja/vendor yang benar-benar dites end-to-end):
+1. `src/pages/Dashboard.jsx` - role apapun yang bukan admin/ppk/pokja otomatis jatuh ke `VendorView` (tampilan "Portal Penyedia" dengan teks "Akun Anda telah terverifikasi" dkk), termasuk untuk role staf internal manapun. Diperbaiki: `VendorView` sekarang HANYA untuk `role === 'vendor'` secara eksplisit, role internal lain (termasuk 10 role tambahan) jatuh ke `PokjaView` (dashboard staf umum) sebagai default yang aman.
+2. `src/components/modals/DetailTenderModal.jsx` - **seluruh baris tab** (Detail Tender, Dokumen, Peserta, Aanwijzing, Sanggahan, Negosiasi, Kontrak & BAST) ternyata dibungkus SATU pengecekan role `['pokja','admin','ppk','vendor'].includes(user.role)` di paling luar. Role manapun di luar 4 itu, walau sudah dikasih akses menu `tender`, akan buka modal detail tender TANPA satupun tab tampil. Diperbaiki: `pengelola_kontrak` dan `kasubdit_kontrak` ditambahkan ke daftar ini (tab lain selain Kontrak tetap read-only untuk mereka karena gate masing-masing tab tidak diubah).
+3. Bug terkait di file yang sama: fetch daftar peserta tender juga punya pengecekan `isInternal` terpisah (`user.role === 'pokja' || 'admin' || 'ppk'`) yang menentukan endpoint mana dipanggil (`/participants` vs `/participants/me` yang khusus vendor). Role baru yang tidak masuk daftar ini salah dianggap "bukan internal" dan malah memanggil endpoint versi vendor, hasilnya peserta selalu kosong ("Pemenang Belum Ditetapkan" padahal pemenang sudah ada). Diperbaiki dengan menambahkan `pengelola_kontrak`/`kasubdit_kontrak` ke pengecekan ini juga.
+
+**Perubahan kode lain**: `src/components/modals/ContractTab.jsx` - dibuat konstanta `CONTRACT_MANAGER_ROLES = ['ppk','admin','pengelola_kontrak','kasubdit_kontrak']` dan `canManageContract`, menggantikan 12 pengulangan pola `user.role === 'ppk' || user.role === 'admin'` yang sebelumnya tersebar (termasuk form pembuatan kontrak awal). `server/routes/vendors.js` - endpoint verify/status/suspend/block sekarang menerima role `approval_vms` juga (`requireVendorApproval`), sebelumnya cuma `admin`. `src/components/modals/VendorDetailModal.jsx` - tombol aksi vendor (verifikasi/blokir/tangguhkan/tolak) sekarang muncul untuk `approval_vms` juga. `server/routes/dashboard.js` - `executive-summary`/`efficiency` sekarang menerima `manager_pengadaan` juga (`requireLeadership`).
+
+Sudah dites end-to-end lewat 7 akun staff uji (dibuat lewat endpoint resmi `POST /api/users`, bukan insert manual) untuk ketujuh role: login dan cek sidebar cuma menampilkan menu yang benar (browser sungguhan, Playwright), submit pengajuan sebagai `pengguna` berhasil, verifikasi vendor sebagai `approval_vms` berhasil (dan dikonfirmasi TETAP ditolak untuk endpoint admin-only lain di luar cakupannya), buka dan isi Formulir Kontrak sebagai `pengelola_kontrak`/`kasubdit_kontrak` berhasil penuh (bukan cuma buka menu, tapi sampai bisa submit data). Semua data uji (akun, tender, pengajuan) dibersihkan dari Supabase setelah testing. Seluruh 17 test regresi Playwright tetap lulus bersih.
+
+**Belum dikerjakan dari 10 role** (menyusul): Admin VMS (perlu fitur baru: hapus vendor, validasi SKT, survei persepsi - kerangka soft-delete `deleted_at` di tabel `vendors` sudah disiapkan sejak Kelompok G, tinggal dipakai), Administrator Approval (niche, approve akun staff baru & perubahan menu), Perencanaan (perlu riset lebih lanjut, di data lama tidak punya menu eksplisit sendiri).
