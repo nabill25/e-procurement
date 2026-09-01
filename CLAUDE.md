@@ -937,3 +937,90 @@ Sudah dites end-to-end lewat 3 akun staff uji + 1 vendor uji: hapus vendor sampa
 **Status akhir: 10 dari 10 role tambahan sekarang punya akses dan fungsi yang jelas** (7 murni buka akses ke modul yang sudah ada, 3 dapat fitur baru kecil). Fondasi multi-role dari tahap ketiga sekarang benar-benar terpakai penuh, bukan cuma terdaftar di database.
 
 **Yang sengaja disederhanakan** (bukan kelalaian, keputusan sadar karena nilai tambah kecil dibanding perubahan besar yang dibutuhkan): approval gate atas pembuatan akun staff baru (Administrator Approval), broadcast survei/komplain massal ke banyak vendor (Admin VMS), dan checklist kelengkapan dokumen di halaman SKT (halaman kedua dokumen SKT sistem lama).
+
+## Pengembangan UI/UX Sistem Internal - 4 ronde (2026-09-01)
+
+Setelah roadmap paritas (A-K) dan 10 role tambahan selesai, pengguna minta pengembangan UI/UX
+menyeluruh (responsif mobile, reaktif, interaktif, animasi halus) untuk portal publik dulu,
+lalu sistem internal. Portal publik (landing page, navbar bersama, statistik hidup, Registrasi
+Vendor, Kontak Kami) sudah dipoles di ronde sebelumnya. Sistem internal dikerjakan 4 ronde
+dengan pola yang sama: audit langsung ke kode (bukan cuma re-skin visual), temukan bug nyata,
+perbaiki, verifikasi lewat browser sungguhan.
+
+**Ronde 1 - Sistem toast global**: ditemukan 274 pemanggilan `alert()` bawaan browser tersebar
+di 36 file. Dibangun sistem toast baru (`src/lib/toast.js` pub-sub module-level + `src/components/common/ToastContainer.jsx`, dipasang sekali di `App.jsx`) yang otomatis mendeteksi jenis
+(sukses/gagal/info) dari kata kunci pesan, supaya penggantian `alert()` → `toast()` di 36 file
+itu bisa dilakukan lewat skrip otomatis tanpa menilai manual satu-satu. TopBar.jsx: dropdown
+notifikasi ternyata sudah lama tidak beranimasi sama sekali (pakai class `animate-in` dari
+plugin Tailwind yang tidak pernah terpasang), diganti Framer Motion yang benar-benar jalan,
+plus notifikasi individual sekarang bisa diklik utuk ditandai dibaca. Dihapus juga kode mati
+`src/pages/PublicRegister.jsx` (tidak pernah dipakai sejak commit pertama, importnya ke
+react-router-dom yang tidak pernah terpasang di project ini).
+
+**Ronde 2 - Bug status badge & kotak cari dekoratif**: badge status di tabel Paket Pengadaan
+ternyata salah pakai `statusConfig` milik modul Pengajuan (vocabulary beda total), bikin badge
+tampil teks mentah tanpa warna dan filter status nyaris selalu kosong. Ditambahkan
+`tenderStatusConfig` terpisah di `src/data/procurementPhases.js` (satu sumber kebenaran dengan
+tahapan yang sudah ada). Ditemukan juga bug lebih parah: `Purchasing.jsx` memanggil
+`<StatusBadge>` tanpa prop `config` sama sekali - CRASH begitu ada data order sungguhan,
+untung belum ketahuan karena data uji kosong. Ditambahkan default aman di `StatusBadge`
+sendiri (`src/components/ui/shared.jsx`) plus `purchasingStatusConfig`. Kotak cari di halaman
+Manajemen Vendor dan Pengajuan ternyata dekoratif (tidak ada value/onChange), sekarang
+benar-benar memfilter di sisi klien.
+
+**Ronde 3 - Modal Detail Tender**: tombol CTA vendor (daftar tender, kirim penawaran) pakai
+warna biru/ungu acak yang menimpa warna emas standar tanpa alasan semantik (beda dengan
+tombol approve/tolak/revisi di tempat lain yang memang sengaja dibedakan warnanya per jenis
+aksi - itu dibiarkan). Diseragamkan ke warna emas standar.
+
+**Ronde 4 - Audit visual 12 halaman admin + Data Master/Profil Vendor/Detail Tender penuh**:
+screenshot semua halaman admin yang belum dicek. Ketemu 2 halaman (Integrasi Oracle, Dashboard
+Pimpinan) tidak terdaftar di `pageTitles` TopBar.jsx, jadi judul salah tampil "Dashboard".
+Tombol "Filter" di halaman Katalog ternyata dekoratif padahal backend sudah lama mendukung
+filter kategori - disambungkan jadi dropdown yang benar-benar berfungsi. Lalu audit mendalam:
+27 tab Data Master, 11 tab Profil & Kualifikasi Vendor, 9 tab utama + 11 sub-tab Kontrak & BAST
+di Detail Tender - semua diklik satu per satu pakai 1 tender uji sungguhan yang dibawa sampai
+tahap kontrak, nol error ditemukan. Satu bug backend ditemukan: endpoint mati
+`PATCH /tenders/:id/status` masih pakai vocabulary status lama (sama seperti bug ronde 2, versi
+backend) - dikonfirmasi tidak dipanggil kode manapun, dihapus.
+
+## Cetak Dokumen: 9 kategori baru ditambahkan, sekarang 17 dari ~23 (2026-09-01)
+
+Setelah UI/UX internal selesai, lanjut menuntaskan Cetak Dokumen sesuai urutan yang disepakati.
+Metodologi tetap: baca file view PHP asli di `eproc/application/views/report/` (dijembatani
+controller generik `cetak.php`, URL apa saja yang match nama file di folder itu otomatis bisa
+diakses - jadi "aktif dipakai" ditentukan murni dari grep ke `views/main/` dan `views/kontrak/`
+mana yang benar-benar punya link ke situ, bukan dari controller-nya).
+
+**9 dokumen baru ditambahkan** (semua reuse tabel yang sudah ada dari Kelompok A/C, tidak ada
+migrasi baru): Jadwal Tahapan Tender, Rekam Jejak, Pernyataan Minat, Klarifikasi + Tanggapan,
+Berita Acara Negosiasi, SPMK, SPPJB (Surat Perjanjian versi konstruksi), Surat Pesanan (kontrak
+payung), Daftar Peserta Lelang. Endpoint baru semua di `server/routes/print.js`, halaman baru
+di `src/pages/print/Print{Jadwal,RekamJejak,PernyataanMinat,Klarifikasi,Negosiasi,Spmk,Sppjb,
+SuratPesanan,DaftarPeserta}.jsx`, didaftarkan di `printPages` map `src/App.jsx`.
+
+**Temuan penting**: 2 fitur (Pernyataan Minat, SPPJB) sudah punya endpoint backend sejak
+Kelompok A/C tapi TIDAK PERNAH punya satupun UI untuk mengisi datanya sama sekali - bukan cuma
+belum ada halaman cetak. Ditambahkan sekalian: section "Pernyataan Minat" baru di tab Dokumen &
+Klarifikasi (`DokumenPaketTab.jsx`, form untuk vendor + daftar & cetak untuk panitia), dan
+`SppjbSection` baru (`ContractWorkflowSections.jsx`, dirender di sub-tab SPMK pada
+`ContractTab.jsx`) - supaya kedua dokumen ini benar-benar bisa dipakai ujung ke ujung.
+
+Tombol "Cetak" tersebar di titik yang relevan: panel Jadwal Tanggal Tiap Tahap dan tab Rekam
+Jejak di `DetailTenderModal.jsx`, tab Peserta & Penawaran (Daftar Peserta), section Pernyataan
+Minat & Klarifikasi di `DokumenPaketTab.jsx`, tab Negosiasi (`NegotiationTab.jsx`), sub-tab
+SPMK/Material di `ContractWorkflowSections.jsx`.
+
+Sudah dites end-to-end: 1 tender uji dibawa dari pendaftaran sampai kontrak lengkap (pernyataan
+minat, klarifikasi+tanggapan, penawaran, evaluasi, pemenang, negosiasi, kontrak, SPMK, SPPJB,
+material, surat pesanan), kesembilan endpoint dicek lewat curl (data benar), kesembilan halaman
+cetak dicek lewat browser sungguhan (nol error), tombol-tombol Cetak dikonfirmasi tampil lewat
+screenshot. Data uji dibersihkan total. 17 test regresi lulus bersih.
+
+**Sisa kategori cetak dokumen yang belum dibuat** (~6 dari ~23): katalog produk/chat/SKT/surat
+pesanan (modul katalog, alur keranjang-nego-checkout-nya sendiri juga belum ada UI lengkap),
+evaluasi penawaran aritmatika + rekapitulasi harga (beda dari evaluasi kualifikasi yang sudah
+ada), contracting rekapitulasi, rekapitulasi pekerjaan, paket cetak umum, aanwijzing kualifikasi
+(forum terpisah untuk tahap pra-kualifikasi), pakta integritas versi panitia (roster, beda dari
+versi per-vendor yang sudah ada), template penilaian print, VMS daftar penyedia/terverifikasi
+(laporan listing, beda dari SKT per-vendor yang sudah ada).
