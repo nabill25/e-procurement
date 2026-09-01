@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle } from 'lucide-react';
+import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle, Printer } from 'lucide-react';
 import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import FormulaCategorySection from './FormulaCategorySection';
 import clsx from 'clsx';
 
 const FORMULA_CATEGORIES = ['personil', 'peralatan', 'sertifikat_lain'];
 
-const CATEGORIES = [
+export const CATEGORIES = [
   { id: 'administrasi',     label: 'Administrasi' },
   { id: 'teknis',           label: 'Teknis' },
   { id: 'harga',            label: 'Harga' },
@@ -128,9 +128,20 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
             </h2>
             <p className="text-xs text-muted font-mono">{vendor.company_name}</p>
           </div>
-          <button onClick={onClose} className="p-2 text-muted hover:bg-white rounded-xl transition-colors border border-transparent hover:border-border">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {grouped.length > 0 && (
+              <button
+                onClick={() => window.open(`/cetak/evaluasi-rekapitulasi/${tenderId}`, '_blank')}
+                className="btn-secondary text-xs flex items-center gap-1"
+                title="Cetak Rekapitulasi Evaluasi Kualifikasi (semua kategori)"
+              >
+                <Printer size={12} /> Cetak Rekapitulasi
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 text-muted hover:bg-white rounded-xl transition-colors border border-transparent hover:border-border">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -142,7 +153,16 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
                 <p className="text-sm text-muted text-center py-6">Belum ada kriteria evaluasi untuk tender ini. Tambahkan di bawah.</p>
               ) : grouped.map(cat => (
                 <div key={cat.id}>
-                  <h3 className="font-bold text-dpbj-navy text-sm mb-3">{cat.label}</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-dpbj-navy text-sm">{cat.label}</h3>
+                    <button
+                      onClick={() => window.open(`/cetak/evaluasi-kualifikasi/${tenderId}/${cat.id}`, '_blank')}
+                      className="text-xs text-dpbj-navy/70 hover:text-dpbj-navy flex items-center gap-1"
+                      title={`Cetak Evaluasi Kualifikasi - ${cat.label}`}
+                    >
+                      <Printer size={11} /> Cetak
+                    </button>
+                  </div>
                   {FORMULA_CATEGORIES.includes(cat.id) ? (
                     <FormulaCategorySection tenderId={tenderId} vendorId={vendor.vendor_id} category={cat.id} criteriaList={cat.items} />
                   ) : (

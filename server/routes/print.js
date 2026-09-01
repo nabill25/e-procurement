@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../db');
 const { requireAuth } = require('../lib/authMiddleware');
 const { terbilang, kalimatTanggalTerbilang, formatTanggalIndo } = require('../lib/tanggalTerbilang');
+const { FORMULA_CATEGORIES, computeCategoryFinalScore } = require('../lib/evalFormula');
 
 router.use(requireAuth);
 
@@ -301,6 +302,218 @@ router.get('/tenders/:id/kontrak', async (req, res) => {
     });
   } catch (err) {
     console.error('[GET /print/tenders/:id/kontrak]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+async function getEvaluatedPeserta(tenderId) {
+  const r = await pool.query(`
+    SELECT tp.vendor_id, tp.is_winner, tp.technical_score, tp.evaluation_notes, v.company_name
+    FROM tender_participants tp
+    JOIN vendors v ON tp.vendor_id = v.user_id
+    WHERE tp.tender_id = $1 AND tp.bid_price IS NOT NULL
+    ORDER BY v.company_name ASC
+  `, [tenderId]);
+  return r.rows;
+}
+
+// ── GET /api/print/tenders/:id/evaluasi-kualifikasi/:category ──
+// Padanan salah satu dari 7 laporan "evaluasi_kualifikasi_*" di sistem lama (administrasi,
+// rekening koran, pengalaman, personil, peralatan, sertifikat, SKK) - digabung jadi SATU endpoint
+// generik yang menerima kategori apa saja (sesuai kriteria yang dibuat Pokja lewat modul Evaluasi
+// Tender), karena sistem baru sudah memakai satu model data yang sama untuk semua kategori.
+router.get('/tenders/:id/evaluasi-kualifikasi/:category', async (req, res) => {
+  try {
+    const { id, category } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const criteriaResult = await pool.query(
+      'SELECT * FROM tender_eval_criteria WHERE tender_id = $1 AND category = $2 ORDER BY order_index ASC, created_at ASC',
+      [id, category]
+    );
+    if (!criteriaResult.rows.length) {
+      return res.status(404).json({ success: false, message: 'Belum ada kriteria evaluasi untuk kategori ini.' });
+    }
+
+    const peserta = await getEvaluatedPeserta(id);
+    const isFormula = FORMULA_CATEGORIES.includes(category);
+
+    let rows;
+    if (isFormula) {
+      const itemsResult = await pool.query(`
+        SELECT si.* FROM tender_eval_score_items si
+        JOIN tender_eval_criteria c ON c.id = si.criteria_id
+        WHERE c.tender_id = $1 AND c.category = $2
+      `, [id, category]);
+      rows = peserta.map(p => ({
+        company_name: p.company_name,
+        cells: criteriaResult.rows.map(c => ({
+          criteria_name: c.name,
+          items: itemsResult.rows.filter(it => it.vendor_id === p.vendor_id && it.criteria_id === c.id)
+            .map(it => `${it.item_name} (${it.suitability || it.suitability_value})`),
+        })),
+      }));
+    } else {
+      const scoresResult = await pool.query(`
+        SELECT s.* FROM tender_eval_scores s
+        JOIN tender_eval_criteria c ON c.id = s.criteria_id
+        WHERE c.tender_id = $1 AND c.category = $2
+      `, [id, category]);
+      rows = peserta.map(p => ({
+        company_name: p.company_name,
+        cells: criteriaResult.rows.map(c => {
+          const s = scoresResult.rows.find(x => x.vendor_id === p.vendor_id && x.criteria_id === c.id);
+          return { criteria_name: c.name, score: s ? s.score : null, meets: s ? s.meets_requirement : null, notes: s ? s.notes : null };
+        }),
+      }));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        category,
+        is_formula: isFormula,
+        criteria: criteriaResult.rows.map(c => c.name),
+        rows,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/evaluasi-kualifikasi/:category]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/evaluasi-rekapitulasi ──
+// Padanan "evaluasi_kualifikasi_rekapitulasi_excel.php" - rekap nilai akhir SEMUA kategori
+// evaluasi kualifikasi per vendor jadi satu tabel, plus status lulus/tidak.
+router.get('/tenders/:id/evaluasi-rekapitulasi', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const criteriaResult = await pool.query(
+      'SELECT * FROM tender_eval_criteria WHERE tender_id = $1 ORDER BY category ASC, order_index ASC',
+      [id]
+    );
+    if (!criteriaResult.rows.length) {
+      return res.status(404).json({ success: false, message: 'Belum ada kriteria evaluasi untuk tender ini.' });
+    }
+    const categories = [...new Set(criteriaResult.rows.map(c => c.category))];
+
+    const peserta = await getEvaluatedPeserta(id);
+    const scoresResult = await pool.query(`
+      SELECT s.* FROM tender_eval_scores s
+      JOIN tender_eval_criteria c ON c.id = s.criteria_id WHERE c.tender_id = $1
+    `, [id]);
+    const itemsResult = await pool.query(`
+      SELECT si.* FROM tender_eval_score_items si
+      JOIN tender_eval_criteria c ON c.id = si.criteria_id WHERE c.tender_id = $1
+    `, [id]);
+    const configResult = await pool.query('SELECT * FROM tender_eval_category_config WHERE tender_id = $1', [id]);
+
+    const rows = peserta.map(p => {
+      const perCategory = categories.map(cat => {
+        const criteriaOfCat = criteriaResult.rows.filter(c => c.category === cat);
+        const itemsByCriteria = {};
+        const scoreByCriteria = {};
+        criteriaOfCat.forEach(c => {
+          itemsByCriteria[c.id] = itemsResult.rows.filter(it => it.criteria_id === c.id && it.vendor_id === p.vendor_id);
+          const s = scoresResult.rows.find(x => x.criteria_id === c.id && x.vendor_id === p.vendor_id);
+          scoreByCriteria[c.id] = s ? s.score : null;
+        });
+        const cfg = configResult.rows.find(c => c.category === cat);
+        const maxScore = cfg ? Number(cfg.max_score) : 100;
+        const { final_score } = computeCategoryFinalScore(cat, criteriaOfCat, itemsByCriteria, scoreByCriteria, maxScore);
+        return { category: cat, final_score };
+      });
+      const rata2 = perCategory.length ? Math.round(perCategory.reduce((s, c) => s + c.final_score, 0) / perCategory.length) : 0;
+      return {
+        company_name: p.company_name,
+        per_category: perCategory,
+        nilai_akhir: rata2,
+        lulus: p.is_winner === true || (p.technical_score !== null && Number(p.technical_score) > 0),
+        keterangan: p.evaluation_notes,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        categories,
+        rows,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/evaluasi-rekapitulasi]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/pengajuan/:id ──
+// Padanan dokumen "PERMOHONAN PAKET USULAN DAN ANALISA KEBUTUHAN" (permohonan_paket_usulan_
+// admin_cetak.php) - dibuat sebagai dokumen detail SATU pengajuan (bukan daftar/list seperti versi
+// sistem lama, karena daftarnya sudah bisa dilihat & difilter langsung di halaman Pengajuan),
+// mencakup data usulan, analisa kebutuhan & pasar, dan status persetujuan.
+router.get('/pengajuan/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query(`
+      SELECT pr.*, u.full_name AS requester_name
+      FROM procurement_requests pr
+      LEFT JOIN users u ON pr.requester_id = u.id
+      WHERE pr.id = $1
+    `, [id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Pengajuan tidak ditemukan.' });
+    const req_ = r.rows[0];
+
+    const approvals = await pool.query(`
+      SELECT a.approved, a.created_at, u.full_name AS approved_by_name
+      FROM procurement_request_approvals a
+      LEFT JOIN users u ON a.approved_by = u.id
+      WHERE a.procurement_request_id = $1
+      ORDER BY a.created_at ASC
+    `, [id]);
+
+    const checklist = await pool.query(`
+      SELECT COUNT(*) FILTER (WHERE c.approved) AS terpenuhi, COUNT(*) AS total
+      FROM procurement_request_checklist c WHERE c.procurement_request_id = $1
+    `, [id]);
+
+    res.json({
+      success: true,
+      data: {
+        kalimat_tanggal: kalimatTanggalTerbilang(req_.created_at),
+        pengajuan: {
+          nomor: req_.request_number,
+          title: req_.title,
+          unit_kerja: req_.unit_kerja,
+          category: req_.category,
+          fiscal_year: req_.fiscal_year,
+          estimated_value: req_.estimated_value,
+          budget_source: req_.budget_source,
+          status: req_.status,
+          description: req_.description,
+          technical_spec: req_.technical_spec,
+          quantity: req_.quantity,
+          unit_of_measure: req_.unit_of_measure,
+          needed_by_date: formatTanggalIndo(req_.needed_by_date),
+          requester_name: req_.requester_name,
+          komoditas: req_.komoditas,
+          analisa_kebutuhan: req_.analisa_kebutuhan,
+          analisa_pasar: req_.analisa_pasar,
+          risiko_teridentifikasi: req_.risiko_teridentifikasi,
+          risiko_keterangan: req_.risiko_keterangan,
+        },
+        approvals: approvals.rows,
+        checklist: checklist.rows[0],
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/pengajuan/:id]', err);
     res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
   }
 });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Download, CheckCircle2, CheckSquare, Square, AlertTriangle, Upload, FileEdit, History, ClipboardList } from 'lucide-react';
+import { X, Download, CheckCircle2, CheckSquare, Square, AlertTriangle, Upload, FileEdit, History, ClipboardList, Printer } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig } from '../../data/mockData';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
@@ -227,9 +227,18 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
             <h2 className="text-lg font-bold text-dpbj-navy">Detail Pengajuan</h2>
             <p className="text-xs text-muted">{data.request_number}</p>
           </div>
-          <button onClick={onClose} className="p-2 text-muted hover:bg-gray-200 rounded-xl transition-colors">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.open(`/cetak/pengajuan/${data.id}`, '_blank')}
+              className="btn-secondary text-xs flex items-center gap-1"
+              title="Cetak Detail Permohonan Paket / RUP"
+            >
+              <Printer size={12} /> Cetak
+            </button>
+            <button onClick={onClose} className="p-2 text-muted hover:bg-gray-200 rounded-xl transition-colors">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1 space-y-6">

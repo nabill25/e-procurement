@@ -31,7 +31,7 @@ function getDeepLinkFromUrl() {
   const verifyMatch = window.location.pathname.match(/^\/verify\/([A-Za-z0-9]+)$/);
   if (verifyMatch) return { page: 'public_qr_verify', code: verifyMatch[1].toUpperCase() };
 
-  const cetakMatch = window.location.pathname.match(/^\/cetak\/([a-z-]+)\/([A-Za-z0-9-]+)(?:\/([A-Za-z0-9-]+))?$/);
+  const cetakMatch = window.location.pathname.match(/^\/cetak\/([a-z-]+)\/([A-Za-z0-9-]+)(?:\/([A-Za-z0-9_-]+))?$/);
   if (cetakMatch) return { page: 'print_document', code: null, printJenis: cetakMatch[1], printTenderId: cetakMatch[2], printVendorId: cetakMatch[3] || null };
 
   const resetMatch = window.location.pathname.match(/^\/reset-password\/([A-Za-z0-9]+)$/);

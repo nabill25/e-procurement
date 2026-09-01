@@ -36,6 +36,9 @@ import PrintAanwijzing from './pages/print/PrintAanwijzing';
 import PrintPaktaIntegritas from './pages/print/PrintPaktaIntegritas';
 import PrintSppbj from './pages/print/PrintSppbj';
 import PrintKontrak from './pages/print/PrintKontrak';
+import PrintEvaluasiKualifikasi from './pages/print/PrintEvaluasiKualifikasi';
+import PrintEvaluasiRekapitulasi from './pages/print/PrintEvaluasiRekapitulasi';
+import PrintPengajuan from './pages/print/PrintPengajuan';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -244,12 +247,16 @@ function AppShell() {
   // yang sudah login, beda dari /verify/KODE yang publik.
   if (activePage === 'print_document' && printDeepLink) {
     const backToTender = () => { setActivePage('tender'); window.history.replaceState({}, '', '/'); };
+    const backToPengajuan = () => { setActivePage('pengajuan'); window.history.replaceState({}, '', '/'); };
     const printPages = {
       'pembukaan-penawaran': <PrintPembukaanPenawaran tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'aanwijzing': <PrintAanwijzing tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'pakta-integritas': <PrintPaktaIntegritas tenderId={printDeepLink.tenderId} vendorId={printDeepLink.vendorId} onBack={backToTender} />,
       'sppbj': <PrintSppbj tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'kontrak': <PrintKontrak tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'evaluasi-kualifikasi': <PrintEvaluasiKualifikasi tenderId={printDeepLink.tenderId} category={printDeepLink.vendorId} onBack={backToTender} />,
+      'evaluasi-rekapitulasi': <PrintEvaluasiRekapitulasi tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'pengajuan': <PrintPengajuan pengajuanId={printDeepLink.tenderId} onBack={backToPengajuan} />,
     };
     return printPages[printDeepLink.jenis] || <Dashboard />;
   }

@@ -2007,51 +2007,9 @@ router.post('/:id/contract/sppjb', async (req, res) => {
 // ── RUMUS EVALUASI RESMI (Personil, Peralatan, Sertifikat) ──────────────────
 // Meniru persis fungsi hitungPersonil()/hitungPeralatan()/hitungSertifikat() di
 // eproc/lib/eproc/allfunc.js (kode yang benar-benar dipakai sistem produksi lama).
-
-const FORMULA_CATEGORIES = ['personil', 'peralatan', 'sertifikat_lain'];
-
-// Nilai kesesuaian efektif: S=100, TS=0, selain itu pakai nilai manual (tapi kalau manual
-// diisi persis 0 atau 100, dipaksa jadi 50 - meniru validasi di allfunc.js).
-function resolveSuitabilityValue(suitability, manualValue) {
-  if (suitability === 'S') return 100;
-  if (suitability === 'TS') return 0;
-  const v = Number(manualValue);
-  if (isNaN(v)) return 0;
-  if (v === 0 || v === 100) return 50;
-  return v;
-}
-
-function round2(n) {
-  return Math.round(n * 100) / 100;
-}
-
-// Hitung rasio (0-1) untuk SATU kriteria (mis. satu peran personil / satu jenis alat) berdasarkan
-// item-item yang diajukan vendor untuk kriteria itu.
-function calcCriteriaRatio(category, criteria, items) {
-  const values = items.map(it => resolveSuitabilityValue(it.suitability, it.suitability_value));
-
-  if (category === 'personil') {
-    const requiredCount = Number(criteria.required_count) || 0;
-    const filledCount = items.length;
-    const totalKebutuhan = requiredCount * 100;
-    const totalNilai = values.reduce((a, b) => a + b, 0);
-    if (totalKebutuhan === 0) return 0;
-    if (requiredCount > filledCount) return totalNilai / totalKebutuhan;
-    return totalKebutuhan <= totalNilai ? 1 : totalNilai / totalKebutuhan;
-  }
-
-  if (category === 'peralatan') {
-    const totalNilai = items.reduce((sum, it, i) => {
-      const ownership = it.ownership_factor != null ? Number(it.ownership_factor) : 100;
-      return sum + (values[i] * ownership) / 100;
-    }, 0);
-    return totalNilai >= 100 ? 1 : totalNilai / 100;
-  }
-
-  // sertifikat_lain
-  const totalNilai = values.reduce((a, b) => a + b, 0);
-  return totalNilai >= 100 ? 1 : totalNilai / 100;
-}
+// Logikanya ada di server/lib/evalFormula.js supaya bisa dipakai bersama dengan
+// endpoint cetak rekapitulasi evaluasi kualifikasi (server/routes/print.js).
+const { FORMULA_CATEGORIES, round2, calcCriteriaRatio } = require('../lib/evalFormula');
 
 // ── GET /api/tenders/:id/eval-category-config — Nilai maksimal per kategori (personil/peralatan/sertifikat) ──
 router.get('/:id/eval-category-config', async (req, res) => {
