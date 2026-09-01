@@ -9,6 +9,8 @@ const requireAdmin = requireRole('admin');
 // tugasnya khusus meninjau dan menyetujui/menolak status kualifikasi vendor, tanpa akses admin
 // penuh ke seluruh sistem.
 const requireVendorApproval = requireRole('admin', 'approval_vms');
+// Padanan role "ADMIN VMS" di sistem lama (menu "Hapus Data Vendor").
+const requireVendorDelete = requireRole('admin', 'admin_vms');
 
 // Kalau yang login adalah vendor, pastikan dia cuma mengelola datanya sendiri (:id di path
 // selalu berarti users.id milik vendor tersebut). Admin/PPK/Pokja tetap boleh bertindak atas
@@ -107,7 +109,7 @@ router.get('/', async (req, res) => {
              u.rating_avg, u.rating_count 
       FROM vendors v
       LEFT JOIN users u ON v.user_id = u.id
-      WHERE 1=1
+      WHERE v.deleted_at IS NULL
     `;
     const params = [];
     let paramIndex = 1;
@@ -131,7 +133,7 @@ router.get('/:id', async (req, res) => {
       SELECT v.*, u.rating_avg, u.rating_count
       FROM vendors v
       LEFT JOIN users u ON v.user_id = u.id
-      WHERE v.user_id = $1
+      WHERE v.user_id = $1 AND v.deleted_at IS NULL
     `, [req.params.id]);
     const rows = result.rows;
     if (!rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
@@ -340,6 +342,32 @@ router.patch('/:id/block', requireVendorApproval, async (req, res) => {
     );
 
     res.json({ success: true, message: 'Vendor berhasil diblokir dan ditambahkan ke daftar hitam.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── DELETE /api/vendors/:id — Hapus data vendor (soft-delete) ──
+// Padanan menu "Hapus Data Vendor" (daftar_rekanan_delete) khusus Admin VMS di sistem lama.
+// Pakai kolom deleted_at (kerangkanya sudah disiapkan sejak Kelompok G, belum pernah dipakai
+// fitur apapun sampai sekarang) - BUKAN hapus baris dari database, supaya riwayat transaksi
+// vendor itu (tender yang pernah diikuti, kontrak, dst) tetap utuh dan tidak menabrak foreign
+// key. Akun login vendor itu ikut dinonaktifkan (users.deleted_at) supaya tidak bisa login lagi.
+router.delete('/:id', requireVendorDelete, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT user_id, company_name FROM vendors WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan (atau sudah dihapus sebelumnya).' });
+    const vendor = result.rows[0];
+
+    await pool.query('UPDATE vendors SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1', [req.params.id]);
+    await pool.query('UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1', [vendor.user_id]);
+
+    await pool.query(
+      `INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('DELETE', 'Vendor', $1, true)`,
+      [`Vendor dihapus: ${vendor.company_name}`]
+    );
+
+    res.json({ success: true, message: 'Vendor berhasil dihapus.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

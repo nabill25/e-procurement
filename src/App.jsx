@@ -39,6 +39,7 @@ import PrintKontrak from './pages/print/PrintKontrak';
 import PrintEvaluasiKualifikasi from './pages/print/PrintEvaluasiKualifikasi';
 import PrintEvaluasiRekapitulasi from './pages/print/PrintEvaluasiRekapitulasi';
 import PrintPengajuan from './pages/print/PrintPengajuan';
+import PrintSkt from './pages/print/PrintSkt';
 import NewProcurementModal from './components/modals/NewProcurementModal';
 import SettingsModal from './components/modals/SettingsModal';
 import DetailPengajuanModal from './components/modals/DetailPengajuanModal';
@@ -248,6 +249,7 @@ function AppShell() {
   if (activePage === 'print_document' && printDeepLink) {
     const backToTender = () => { setActivePage('tender'); window.history.replaceState({}, '', '/'); };
     const backToPengajuan = () => { setActivePage('pengajuan'); window.history.replaceState({}, '', '/'); };
+    const backToVendor = () => { setActivePage('vendor'); window.history.replaceState({}, '', '/'); };
     const printPages = {
       'pembukaan-penawaran': <PrintPembukaanPenawaran tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'aanwijzing': <PrintAanwijzing tenderId={printDeepLink.tenderId} onBack={backToTender} />,
@@ -257,6 +259,7 @@ function AppShell() {
       'evaluasi-kualifikasi': <PrintEvaluasiKualifikasi tenderId={printDeepLink.tenderId} category={printDeepLink.vendorId} onBack={backToTender} />,
       'evaluasi-rekapitulasi': <PrintEvaluasiRekapitulasi tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'pengajuan': <PrintPengajuan pengajuanId={printDeepLink.tenderId} onBack={backToPengajuan} />,
+      'skt': <PrintSkt vendorId={printDeepLink.tenderId} onBack={backToVendor} />,
     };
     return printPages[printDeepLink.jenis] || <Dashboard />;
   }

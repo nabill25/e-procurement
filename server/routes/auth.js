@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
     const result = await pool.query(
       `SELECT id, username, full_name, email, password AS password_hash, role, status, role_label
        FROM users
-       WHERE (username = $1 OR email = $1)
+       WHERE (username = $1 OR email = $1) AND deleted_at IS NULL
        LIMIT 1`,
       [username]
     );

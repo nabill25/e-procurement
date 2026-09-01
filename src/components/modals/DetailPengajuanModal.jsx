@@ -122,6 +122,78 @@ function RevisionHistorySection({ pengajuanId, getAuthHeaders }) {
   );
 }
 
+// Approval Perencanaan - padanan tahap "Pengecekan Perencanaan" di alur RUP sistem lama
+// (rup_json.php), diberikan ke role perencanaan yang tugasnya meninjau kelayakan anggaran/
+// rencana sebelum pengajuan lanjut diproses admin DPBJ. Pakai mekanisme multi-approver yang
+// sudah ada di backend sejak Kelompok E (procurement_request_approvals - satu baris per
+// approver, upsert kalau approve ulang) tapi sebelumnya belum ada UI-nya sama sekali.
+function ApprovalPerencanaanSection({ pengajuanId, user, getAuthHeaders }) {
+  const [approvals, setApprovals] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchApprovals = useCallback(() => {
+    fetch(`${API_BASE}/pengajuan/${pengajuanId}/approvals`, { headers: getAuthHeaders() })
+      .then(r => r.json()).then(j => { if (j.success) setApprovals(j.data); }).catch(() => {});
+  }, [pengajuanId]);
+
+  useEffect(() => { fetchApprovals(); }, [fetchApprovals]);
+
+  const myApproval = approvals.find(a => a.approved_by === user?.id);
+
+  // Sembunyikan section ini sepenuhnya kalau tidak relevan (bukan role perencanaan DAN belum
+  // ada satupun approval tercatat) - supaya tidak jadi heading kosong untuk role lain.
+  if (approvals.length === 0 && user?.role !== 'perencanaan') return null;
+
+  const handleApprove = async (approved) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/pengajuan/${pengajuanId}/approvals`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ approved, approved_by: user.id, created_by: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) fetchApprovals();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan persetujuan.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <h3 className="text-sm font-bold text-dpbj-navy mb-3 flex items-center gap-2"><CheckCircle2 size={16} /> Persetujuan Perencanaan</h3>
+      {approvals.length > 0 && (
+        <div className="space-y-1.5 mb-3">
+          {approvals.map(a => (
+            <div key={a.id} className={clsx('text-xs px-3 py-2 rounded-lg border flex items-center justify-between', a.approved ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800')}>
+              <span>{a.approved_by_name || '-'}</span>
+              <span className="font-semibold">{a.approved ? 'Disetujui' : 'Ditolak'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {user?.role === 'perencanaan' && (
+        myApproval ? (
+          <p className="text-xs text-muted">Anda sudah memberikan persetujuan untuk pengajuan ini. Klik lagi kalau ingin mengubah keputusan.</p>
+        ) : null
+      )}
+      {user?.role === 'perencanaan' && (
+        <div className="flex gap-2">
+          <button onClick={() => handleApprove(true)} disabled={submitting} className="btn-secondary text-xs bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 disabled:opacity-50">
+            Setujui Rencana
+          </button>
+          <button onClick={() => handleApprove(false)} disabled={submitting} className="btn-secondary text-xs bg-red-50 text-red-700 border-red-200 hover:bg-red-100 disabled:opacity-50">
+            Tolak
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ActivityLogSection({ pengajuanId, getAuthHeaders }) {
   const [logs, setLogs] = useState([]);
 
@@ -331,6 +403,8 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
           <RevisionHistorySection pengajuanId={data.id} getAuthHeaders={getAuthHeaders} />
 
           <ActivityLogSection pengajuanId={data.id} getAuthHeaders={getAuthHeaders} />
+
+          <ApprovalPerencanaanSection pengajuanId={data.id} user={user} getAuthHeaders={getAuthHeaders} />
 
           <ChecklistSection pengajuanId={data.id} category={data.category} canEdit={user?.role === 'admin'} user={user} getAuthHeaders={getAuthHeaders} />
 

@@ -5,6 +5,10 @@ const bcrypt  = require('bcrypt');
 const { pool } = require('../db');
 const { requireRole } = require('../lib/authMiddleware');
 const requireAdmin = requireRole('admin');
+// Padanan role "ADMINISTRATOR APPROVAL" di sistem lama (menu "Master User eProc Approval") -
+// tugasnya meninjau dan mengubah status aktif/nonaktif akun staf internal, tanpa akses admin
+// penuh (tidak bisa buat akun baru atau ubah role, itu tetap khusus Admin).
+const requireUserStatusManage = requireRole('admin', 'administrator_approval');
 
 // ── GET /api/users/roles — Daftar semua role yang dikenal sistem (dipakai juga PPK untuk
 // dropdown, misal isi PIC tahap kontrak - bukan cuma admin) ──
@@ -110,6 +114,31 @@ router.post('/:id/roles', requireAdmin, async (req, res) => {
     `, [req.params.id, role_key, level || null]);
 
     res.status(201).json({ success: true, message: `Role ${roleInfo.rows[0].label} berhasil ditambahkan ke akun ini.` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PATCH /api/users/:id/status — Ubah status aktif/nonaktif akun staf internal ──
+// Padanan tombol "Ubah Status Aktif" di sistem lama (users_base_json/ubah_status_aktif).
+router.patch('/:id/status', requireUserStatusManage, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['aktif', 'nonaktif'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Status tidak valid. Pilihan: aktif, nonaktif.' });
+    }
+    const result = await pool.query(
+      `UPDATE users SET status = $1 WHERE id = $2 AND role != 'vendor' RETURNING id, full_name`,
+      [status, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ success: false, message: 'Akun tidak ditemukan.' });
+
+    await pool.query(
+      `INSERT INTO audit_logs (action, entity_type, description, is_success) VALUES ('UPDATE', 'User', $1, true)`,
+      [`Status akun ${result.rows[0].full_name} diubah menjadi ${status}`]
+    );
+
+    res.json({ success: true, message: `Status akun berhasil diubah menjadi ${status}.` });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -131,6 +131,27 @@ export default function Vendor() {
     }
   };
 
+  // ── Hapus vendor (soft-delete, padanan menu "Hapus Data Vendor" - Admin VMS) ──
+  const handleDelete = async (vendor) => {
+    if (!confirm(`PERHATIAN: Data vendor ${vendor.company_name} akan dihapus dan akun login-nya dinonaktifkan. Riwayat transaksi lama (tender/kontrak) tetap tersimpan. Lanjutkan?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/vendors/${vendor.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert(json.message);
+        setSelectedVendor(null);
+        fetchVendors();
+      } else {
+        alert('Gagal: ' + json.message);
+      }
+    } catch {
+      alert('Terjadi kesalahan saat menghubungi server.');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Stats row */}
@@ -229,6 +250,7 @@ export default function Vendor() {
         onReject={(v) => handleUpdateStatus(v, 'pending')}
         onSuspend={handleSuspend}
         onBlock={handleBlock}
+        onDelete={handleDelete}
       />
     </div>
   );

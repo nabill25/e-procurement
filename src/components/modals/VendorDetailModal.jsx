@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
-import { X, CheckCircle2, AlertCircle, FileText, Download, Ban } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, FileText, Download, Ban, Printer, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, onReject, onSuspend, onBlock }) {
+export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, onReject, onSuspend, onBlock, onDelete }) {
   const { user } = useApp();
 
   if (!isOpen || !vendor) return null;
@@ -168,6 +168,30 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
                 </button>
               )}
             </>
+          )}
+
+          {/* Cetak SKT — padanan "Surat Keterangan Terdaftar" di sistem lama, cuma bisa dicetak
+              untuk vendor yang statusnya sudah terverifikasi. Dipisah dari blok di atas karena
+              Admin VMS (yang punya menu SKT di sistem lama) tidak termasuk approval_vms/admin. */}
+          {vendor.status === 'terverifikasi' && ['admin', 'admin_vms', 'approval_vms'].includes(user?.role) && (
+            <button
+              onClick={() => window.open(`/cetak/skt/${vendor.id}`, '_blank')}
+              className="btn-secondary w-full sm:w-auto justify-center"
+            >
+              <Printer size={14} /> Cetak SKT
+            </button>
+          )}
+
+          {/* Hapus vendor — khusus Admin dan Admin VMS (bukan approval_vms), padanan menu
+              "Hapus Data Vendor" di sistem lama. Soft-delete (kolom deleted_at), bukan hapus
+              permanen dari database. */}
+          {(user?.role === 'admin' || user?.role === 'admin_vms') && (
+            <button
+              onClick={() => onDelete && onDelete(vendor)}
+              className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border-2 border-red-700 text-red-700 hover:bg-red-700 hover:text-white transition-all w-full sm:w-auto"
+            >
+              <Trash2 size={14} /> Hapus Vendor
+            </button>
           )}
         </div>
       </div>

@@ -518,4 +518,45 @@ router.get('/pengajuan/:id', async (req, res) => {
   }
 });
 
+// ── GET /api/print/vendors/:id/skt ──
+// Padanan dokumen "Surat Keterangan Terdaftar (SKT)" (eproc/application/views/report/vms.php,
+// halaman pertama - halaman kedua di sistem lama adalah checklist kelengkapan dokumen yang
+// TIDAK ditiru karena field kelengkapannya tidak punya padanan 1:1 di sistem baru).
+router.get('/vendors/:id/skt', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // :id di sini adalah vendors.id (bukan users.id) - konsisten dengan endpoint verify/suspend/
+    // block di server/routes/vendors.js dan dengan src/pages/Vendor.jsx yang selalu meneruskan
+    // vendors.id, bukan users.id, ke VendorDetailModal.
+    const r = await pool.query(`
+      SELECT v.*, u.full_name FROM vendors v LEFT JOIN users u ON v.user_id = u.id WHERE v.id = $1
+    `, [id]);
+    if (!r.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+    const vendor = r.rows[0];
+    if (vendor.status !== 'terverifikasi') {
+      return res.status(400).json({ success: false, message: 'SKT cuma bisa dicetak untuk vendor yang sudah terverifikasi.' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        kalimat_tanggal: kalimatTanggalTerbilang(new Date()),
+        vendor: {
+          nama: vendor.company_name,
+          alamat: [vendor.city, vendor.province].filter(Boolean).join(', ') || '-',
+          telepon: vendor.phone,
+          kontak_person: vendor.contact_person,
+          email: vendor.email,
+          kualifikasi: vendor.qualification_class,
+          npwp: vendor.npwp,
+          nib: vendor.nib,
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/vendors/:id/skt]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
 module.exports = router;

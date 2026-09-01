@@ -88,6 +88,23 @@ export default function UserManagement() {
     }
   };
 
+  // Ubah status aktif/nonaktif akun - padanan tombol "Ubah Status Aktif" di sistem lama, khusus
+  // role Administrator Approval (dan tetap Admin sebagai fallback penuh).
+  const handleToggleStatus = async (u) => {
+    const newStatus = u.status === 'aktif' ? 'nonaktif' : 'aktif';
+    if (!confirm(`Ubah status akun ${u.full_name} menjadi "${newStatus}"?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/users/${u.id}/status`, {
+        method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) fetchUsers();
+      else alert('Gagal: ' + json.message);
+    } catch {
+      alert('Terjadi kesalahan saat mengubah status.');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="section-card">
@@ -176,7 +193,15 @@ export default function UserManagement() {
                       </button>
                     )}
                   </td>
-                  <td className="text-right text-xs text-muted">{u.status}</td>
+                  <td className="text-right">
+                    <button
+                      onClick={() => handleToggleStatus(u)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-full ${u.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+                      title="Klik untuk ubah status aktif/nonaktif"
+                    >
+                      {u.status}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

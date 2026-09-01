@@ -29,6 +29,9 @@ function getDefaultAllowedMenus(role) {
   if (role === 'kasubdit_kontrak') return ['dashboard', 'tender'];
   if (role === 'approval_vms') return ['dashboard', 'vendor'];
   if (role === 'audit') return ['dashboard', 'audit'];
+  if (role === 'admin_vms') return ['dashboard', 'blacklist', 'vendor', 'inbox'];
+  if (role === 'administrator_approval') return ['dashboard', 'user_management'];
+  if (role === 'perencanaan') return ['dashboard', 'pengajuan'];
   return ['dashboard'];
 }
 
