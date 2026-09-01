@@ -3,6 +3,7 @@ import { Save, Plus, Trash2, Upload, Download, FileSignature, ShieldCheck, Wrenc
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 function Section({ icon: Icon, title, children, tone = 'navy' }) {
   const toneClass = tone === 'amber' ? 'bg-amber-50 border-amber-200' : 'bg-white border-border';
@@ -45,7 +46,7 @@ export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }
     try {
       await fetch(`${API_BASE}/tenders/${tenderId}/contract/sppbj`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(sppbj) });
       refreshContract();
-    } catch { alert('Gagal menyimpan SPPBJ.'); } finally { setSaving(false); }
+    } catch { toast('Gagal menyimpan SPPBJ.'); } finally { setSaving(false); }
   };
 
   const saveSpk = async () => {
@@ -53,7 +54,7 @@ export function SppbjSpkSection({ tenderId, contract, canEdit, refreshContract }
     try {
       await fetch(`${API_BASE}/tenders/${tenderId}/contract/spk-detail`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(spk) });
       refreshContract();
-    } catch { alert('Gagal menyimpan detail SPK.'); } finally { setSaving(false); }
+    } catch { toast('Gagal menyimpan detail SPK.'); } finally { setSaving(false); }
   };
 
   return (
@@ -140,7 +141,7 @@ export function SpmkSection({ tenderId, canEdit, user }) {
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const handleAdd = async () => {
-    if (!form.nomor) return alert('Nomor SPMK wajib diisi.');
+    if (!form.nomor) return toast('Nomor SPMK wajib diisi.');
     await fetch(`${API_BASE}/tenders/${tenderId}/contract/spmk`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ...form, created_by: user.id }) });
     setForm({ nomor: '', spmk_dari: '', spmk_sampai: '', keterangan: '' });
     fetchItems();
@@ -326,21 +327,21 @@ export function MaterialSection({ tenderId, canEdit, user }) {
 
   const saveMaterials = async () => {
     const valid = materials.filter(m => m.nama.trim());
-    if (!valid.length) return alert('Isi minimal satu material.');
+    if (!valid.length) return toast('Isi minimal satu material.');
     await fetch(`${API_BASE}/tenders/${tenderId}/contract/materials`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ materials: valid, created_by: user.id }) });
     fetchAll();
   };
 
   const createSuratPesanan = async () => {
     const items = spItems.filter(i => i.nama && i.qty && i.harga_satuan);
-    if (!spForm.nomor_surat || !items.length) return alert('Nomor surat dan minimal satu item diperlukan.');
+    if (!spForm.nomor_surat || !items.length) return toast('Nomor surat dan minimal satu item diperlukan.');
     const res = await fetch(`${API_BASE}/tenders/${tenderId}/contract/surat-pesanan`, {
       method: 'POST', headers: getAuthHeaders(),
       body: JSON.stringify({ ...spForm, items, created_by: user.id }),
     });
     const json = await res.json();
     if (json.success) { setSpForm({ nomor_surat: '', tanggal: '' }); setSpItems([{ material_id: '', nama: '', qty: '', harga_satuan: '', satuan: '' }]); fetchAll(); }
-    else alert('Gagal: ' + json.message);
+    else toast('Gagal: ' + json.message);
   };
 
   return (
@@ -425,7 +426,7 @@ export function AddendumSection({ tenderId, canEdit, user }) {
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const handleAdd = async () => {
-    if (!form.nomor) return alert('Nomor addendum wajib diisi.');
+    if (!form.nomor) return toast('Nomor addendum wajib diisi.');
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
     fd.append('created_by', user.id);
@@ -496,7 +497,7 @@ export function NotesRemindersDocsSection({ tenderId, canEdit, isVendor, user })
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const submitNote = async () => {
-    if (!noteText.trim()) return alert('Catatan tidak boleh kosong.');
+    if (!noteText.trim()) return toast('Catatan tidak boleh kosong.');
     await fetch(`${API_BASE}/tenders/${tenderId}/contract/notes`, {
       method: 'POST', headers: getAuthHeaders(),
       body: JSON.stringify({ jenis: isVendor ? 'penyedia' : 'internal', pesan: noteText, created_by: user.id }),
@@ -505,13 +506,13 @@ export function NotesRemindersDocsSection({ tenderId, canEdit, isVendor, user })
   };
 
   const submitReminder = async () => {
-    if (!reminderForm.judul) return alert('Judul pengingat wajib diisi.');
+    if (!reminderForm.judul) return toast('Judul pengingat wajib diisi.');
     await fetch(`${API_BASE}/tenders/${tenderId}/contract/reminders`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ...reminderForm, created_by: user.id }) });
     setReminderForm({ judul: '', tanggal_dari: '' }); fetchAll();
   };
 
   const submitDoc = async () => {
-    if (!docFile) return alert('Pilih file terlebih dahulu.');
+    if (!docFile) return toast('Pilih file terlebih dahulu.');
     const fd = new FormData();
     fd.append('nama', docName || docFile.name);
     fd.append('created_by', user.id);
@@ -609,7 +610,7 @@ export function StatusChangeSection({ tenderId, canEdit, user }) {
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const handleSubmit = async () => {
-    if (!alasan.trim()) return alert('Alasan wajib diisi.');
+    if (!alasan.trim()) return toast('Alasan wajib diisi.');
     const fd = new FormData();
     fd.append('jenis', jenis);
     fd.append('alasan', alasan);
@@ -729,8 +730,8 @@ export function PenilaianKinerjaSection({ tenderId, canEdit, user }) {
         body: JSON.stringify({ template_id: templateId, skor: Number(skor), scored_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menyimpan skor.'); }
+      if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menyimpan skor.'); }
   };
 
   const totalSkor = scores.reduce((sum, s) => {

@@ -3,6 +3,7 @@ import { Plus, Trash2, Database, MoveHorizontal } from 'lucide-react';
 import { formatNPWP } from '../utils/npwp';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
+import { toast } from '../lib/toast';
 
 const CATEGORIES = [
   { id: 'bank',           label: 'Bank' },
@@ -74,10 +75,10 @@ function SimpleMasterTable({ category }) {
         setNama('');
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -92,9 +93,9 @@ function SimpleMasterTable({ category }) {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -185,10 +186,10 @@ function UnitKerjaTable() {
         setForm({ kode: '', nama: '', alamat: '', telepon: '', email: '' });
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -203,9 +204,9 @@ function UnitKerjaTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -312,10 +313,10 @@ function VendorRetailTable() {
         setForm({ nama: '', npwp: '', telepon: '', kota: '', kontak_person: '', kontak_person_hp: '', alamat: '' });
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -330,9 +331,9 @@ function VendorRetailTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -451,10 +452,10 @@ function KatalogCategoryTable() {
         setNama(''); setKode(''); setParentId('');
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -469,9 +470,9 @@ function KatalogCategoryTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -574,10 +575,10 @@ function MasterChecklistTable() {
         setNama(''); setPaketJenis(''); setWajib(false);
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -592,9 +593,9 @@ function MasterChecklistTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -698,10 +699,10 @@ function DocumentTemplateTable() {
         setNama(''); setFile(null);
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -716,9 +717,9 @@ function DocumentTemplateTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -822,10 +823,10 @@ function HolidayTable() {
         setTanggal(''); setKeterangan('');
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -840,9 +841,9 @@ function HolidayTable() {
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -933,9 +934,9 @@ function RegionTable() {
       });
       const json = await res.json();
       if (json.success) { setNama(''); fetchChildren(); }
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -947,9 +948,9 @@ function RegionTable() {
       const res = await fetch(`${API_BASE}/master/regions/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchChildren();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -1051,8 +1052,8 @@ function ComplainTypeTable() {
       });
       const json = await res.json();
       if (json.success) { setName(''); setDescription(''); fetchData(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -1061,8 +1062,8 @@ function ComplainTypeTable() {
       const res = await fetch(`${API_BASE}/inbox/meta/complain-types/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus data.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus data.'); }
   };
 
   return (
@@ -1136,8 +1137,8 @@ function ComplainRecipientTable() {
       });
       const json = await res.json();
       if (json.success) { setEmail(''); setKeterangan(''); fetchData(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menyimpan data.'); } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -1146,8 +1147,8 @@ function ComplainRecipientTable() {
       const res = await fetch(`${API_BASE}/inbox/meta/complain-recipients/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus data.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus data.'); }
   };
 
   return (
@@ -1227,10 +1228,10 @@ function PenilaianTemplateTable() {
         setForm({ kode: '', nama: '', parent_id: '', bobot_persen: '', skor_maksimal: '' });
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.');
+      toast('Terjadi kesalahan saat menyimpan data.');
     } finally {
       setSaving(false);
     }
@@ -1242,9 +1243,9 @@ function PenilaianTemplateTable() {
       const res = await fetch(`${API_BASE}/master/penilaian-templates/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus data.');
+      toast('Terjadi kesalahan saat menghapus data.');
     }
   };
 

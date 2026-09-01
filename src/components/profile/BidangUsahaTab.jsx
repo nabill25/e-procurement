@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Trash2, Briefcase } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 // Tab Bidang Usaha di Profil Vendor - vendor cari & pilih klasifikasi bidang usaha (KBLI/SBU)
 // miliknya sendiri dari daftar 2794 kode resmi yang sudah diimpor dari sistem lama.
@@ -40,8 +41,8 @@ export default function BidangUsahaTab({ vendorId, getAuthHeaders }) {
         body: JSON.stringify({ bidang_usaha_id: bidangUsahaId }),
       });
       const json = await res.json();
-      if (json.success) { setSearch(''); setResults([]); fetchSelected(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menambah bidang usaha.'); } finally { setLoading(false); }
+      if (json.success) { setSearch(''); setResults([]); fetchSelected(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menambah bidang usaha.'); } finally { setLoading(false); }
   };
 
   const handleRemove = async (linkId) => {
@@ -49,8 +50,8 @@ export default function BidangUsahaTab({ vendorId, getAuthHeaders }) {
     try {
       const res = await fetch(`${API_BASE}/vendors/${vendorId}/bidang-usaha/${linkId}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
-      if (json.success) fetchSelected(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus.'); }
+      if (json.success) fetchSelected(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus.'); }
   };
 
   return (

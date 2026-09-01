@@ -3,6 +3,7 @@ import { CreditCard, AlertOctagon, ListChecks, Plus } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 const PAYMENT_STATUS = {
   belum_dibayar: { label: 'Belum Dibayar', className: 'bg-gray-100 text-gray-600' },
@@ -34,8 +35,8 @@ export function PaymentTermsSection({ tenderId, canEdit }) {
       });
       const json = await res.json();
       if (json.success) { setForm({ term_name: '', amount: '', progress_percent: '' }); setShowForm(false); fetchTerms(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan.'); }
   };
 
   const handleMarkPaid = async (id) => {
@@ -47,8 +48,8 @@ export function PaymentTermsSection({ tenderId, canEdit }) {
         body: (() => { const f = new FormData(); f.append('status', 'dibayar'); f.append('payment_date', new Date().toISOString().slice(0, 10)); return f; })(),
       });
       const json = await res.json();
-      if (json.success) fetchTerms(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan.'); }
+      if (json.success) fetchTerms(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan.'); }
   };
 
   return (
@@ -124,8 +125,8 @@ export function PenaltiesSection({ tenderId, canEdit }) {
       });
       const json = await res.json();
       if (json.success) { setForm({ days_late: '', penalty_rate: '1 permil/hari', work_value: '', penalty_amount: '', notes: '' }); setShowForm(false); fetchPenalties(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan.'); }
   };
 
   return (
@@ -199,8 +200,8 @@ export function DeliverablesSection({ tenderId, canEdit }) {
       });
       const json = await res.json();
       if (json.success) { setForm({ scope: '', deliverable_name: '', target_date: '' }); setShowForm(false); fetchItems(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan.'); }
   };
 
   const handleUpdateProgress = async (id, progress, status) => {
@@ -211,8 +212,8 @@ export function DeliverablesSection({ tenderId, canEdit }) {
         body: (() => { const f = new FormData(); f.append('progress_percent', progress); f.append('status', status); return f; })(),
       });
       const json = await res.json();
-      if (json.success) fetchItems(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan.'); }
+      if (json.success) fetchItems(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan.'); }
   };
 
   return (

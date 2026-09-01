@@ -10,6 +10,7 @@ import {
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 const WORKFLOW_SUBTABS = [
   { id: 'utama', label: 'Utama' },
@@ -85,7 +86,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!winner) return alert('Pemenang belum ditetapkan!');
+    if (!winner) return toast('Pemenang belum ditetapkan!');
     try {
       setIsSubmitting(true);
       const valueNum = Number(String(form.contract_value).replace(/\./g, ''));
@@ -113,13 +114,13 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       });
       const json = await res.json();
       if (json.success) {
-        alert('Data kontrak berhasil disimpan.');
+        toast('Data kontrak berhasil disimpan.');
         fetchContract();
       } else {
-        alert(json.message);
+        toast(json.message);
       }
     } catch (err) {
-      alert(err.message);
+      toast(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,9 +142,9 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       });
       const json = await res.json();
       if (json.success) setQrData(json.data);
-      else alert('Gagal membuat kode QR: ' + json.message);
+      else toast('Gagal membuat kode QR: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat membuat kode QR.');
+      toast('Terjadi kesalahan saat membuat kode QR.');
     } finally {
       setGeneratingQr(false);
     }
@@ -371,11 +372,11 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
                 });
                 const json = await res.json();
                 if (json.success) {
-                  alert('Penilaian berhasil dikirim.');
+                  toast('Penilaian berhasil dikirim.');
                   fetchContract();
-                } else alert(json.message);
+                } else toast(json.message);
               } catch (err) {
-                alert(err.message);
+                toast(err.message);
               } finally {
                 setIsSubmitting(false);
               }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Lock, Save, MoveHorizontal } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 const ROLES = [
   { id: 'admin',  label: 'Admin' },
@@ -46,9 +47,9 @@ export default function MenuAccess() {
         body: JSON.stringify({ roles: menu.roles }),
       });
       const json = await res.json();
-      if (!json.success) alert('Gagal: ' + json.message);
+      if (!json.success) toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menyimpan hak akses.');
+      toast('Terjadi kesalahan saat menyimpan hak akses.');
     } finally {
       setSavingId(null);
     }

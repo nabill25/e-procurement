@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Package, Upload, Download, Trash2, Image as ImageIcon, Paperclip, History, Flag } from 'lucide-react';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
+import { toast } from '../../lib/toast';
 
 export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
   const { user } = useApp();
@@ -59,14 +60,14 @@ export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
 
   const submitReport = async (e) => {
     e.preventDefault();
-    if (!reportForm.alasan.trim()) return alert('Alasan laporan wajib diisi.');
+    if (!reportForm.alasan.trim()) return toast('Alasan laporan wajib diisi.');
     const res = await fetch(`${API_BASE}/katalog/reports`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ katalog_id: katalogId, ...reportForm }),
     });
     const json = await res.json();
-    if (json.success) { alert('Laporan berhasil dikirim.'); setShowReportForm(false); setReportForm({ nama: '', email: '', telepon: '', alasan: '', jenis_laporan: '' }); }
-    else alert('Gagal: ' + json.message);
+    if (json.success) { toast('Laporan berhasil dikirim.'); setShowReportForm(false); setReportForm({ nama: '', email: '', telepon: '', alasan: '', jenis_laporan: '' }); }
+    else toast('Gagal: ' + json.message);
   };
 
   return (

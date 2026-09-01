@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { KeyRound, Plus, Trash2, Power, Copy, Eye, X, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -47,10 +48,10 @@ export default function ApiKeys() {
         setShowAddForm(false);
         fetchKeys();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat membuat API key.');
+      toast('Terjadi kesalahan saat membuat API key.');
     } finally {
       setSaving(false);
     }
@@ -61,9 +62,9 @@ export default function ApiKeys() {
       const res = await fetch(`${API_BASE}/users/api-keys/${id}/toggle`, { method: 'PATCH', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchKeys();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mengubah status key.');
+      toast('Terjadi kesalahan saat mengubah status key.');
     }
   };
 
@@ -73,9 +74,9 @@ export default function ApiKeys() {
       const res = await fetch(`${API_BASE}/users/api-keys/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchKeys();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus key.');
+      toast('Terjadi kesalahan saat menghapus key.');
     }
   };
 

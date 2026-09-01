@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Newspaper, Plus, Trash2, HelpCircle, Image, Power, FileText, Pencil, X } from 'lucide-react';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
+import { toast } from '../lib/toast';
 
 function NewsTab() {
   const { user } = useApp();
@@ -40,10 +41,10 @@ function NewsTab() {
         setForm({ title: '', content: '', image_url: '' });
         fetchItems();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan berita.');
+      toast('Terjadi kesalahan saat menyimpan berita.');
     } finally {
       setSaving(false);
     }
@@ -55,9 +56,9 @@ function NewsTab() {
       const res = await fetch(`${API_BASE}/cms/news/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus berita.');
+      toast('Terjadi kesalahan saat menghapus berita.');
     }
   };
 
@@ -139,10 +140,10 @@ function FaqTab() {
         setForm({ question: '', answer: '' });
         fetchItems();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan FAQ.');
+      toast('Terjadi kesalahan saat menyimpan FAQ.');
     } finally {
       setSaving(false);
     }
@@ -154,9 +155,9 @@ function FaqTab() {
       const res = await fetch(`${API_BASE}/cms/faq/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus FAQ.');
+      toast('Terjadi kesalahan saat menghapus FAQ.');
     }
   };
 
@@ -241,10 +242,10 @@ function BannerTab() {
         setNama(''); setLinkUrl(''); setFile(null);
         fetchItems();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menyimpan banner.');
+      toast('Terjadi kesalahan saat menyimpan banner.');
     } finally {
       setSaving(false);
     }
@@ -255,9 +256,9 @@ function BannerTab() {
       const res = await fetch(`${API_BASE}/cms/banners/${id}/toggle`, { method: 'PATCH', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mengubah status banner.');
+      toast('Terjadi kesalahan saat mengubah status banner.');
     }
   };
 
@@ -267,9 +268,9 @@ function BannerTab() {
       const res = await fetch(`${API_BASE}/cms/banners/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus banner.');
+      toast('Terjadi kesalahan saat menghapus banner.');
     }
   };
 
@@ -363,9 +364,9 @@ function PolicyTab() {
       });
       const json = await res.json();
       if (json.success) { resetForm(); fetchItems(); }
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menyimpan kebijakan.');
+      toast('Terjadi kesalahan saat menyimpan kebijakan.');
     } finally {
       setSaving(false);
     }
@@ -378,9 +379,9 @@ function PolicyTab() {
       });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mengubah status.');
+      toast('Terjadi kesalahan saat mengubah status.');
     }
   };
 
@@ -390,9 +391,9 @@ function PolicyTab() {
       const res = await fetch(`${API_BASE}/cms/policies/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success) fetchItems();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus kebijakan.');
+      toast('Terjadi kesalahan saat menghapus kebijakan.');
     }
   };
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, ShoppingCart, Trash2, Send, Truck, CheckCircle2, Package } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
+import { toast } from '../../lib/toast';
 
 // Alur pesanan katalog terikat ke satu pengajuan (padanan alur cartupdateNego/statusupdate eProc
 // lama): Proses Pemilihan -> Negosiasi -> Penyedia Setuju -> Surat Pesanan -> Proses -> Dikirim -> Diterima
@@ -42,7 +43,7 @@ export default function CatalogCartPanel({ procurementRequestId, user, onClose }
         method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ qty }),
       });
       fetchAll();
-    } catch { alert('Gagal mengubah jumlah.'); }
+    } catch { toast('Gagal mengubah jumlah.'); }
   };
 
   const handleRemove = async (cartItemId) => {
@@ -50,7 +51,7 @@ export default function CatalogCartPanel({ procurementRequestId, user, onClose }
     try {
       await fetch(`${API_BASE}/katalog/cart/${cartItemId}`, { method: 'DELETE', headers: getAuthHeaders() });
       fetchAll();
-    } catch { alert('Gagal menghapus item.'); }
+    } catch { toast('Gagal menghapus item.'); }
   };
 
   const handleSendNegotiation = async () => {
@@ -61,8 +62,8 @@ export default function CatalogCartPanel({ procurementRequestId, user, onClose }
         body: JSON.stringify({ procurement_request_id: procurementRequestId, ongkos_kirim: ongkosKirim || null, items, updated_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) { alert(json.message); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat mengirim negosiasi.'); }
+      if (json.success) { toast(json.message); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengirim negosiasi.'); }
   };
 
   const handleAdvanceStatus = async (cartItemId, currentStatus) => {
@@ -71,8 +72,8 @@ export default function CatalogCartPanel({ procurementRequestId, user, onClose }
         method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ status: currentStatus }),
       });
       const json = await res.json();
-      if (json.success) { fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat mengubah status pesanan.'); }
+      if (json.success) { fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengubah status pesanan.'); }
   };
 
   const total = cart.reduce((s, c) => s + (parseFloat(c.harga_nego || c.harga) * c.qty), 0) + parseFloat(ongkosKirim || 0);

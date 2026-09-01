@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import { Download, AlertCircle, CheckCircle2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from '../../lib/toast';
 
 export default function ObjectionsTab({ tenderId, tenderStatus, participants, user }) {
   const [objections, setObjections] = useState([]);
@@ -33,7 +34,7 @@ export default function ObjectionsTab({ tenderId, tenderStatus, participants, us
 
   const handleSubmitObjection = async (e) => {
     e.preventDefault();
-    if (!objectionText) return alert('Teks sanggahan wajib diisi.');
+    if (!objectionText) return toast('Teks sanggahan wajib diisi.');
     try {
       setIsSubmitting(true);
       const formData = new FormData();
@@ -48,15 +49,15 @@ export default function ObjectionsTab({ tenderId, tenderStatus, participants, us
       });
       const json = await res.json();
       if (json.success) {
-        alert('Sanggahan berhasil dikirim.');
+        toast('Sanggahan berhasil dikirim.');
         setObjectionText('');
         setAttachment(null);
         fetchObjections();
       } else {
-        alert(json.message);
+        toast(json.message);
       }
     } catch (err) {
-      alert(err.message);
+      toast(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -64,7 +65,7 @@ export default function ObjectionsTab({ tenderId, tenderStatus, participants, us
 
   const handleReplyObjection = async (objId) => {
     const text = replyText[objId];
-    if (!text) return alert('Balasan wajib diisi.');
+    if (!text) return toast('Balasan wajib diisi.');
     try {
       setIsSubmitting(true);
       const formData = new FormData();
@@ -77,14 +78,14 @@ export default function ObjectionsTab({ tenderId, tenderStatus, participants, us
       });
       const json = await res.json();
       if (json.success) {
-        alert('Balasan terkirim.');
+        toast('Balasan terkirim.');
         setReplyText(prev => ({ ...prev, [objId]: '' }));
         fetchObjections();
       } else {
-        alert(json.message);
+        toast(json.message);
       }
     } catch (err) {
-      alert(err.message);
+      toast(err.message);
     } finally {
       setIsSubmitting(false);
     }

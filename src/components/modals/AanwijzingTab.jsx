@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User, MessageCircle, UserCheck, CheckCircle2 } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 // Panel konfirmasi kehadiran sesi aanwijzing (meniru fitur PESAN='CONFIRMED' di PHPSHOUTBOX eProc lama)
 function KonfirmasiKehadiran({ tenderId, user, getAuthHeaders }) {
@@ -27,8 +28,8 @@ function KonfirmasiKehadiran({ tenderId, user, getAuthHeaders }) {
       });
       const data = await res.json();
       if (data.success) fetchConfirmations();
-      else alert(data.message);
-    } catch { alert('Gagal konfirmasi kehadiran.'); } finally { setConfirming(false); }
+      else toast(data.message);
+    } catch { toast('Gagal konfirmasi kehadiran.'); } finally { setConfirming(false); }
   };
 
   return (
@@ -101,10 +102,10 @@ export default function AanwijzingTab({ tenderId, user, getAuthHeaders }) {
         setMessage('');
         fetchChats();
       } else {
-        alert(data.message);
+        toast(data.message);
       }
     } catch (err) {
-      alert('Gagal mengirim pesan');
+      toast('Gagal mengirim pesan');
     } finally {
       setLoading(false);
     }

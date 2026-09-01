@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, Plus, Trash2, Lock, ShieldCheck, ShieldX, Crown } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 export default function PanitiaTab({ tenderId, user, getAuthHeaders }) {
   const [panitia, setPanitia] = useState([]);
@@ -33,13 +34,13 @@ export default function PanitiaTab({ tenderId, user, getAuthHeaders }) {
   useEffect(() => { fetchPanitia(); fetchSkList(); }, [tenderId]);
 
   const handleImportFromSk = async () => {
-    if (!selectedSkId) return alert('Pilih SK Panitia dulu.');
+    if (!selectedSkId) return toast('Pilih SK Panitia dulu.');
     try {
       const res = await fetch(`${API_BASE}/tenders/master/sk-panitia/${selectedSkId}`, { headers: getAuthHeaders() });
       const json = await res.json();
-      if (!json.success || !json.data.members.length) return alert('SK ini tidak punya anggota.');
+      if (!json.success || !json.data.members.length) return toast('SK ini tidak punya anggota.');
       await saveMembers(json.data.members.map(m => ({ nip: m.nip, nama: m.nama, jabatan: m.jabatan, is_ketua: m.is_ketua })));
-    } catch (err) { alert('Gagal mengambil data SK.'); }
+    } catch (err) { toast('Gagal mengambil data SK.'); }
   };
 
   const saveMembers = async (members) => {
@@ -50,13 +51,13 @@ export default function PanitiaTab({ tenderId, user, getAuthHeaders }) {
         body: JSON.stringify({ members, created_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) { fetchPanitia(); } else { alert('Gagal: ' + json.message); }
-    } catch { alert('Terjadi kesalahan saat menyimpan panitia.'); } finally { setLoading(false); }
+      if (json.success) { fetchPanitia(); } else { toast('Gagal: ' + json.message); }
+    } catch { toast('Terjadi kesalahan saat menyimpan panitia.'); } finally { setLoading(false); }
   };
 
   const handleManualSave = () => {
     const valid = manualMembers.filter(m => m.nama.trim());
-    if (!valid.length) return alert('Isi minimal satu nama anggota.');
+    if (!valid.length) return toast('Isi minimal satu nama anggota.');
     saveMembers(valid);
   };
 
@@ -65,8 +66,8 @@ export default function PanitiaTab({ tenderId, user, getAuthHeaders }) {
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/panitia/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
-      if (json.success) fetchPanitia(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus.'); }
+      if (json.success) fetchPanitia(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus.'); }
   };
 
   const handleLock = async () => {
@@ -74,21 +75,21 @@ export default function PanitiaTab({ tenderId, user, getAuthHeaders }) {
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/panitia/lock`, { method: 'PATCH', headers: getAuthHeaders() });
       const json = await res.json();
-      if (json.success) fetchPanitia(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat mengunci tim.'); }
+      if (json.success) fetchPanitia(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengunci tim.'); }
   };
 
   const handleValidasiPemenang = async (id, validasi) => {
     const catatan = rejectNote[id] || '';
-    if (validasi === 'tolak' && !catatan.trim()) return alert('Catatan wajib diisi jika menolak.');
+    if (validasi === 'tolak' && !catatan.trim()) return toast('Catatan wajib diisi jika menolak.');
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/panitia/${id}/validasi-pemenang`, {
         method: 'PATCH', headers: getAuthHeaders(),
         body: JSON.stringify({ validasi, catatan }),
       });
       const json = await res.json();
-      if (json.success) { fetchPanitia(); } else { alert('Gagal: ' + json.message); }
-    } catch { alert('Terjadi kesalahan saat validasi.'); }
+      if (json.success) { fetchPanitia(); } else { toast('Gagal: ' + json.message); }
+    } catch { toast('Terjadi kesalahan saat validasi.'); }
   };
 
   return (

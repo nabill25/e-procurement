@@ -3,6 +3,7 @@ import { Star, MapPin, CheckCircle2, Clock, XCircle, Search, Eye, MoveHorizontal
 import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 import VendorDetailModal from '../components/modals/VendorDetailModal';
+import { toast } from '../lib/toast';
 
 function VendorStatusBadge({ status }) {
   const cfg = {
@@ -73,14 +74,14 @@ export default function Vendor() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         setSelectedVendor(null);
         fetchVendors();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menghubungi server.');
+      toast('Terjadi kesalahan saat menghubungi server.');
     }
   };
 
@@ -96,14 +97,14 @@ export default function Vendor() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         setSelectedVendor(null);
         fetchVendors();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menghubungi server.');
+      toast('Terjadi kesalahan saat menghubungi server.');
     }
   };
 
@@ -120,14 +121,14 @@ export default function Vendor() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         setSelectedVendor(null);
         fetchVendors();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menghubungi server.');
+      toast('Terjadi kesalahan saat menghubungi server.');
     }
   };
 
@@ -141,14 +142,14 @@ export default function Vendor() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         setSelectedVendor(null);
         fetchVendors();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menghubungi server.');
+      toast('Terjadi kesalahan saat menghubungi server.');
     }
   };
 

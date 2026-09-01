@@ -4,6 +4,7 @@ import { formatRupiah, StatusBadge } from '../ui/shared';
 import { statusConfig } from '../../data/mockData';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 function ChecklistSection({ pengajuanId, category, canEdit, user, getAuthHeaders }) {
   const [items, setItems] = useState([]);
@@ -61,7 +62,7 @@ function FileAnalisaSection({ pengajuanId, canEdit, user, getAuthHeaders }) {
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
   const handleUpload = async () => {
-    if (!file) return alert('Pilih file terlebih dahulu.');
+    if (!file) return toast('Pilih file terlebih dahulu.');
     const fd = new FormData();
     fd.append('judul', judul || file.name);
     fd.append('created_by', user.id);
@@ -154,9 +155,9 @@ function ApprovalPerencanaanSection({ pengajuanId, user, getAuthHeaders }) {
       });
       const json = await res.json();
       if (json.success) fetchApprovals();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menyimpan persetujuan.');
+      toast('Terjadi kesalahan saat menyimpan persetujuan.');
     } finally {
       setSubmitting(false);
     }
@@ -233,7 +234,7 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
   if (!isOpen || !data) return null;
 
   const handleSendRevision = async () => {
-    if (!revisionCatatan.trim()) return alert('Catatan revisi wajib diisi.');
+    if (!revisionCatatan.trim()) return toast('Catatan revisi wajib diisi.');
     const fd = new FormData();
     fd.append('catatan', revisionCatatan);
     fd.append('created_by', user.id);
@@ -241,12 +242,12 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
     try {
       setIsSubmitting(true);
       await fetch(`${API_BASE}/pengajuan/${data.id}/revisions`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` }, body: fd });
-      alert('Catatan revisi berhasil dikirim ke pengaju.');
+      toast('Catatan revisi berhasil dikirim ke pengaju.');
       setShowRevisionForm(false); setRevisionCatatan(''); setRevisionFile(null);
       triggerRefresh();
       onClose();
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -275,14 +276,14 @@ export default function DetailPengajuanModal({ isOpen, onClose, data }) {
       const json = await res.json();
       
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         triggerRefresh();
         onClose();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch(err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }

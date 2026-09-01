@@ -3,6 +3,7 @@ import { Plus, Search, Eye, Calendar, CheckCircle, SendHorizonal, XCircle, Refre
 import { useApp, API_BASE, getAuthHeaders } from '../context/AppContext';
 import { statusConfig } from '../data/mockData';
 import { StatusBadge, formatRupiah } from '../components/ui/shared';
+import { toast } from '../lib/toast';
 
 export default function Pengajuan() {
   const { openNewProcurementModal, refreshTrigger, triggerRefresh, setSelectedPengajuan, user } = useApp();
@@ -41,13 +42,13 @@ export default function Pengajuan() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         triggerRefresh();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan server.');
+      toast('Terjadi kesalahan server.');
     } finally {
       setActionLoading(null);
     }
@@ -65,13 +66,13 @@ export default function Pengajuan() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         triggerRefresh();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan server.');
+      toast('Terjadi kesalahan server.');
     } finally {
       setActionLoading(null);
     }
@@ -91,13 +92,13 @@ export default function Pengajuan() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         triggerRefresh();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan server.');
+      toast('Terjadi kesalahan server.');
     } finally {
       setActionLoading(null);
     }
@@ -114,13 +115,13 @@ export default function Pengajuan() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         triggerRefresh();
       } else {
-        alert('Gagal tarik data SAP: ' + json.message);
+        toast('Gagal tarik data SAP: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan server saat sinkronisasi SAP.');
+      toast('Terjadi kesalahan server saat sinkronisasi SAP.');
     } finally {
       setActionLoading(null);
     }

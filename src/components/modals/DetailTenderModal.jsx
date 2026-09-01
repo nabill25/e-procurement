@@ -13,6 +13,7 @@ import EvaluationDetailModal from './EvaluationDetailModal';
 import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
 import GeneralChatModal from './GeneralChatModal';
+import { toast } from '../../lib/toast';
 
 const STAGE_LABELS = {
   pengumuman: 'Pengumuman Pascakualifikasi',
@@ -58,7 +59,7 @@ function StageScheduleSection({ tenderId, canManage }) {
   };
 
   const handleSubmitReschedule = async () => {
-    if (!form.start_date && !form.end_date) return alert('Isi minimal satu tanggal baru.');
+    if (!form.start_date && !form.end_date) return toast('Isi minimal satu tanggal baru.');
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/stages/${rescheduling.stage_key}/reschedule`, {
         method: 'POST', headers: getAuthHeaders(),
@@ -66,8 +67,8 @@ function StageScheduleSection({ tenderId, canManage }) {
       });
       const json = await res.json();
       if (json.success) { setRescheduling(null); fetchStages(); }
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menjadwalkan ulang.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menjadwalkan ulang.'); }
   };
 
   const openHistory = async (stage) => {
@@ -350,7 +351,7 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!bidPrice || !file) return alert('Lengkapi harga penawaran dan dokumen!');
+    if (!bidPrice || !file) return toast('Lengkapi harga penawaran dan dokumen!');
 
     setIsSubmitting(true);
     const formData = new FormData();
@@ -366,14 +367,14 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert('Penawaran berhasil dikirim!');
+        toast('Penawaran berhasil dikirim!');
         refreshData();
         onClose();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -381,7 +382,7 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
 
   const handleSubmitRincian = async () => {
     const valid = items.filter(it => it.item_name.trim() && it.quantity && it.unit_price);
-    if (!valid.length) return alert('Isi minimal satu item rincian penawaran.');
+    if (!valid.length) return toast('Isi minimal satu item rincian penawaran.');
     setSavingRincian(true);
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/participants/${user.id}/bid-items`, {
@@ -390,13 +391,13 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert(`Rincian penawaran berhasil disimpan. Total: Rp ${json.data.total.toLocaleString('id-ID')}`);
+        toast(`Rincian penawaran berhasil disimpan. Total: Rp ${json.data.total.toLocaleString('id-ID')}`);
         refreshData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setSavingRincian(false);
     }
@@ -474,7 +475,7 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
   
   const handleSaveEvaluation = async (vendorId, isPassed) => {
     const data = evaluating[vendorId];
-    if (!data || !data.technical_score) return alert('Isi skor teknis terlebih dahulu!');
+    if (!data || !data.technical_score) return toast('Isi skor teknis terlebih dahulu!');
     
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/participants/${vendorId}/evaluate`, {
@@ -488,13 +489,13 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
       });
       const json = await res.json();
       if (json.success) {
-        alert('Evaluasi tersimpan!');
+        toast('Evaluasi tersimpan!');
         refreshData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch(err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     }
   };
 
@@ -508,13 +509,13 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
       });
       const json = await res.json();
       if (json.success) {
-        alert('Pemenang ditetapkan!');
+        toast('Pemenang ditetapkan!');
         refreshData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch(err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     }
   };
 
@@ -677,14 +678,14 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         refreshData();
         onClose();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsUpdatingStage(false);
     }
@@ -701,14 +702,14 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert(json.message);
+        toast(json.message);
         refreshData();
         onClose();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsRegistering(false);
     }

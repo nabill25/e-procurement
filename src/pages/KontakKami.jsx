@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Home, Send, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 function Breadcrumb({ onHome }) {
   return (
@@ -132,10 +133,10 @@ export default function KontakKami({ onNavigateHome }) {
       if (json.success) {
         setSubmitted(true);
       } else {
-        alert('Gagal mengirim pesan: ' + json.message);
+        toast('Gagal mengirim pesan: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menghubungi server. Coba lagi.');
+      toast('Terjadi kesalahan saat menghubungi server. Coba lagi.');
     } finally {
       setSending(false);
     }

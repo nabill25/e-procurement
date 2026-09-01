@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, Search, Plus, ChevronDown, CheckCircle2, AlertCircle, Clock, LogOut, Menu } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../../context/AppContext';
 import LiveClock from '../common/LiveClock';
+
+const dropdownMotion = {
+  initial: { opacity: 0, y: -8, scale: 0.97 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.97 },
+  transition: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
+};
 
 const pageTitles = {
   dashboard:       { title: 'Dashboard', subtitle: 'Ringkasan aktivitas pengadaan TA 2025' },
@@ -32,7 +40,7 @@ const pageTitles = {
 
 
 export default function TopBar() {
-  const { activePage, user, setUser, logout, notifications, markAllAsRead, openNewProcurementModal, setIsSidebarOpen } = useApp();
+  const { activePage, user, setUser, logout, notifications, markAllAsRead, markOneAsRead, openNewProcurementModal, setIsSidebarOpen } = useApp();
   const { title, subtitle } = pageTitles[activePage] || pageTitles.dashboard;
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isRoleOpen, setIsRoleOpen] = useState(false);
@@ -137,48 +145,58 @@ export default function TopBar() {
           )}
         </button>
 
-        {/* Dropdown */}
-        {isNotifOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="p-4 border-b border-border flex justify-between items-center bg-surface/50">
-              <h3 className="font-bold text-dpbj-navy text-sm">Notifikasi</h3>
-              {unreadCount > 0 && (
-                <button 
-                  onClick={markAllAsRead} 
-                  className="text-xs text-dpbj-gold hover:text-dpbj-navy transition-colors font-medium"
-                >
-                  Tandai semua dibaca
-                </button>
-              )}
-            </div>
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">
-                  Belum ada notifikasi
-                </div>
-              ) : (
-                notifications.map(notif => {
-                  const IconComp = getIcon(notif.iconName);
-                  return (
-                    <div key={notif.id} className={`p-4 border-b border-border/50 hover:bg-surface/50 transition-colors flex gap-3 cursor-pointer ${!notif.read ? 'bg-blue-50/30' : ''}`}>
-                      <div className={`mt-1 flex-shrink-0 ${notif.color}`}>
-                        <IconComp size={16} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-dpbj-navy">{notif.title}</h4>
-                        <p className="text-xs text-muted mt-1 leading-relaxed">{notif.desc}</p>
-                        <p className="text-[10px] text-gray-400 mt-2">{notif.time}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            <div className="p-3 text-center border-t border-border bg-surface/50 hover:bg-surface cursor-pointer transition-colors">
-              <span className="text-xs font-semibold text-dpbj-navy">Lihat semua</span>
-            </div>
-          </div>
-        )}
+        {/* Dropdown - AnimatePresence supaya beranimasi keluar juga (versi lama pakai
+            class "animate-in fade-in slide-in-from-top-2" yang butuh plugin tailwindcss-animate
+            yang ternyata tidak terpasang di project ini - class itu diam-diam tidak berefek
+            apapun, dropdown muncul/hilang tanpa animasi sama sekali). */}
+        <AnimatePresence>
+          {isNotifOpen && (
+            <motion.div
+              {...dropdownMotion}
+              className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-border overflow-hidden z-50 origin-top-right"
+            >
+              <div className="p-4 border-b border-border flex justify-between items-center bg-surface/50">
+                <h3 className="font-bold text-dpbj-navy text-sm">Notifikasi</h3>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-xs text-dpbj-gold hover:text-dpbj-navy transition-colors font-medium"
+                  >
+                    Tandai semua dibaca
+                  </button>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-sm">
+                    Belum ada notifikasi
+                  </div>
+                ) : (
+                  notifications.map(notif => {
+                    const IconComp = getIcon(notif.iconName);
+                    return (
+                      <button
+                        key={notif.id}
+                        onClick={() => markOneAsRead(notif.id)}
+                        className={`w-full text-left p-4 border-b border-border/50 hover:bg-surface/50 transition-colors flex gap-3 ${!notif.read ? 'bg-blue-50/30' : ''}`}
+                      >
+                        <div className={`mt-1 flex-shrink-0 ${notif.color}`}>
+                          <IconComp size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-dpbj-navy">{notif.title}</h4>
+                          <p className="text-xs text-muted mt-1 leading-relaxed">{notif.desc}</p>
+                          <p className="text-[10px] text-gray-400 mt-2">{notif.time}</p>
+                        </div>
+                        {!notif.read && <span className="w-2 h-2 rounded-full bg-dpbj-gold shrink-0 mt-1.5" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* User Menu */}
@@ -186,7 +204,8 @@ export default function TopBar() {
         <div className="text-right cursor-pointer group" onClick={toggleRole}>
           <p className="text-xs font-semibold text-dpbj-navy leading-tight group-hover:text-dpbj-gold transition-colors">{user?.roleLabel || user?.role}</p>
           <p className="text-[10px] text-muted font-medium leading-tight flex items-center justify-end gap-1">
-            {user?.unit || 'DPBJ UI'} <ChevronDown size={10}/>
+            {user?.unit || 'DPBJ UI'}
+            <ChevronDown size={10} className={`transition-transform duration-200 ${isRoleOpen ? 'rotate-180' : ''}`} />
           </p>
         </div>
         <div className="w-8 h-8 bg-surface rounded-xl flex items-center justify-center border border-border">
@@ -194,26 +213,31 @@ export default function TopBar() {
             {user?.name?.split(' ').map(w => w[0]).slice(0, 2).join('') || 'U'}
           </span>
         </div>
-        
-        {isRoleOpen && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-border overflow-hidden z-50 animate-pop-in">
-            <div className="px-4 py-3 border-b border-border bg-surface">
-              <p className="text-xs font-bold text-dpbj-navy">{user?.name}</p>
-              <p className="text-[10px] text-muted mt-0.5">{user?.roleLabel}</p>
-              {user?.email && <p className="text-[10px] text-dpbj-gold mt-0.5 truncate">{user?.email}</p>}
-            </div>
-            {/* Logout */}
-            <div className="border-t border-border">
-              <button
-                onClick={() => { setIsRoleOpen(false); logout(); }}
-                className="w-full text-left px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2"
-              >
-                <LogOut size={14} />
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
+
+        <AnimatePresence>
+          {isRoleOpen && (
+            <motion.div
+              {...dropdownMotion}
+              className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-border overflow-hidden z-50 origin-top-right"
+            >
+              <div className="px-4 py-3 border-b border-border bg-surface">
+                <p className="text-xs font-bold text-dpbj-navy">{user?.name}</p>
+                <p className="text-[10px] text-muted mt-0.5">{user?.roleLabel}</p>
+                {user?.email && <p className="text-[10px] text-dpbj-gold mt-0.5 truncate">{user?.email}</p>}
+              </div>
+              {/* Logout */}
+              <div className="border-t border-border">
+                <button
+                  onClick={() => { setIsRoleOpen(false); logout(); }}
+                  className="w-full text-left px-4 py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2"
+                >
+                  <LogOut size={14} />
+                  Logout
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   </div>

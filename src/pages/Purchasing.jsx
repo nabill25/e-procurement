@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAuthHeaders, useApp, API_BASE } from '../context/AppContext';
 import { Package, FileText, CheckCircle, XCircle, Search, Clock } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
+import { toast } from '../lib/toast';
 
 export default function Purchasing() {
   const { user, navigateTo } = useApp();
@@ -49,7 +50,7 @@ export default function Purchasing() {
       });
       const json = await res.json();
       if (json.success) {
-        alert('Status berhasil diupdate.');
+        toast('Status berhasil diupdate.');
         fetchOrders();
         loadOrderDetail(selectedOrder.id);
       }

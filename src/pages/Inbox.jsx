@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Inbox as InboxIcon, Mail, MailOpen, CheckCircle2, Send, ArrowLeft } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
 import clsx from 'clsx';
+import { toast } from '../lib/toast';
 
 const STATUS_CFG = {
   belum_dibaca: { label: 'Belum Dibaca', className: 'bg-blue-100 text-blue-700', icon: Mail },
@@ -74,10 +75,10 @@ export default function Inbox() {
         openMessage(selected);
         fetchMessages();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat mengirim balasan.');
+      toast('Terjadi kesalahan saat mengirim balasan.');
     } finally {
       setSending(false);
     }

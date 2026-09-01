@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Landmark, Upload, Download, Trash2 } from 'lucide-react';
 import { API_BASE, SERVER_BASE } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
+import { toast } from '../../lib/toast';
 
 const BULAN_LABEL = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
@@ -26,7 +27,7 @@ export default function RekeningKoranTab({ vendorId, getAuthHeaders }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.nomor_rekening || !form.bulan || !form.tahun || !file) {
-      return alert('Lengkapi nomor rekening, bulan, tahun, dan file bukti mutasi.');
+      return toast('Lengkapi nomor rekening, bulan, tahun, dan file bukti mutasi.');
     }
     setSaving(true);
     const data = new FormData();
@@ -41,8 +42,8 @@ export default function RekeningKoranTab({ vendorId, getAuthHeaders }) {
         setForm({ nomor_rekening: '', nama_bank: '', bulan: '', tahun: new Date().getFullYear(), nilai: '' });
         setFile(null);
         fetchItems();
-      } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat mengunggah.'); } finally { setSaving(false); }
+      } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengunggah.'); } finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
@@ -50,8 +51,8 @@ export default function RekeningKoranTab({ vendorId, getAuthHeaders }) {
     try {
       const res = await fetch(`${API_BASE}/vendors/${vendorId}/rekening-koran/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
       const json = await res.json();
-      if (json.success) fetchItems(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus.'); }
+      if (json.success) fetchItems(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus.'); }
   };
 
   return (

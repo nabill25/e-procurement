@@ -207,6 +207,10 @@ export function AppProvider({ children }) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
+  const markOneAsRead = useCallback((id) => {
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+  }, []);
+
   // ── Ganti role aktif (mengikuti alur eProc excSplitRole) ─────────────────────
   const switchRole = useCallback(async (role_key) => {
     try {
@@ -275,7 +279,7 @@ export function AppProvider({ children }) {
     switchRole,
     tenders, setTenders,
     requests, setRequests,
-    notifications, addNotification, markAllAsRead,
+    notifications, addNotification, markAllAsRead, markOneAsRead,
     showNewProcurementModal, openNewProcurementModal, closeNewProcurementModal,
     showSettingsModal, openSettingsModal, closeSettingsModal,
     isSidebarOpen, setIsSidebarOpen,

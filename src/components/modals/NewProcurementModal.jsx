@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, FileText, Upload, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 const CATEGORIES = ['Barang', 'Jasa Konsultansi', 'Jasa Konstruksi', 'Jasa Lainnya', 'Barang/Jasa TIK'];
 const BUDGET_SOURCES = ['DIPA', 'BLU', 'PNBP', 'Hibah', 'Lainnya'];
@@ -137,7 +138,7 @@ export default function NewProcurementModal({ isOpen, onClose }) {
       await addRequest(formData);
       setSubmitted(true);
     } catch (err) {
-      alert('Gagal mengirim pengajuan: ' + err.message);
+      toast('Gagal mengirim pengajuan: ' + err.message);
     }
   };
 

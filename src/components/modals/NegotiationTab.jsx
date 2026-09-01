@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User, HandCoins, CheckCircle2, XCircle } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 function formatRupiah(value) {
   if (value === null || value === undefined) return '-';
@@ -62,10 +63,10 @@ export default function NegotiationTab({ tenderId, vendorId, user, getAuthHeader
         setOfferedPrice('');
         fetchInfo();
       } else {
-        alert(data.message);
+        toast(data.message);
       }
     } catch (err) {
-      alert('Gagal mengirim pesan negosiasi.');
+      toast('Gagal mengirim pesan negosiasi.');
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export default function NegotiationTab({ tenderId, vendorId, user, getAuthHeader
 
   const handleFinalize = async (agreed) => {
     if (agreed && !finalPrice) {
-      alert('Isi dulu harga final yang disepakati.');
+      toast('Isi dulu harga final yang disepakati.');
       return;
     }
     if (!confirm(agreed ? `Sepakati negosiasi dengan harga final ${formatRupiah(finalPrice)}?` : 'Tandai negosiasi ini gagal/tidak disepakati?')) return;
@@ -86,14 +87,14 @@ export default function NegotiationTab({ tenderId, vendorId, user, getAuthHeader
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        toast(data.message);
         fetchInfo();
         if (refreshData) refreshData();
       } else {
-        alert('Gagal: ' + data.message);
+        toast('Gagal: ' + data.message);
       }
     } catch (err) {
-      alert('Terjadi kesalahan saat menyimpan hasil negosiasi.');
+      toast('Terjadi kesalahan saat menyimpan hasil negosiasi.');
     }
   };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users2, Plus, Trash2, ShieldPlus, MoveHorizontal } from 'lucide-react';
 import { getAuthHeaders, API_BASE, useApp } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -51,10 +52,10 @@ export default function UserManagement() {
         setShowAddForm(false);
         fetchUsers();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat membuat akun.');
+      toast('Terjadi kesalahan saat membuat akun.');
     } finally {
       setSaving(false);
     }
@@ -68,9 +69,9 @@ export default function UserManagement() {
       });
       const json = await res.json();
       if (json.success) { setAddingRoleFor(null); setNewRoleKey(''); fetchUsers(); }
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menambah role.');
+      toast('Terjadi kesalahan saat menambah role.');
     }
   };
 
@@ -82,9 +83,9 @@ export default function UserManagement() {
       });
       const json = await res.json();
       if (json.success) fetchUsers();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mencabut role.');
+      toast('Terjadi kesalahan saat mencabut role.');
     }
   };
 
@@ -99,9 +100,9 @@ export default function UserManagement() {
       });
       const json = await res.json();
       if (json.success) fetchUsers();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mengubah status.');
+      toast('Terjadi kesalahan saat mengubah status.');
     }
   };
 

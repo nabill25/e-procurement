@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -149,7 +150,7 @@ export default function Integration() {
   const handleExport = async (jenis) => {
     try {
       const res = await fetch(`${API_BASE}/integration/${jenis}/export`, { headers: getAuthHeaders() });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); alert('Gagal: ' + (j.message || res.statusText)); return; }
+      if (!res.ok) { const j = await res.json().catch(() => ({})); toast('Gagal: ' + (j.message || res.statusText)); return; }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -161,7 +162,7 @@ export default function Integration() {
       window.URL.revokeObjectURL(url);
       fetchLogs();
     } catch {
-      alert('Tidak bisa terhubung ke server.');
+      toast('Tidak bisa terhubung ke server.');
     }
   };
 

@@ -1,3 +1,4 @@
+import { toast } from '../lib/toast';
 /**
  * Mengonversi array of objects menjadi file CSV dan mengunduhnya.
  * @param {Array} data - Array of objects yang akan diekspor.
@@ -6,7 +7,7 @@
  */
 export function exportToCSV(data, filename, columnMapping) {
   if (!data || !data.length) {
-    alert("Tidak ada data untuk diekspor.");
+    toast("Tidak ada data untuk diekspor.");
     return;
   }
 

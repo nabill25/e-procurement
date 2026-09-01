@@ -5,6 +5,7 @@ import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import PublicNav from './components/layout/PublicNav';
 import PublicFooter from './components/layout/PublicFooter';
+import ToastContainer from './components/common/ToastContainer';
 import Dashboard from './pages/Dashboard';
 import Pengajuan from './pages/Pengajuan';
 import Tender from './pages/Tender';
@@ -216,6 +217,7 @@ export default function App() {
   return (
     <AppProvider>
       <AppShell />
+      <ToastContainer />
     </AppProvider>
   );
 }

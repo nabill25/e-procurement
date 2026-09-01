@@ -4,6 +4,7 @@ import { Search, ShoppingCart, Filter, Plus, Package } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
 import KatalogDetailModal from '../components/modals/KatalogDetailModal';
 import CatalogCartPanel from '../components/modals/CatalogCartPanel';
+import { toast } from '../lib/toast';
 
 const EMPTY_FORM = {
   item_name: '', description: '', price: '', unit: 'Pcs',
@@ -77,23 +78,23 @@ export default function Katalog() {
       });
       const json = await res.json();
       if (json.success) {
-        alert(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan ke katalog!');
+        toast(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan ke katalog!');
         setShowAddModal(false);
         setEditingId(null);
         setFormData(EMPTY_FORM);
         fetchItems();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     }
   };
 
   const openEdit = async (item) => {
     const res = await fetch(`${API_BASE}/katalog/${item.id}`, { headers: getAuthHeaders() });
     const json = await res.json();
-    if (!json.success) return alert('Gagal memuat data produk.');
+    if (!json.success) return toast('Gagal memuat data produk.');
     const d = json.data;
     setFormData({
       item_name: d.item_name || '', description: d.description || '', price: d.price || '', unit: d.unit || 'Pcs',
@@ -115,17 +116,17 @@ export default function Katalog() {
   };
 
   const addToCart = async (item) => {
-    if (user.role !== 'ppk' && user.role !== 'admin') return alert('Hanya PPK yang dapat melakukan purchasing langsung.');
-    if (!selectedRequestId) return alert('Pilih pengajuan yang akan dibelanjakan terlebih dahulu.');
+    if (user.role !== 'ppk' && user.role !== 'admin') return toast('Hanya PPK yang dapat melakukan purchasing langsung.');
+    if (!selectedRequestId) return toast('Pilih pengajuan yang akan dibelanjakan terlebih dahulu.');
     try {
       const res = await fetch(`${API_BASE}/katalog/cart`, {
         method: 'POST', headers: getAuthHeaders(),
         body: JSON.stringify({ procurement_request_id: selectedRequestId, katalog_id: item.id, created_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) alert(json.message);
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menambah ke keranjang.'); }
+      if (json.success) toast(json.message);
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menambah ke keranjang.'); }
   };
 
   return (

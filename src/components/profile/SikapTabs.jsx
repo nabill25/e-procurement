@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Save, Plus, Trash2 } from 'lucide-react';
 import { API_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 function GenericArrayTab({ title, fields, dataArray, onSave, onUpdateItem, onAddItem, onRemoveItem }) {
   const [loading, setLoading] = useState(false);
@@ -76,7 +77,7 @@ export function PajakTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ pajak: data })
       });
-      alert('Data pajak berhasil disimpan.');
+      toast('Data pajak berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };
@@ -104,7 +105,7 @@ export function TenagaAhliTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ tenaga_ahli: data })
       });
-      alert('Data Tenaga Ahli berhasil disimpan.');
+      toast('Data Tenaga Ahli berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };
@@ -134,7 +135,7 @@ export function PeralatanTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ peralatan: data })
       });
-      alert('Data Peralatan berhasil disimpan.');
+      toast('Data Peralatan berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };
@@ -161,7 +162,7 @@ export function PengurusTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ pengurus: data })
       });
-      alert('Susunan Pengurus berhasil disimpan.');
+      toast('Susunan Pengurus berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };
@@ -187,7 +188,7 @@ export function BankTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ bank: data })
       });
-      alert('Data Rekening Bank berhasil disimpan.');
+      toast('Data Rekening Bank berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };
@@ -215,7 +216,7 @@ export function NeracaTab({ vendor, getAuthHeaders, refreshData }) {
       await fetch(`${API_BASE}/vendors/${vendor.user_id}/profile`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ neraca: data })
       });
-      alert('Data Neraca Keuangan berhasil disimpan.');
+      toast('Data Neraca Keuangan berhasil disimpan.');
       refreshData();
     } catch (e) {}
   };

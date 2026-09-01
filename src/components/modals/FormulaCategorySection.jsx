@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Calculator } from 'lucide-react';
 import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 const SUITABILITY_OPTIONS = [
   { value: '', label: '-' },
@@ -50,7 +51,7 @@ export default function FormulaCategorySection({ tenderId, vendorId, category, c
         body: JSON.stringify({ category, max_score: Number(maxScore) }),
       });
       fetchAll();
-    } catch { alert('Gagal menyimpan nilai maksimal.'); }
+    } catch { toast('Gagal menyimpan nilai maksimal.'); }
   };
 
   const handleAddItem = async (criteriaId) => {
@@ -73,9 +74,9 @@ export default function FormulaCategorySection({ tenderId, vendorId, category, c
         setNewItem({ ...newItem, [criteriaId]: {} });
         fetchAll();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
-    } catch { alert('Terjadi kesalahan saat menambah item.'); }
+    } catch { toast('Terjadi kesalahan saat menambah item.'); }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -86,8 +87,8 @@ export default function FormulaCategorySection({ tenderId, vendorId, category, c
       });
       const json = await res.json();
       if (json.success) fetchAll();
-      else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menghapus item.'); }
+      else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menghapus item.'); }
   };
 
   return (

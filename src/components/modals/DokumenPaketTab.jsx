@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, Upload, Download, Trash2, MessageSquare, Mail, ShieldCheck, UserPlus, PackageOpen, Trophy, Briefcase, Search, CalendarClock, Unlock, Printer } from 'lucide-react';
 import { API_BASE, SERVER_BASE } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 const DOC_TYPES = [
   { value: 'lelang', label: 'Dokumen Lelang' },
@@ -99,22 +100,22 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         body: JSON.stringify({ bidang_usaha_id: bidangUsahaId }),
       });
       const json = await res.json();
-      if (json.success) { setBuSearch(''); setBuResults([]); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menambah bidang usaha.'); }
+      if (json.success) { setBuSearch(''); setBuResults([]); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menambah bidang usaha.'); }
   };
 
   const handleRemoveBidangUsaha = async (linkId) => {
     if (!confirm('Hapus syarat bidang usaha ini?')) return;
     const res = await fetch(`${API_BASE}/tenders/${tenderId}/bidang-usaha/${linkId}`, { method: 'DELETE', headers: getAuthHeaders() });
     const json = await res.json();
-    if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
+    if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
   };
 
   useEffect(() => { fetchAll(); }, [tenderId]);
 
   const handleUploadDoc = async (e) => {
     e.preventDefault();
-    if (!docFile) return alert('Pilih file terlebih dahulu.');
+    if (!docFile) return toast('Pilih file terlebih dahulu.');
     const formData = new FormData();
     formData.append('document_type', docType);
     formData.append('name', docName || docFile.name);
@@ -125,20 +126,20 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` }, body: formData,
       });
       const json = await res.json();
-      if (json.success) { setDocFile(null); setDocName(''); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat upload.'); }
+      if (json.success) { setDocFile(null); setDocName(''); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat upload.'); }
   };
 
   const handleDeleteDoc = async (id) => {
     if (!confirm('Hapus dokumen ini?')) return;
     const res = await fetch(`${API_BASE}/tenders/${tenderId}/documents/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     const json = await res.json();
-    if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
+    if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
   };
 
   const handleUploadKlarifikasi = async (e) => {
     e.preventDefault();
-    if (!klarFile) return alert('Pilih file terlebih dahulu.');
+    if (!klarFile) return toast('Pilih file terlebih dahulu.');
     const formData = new FormData();
     formData.append('nama', klarFile.name);
     formData.append('created_by', user.id);
@@ -149,8 +150,8 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` }, body: formData,
       });
       const json = await res.json();
-      if (json.success) { setKlarFile(null); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat upload.'); }
+      if (json.success) { setKlarFile(null); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat upload.'); }
   };
 
   const handleTanggapi = async (docId, file) => {
@@ -164,8 +165,8 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dpbj_token')}` }, body: formData,
       });
       const json = await res.json();
-      if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat mengirim tanggapan.'); }
+      if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat mengirim tanggapan.'); }
   };
 
   const handleValidasiPakta = async () => {
@@ -176,29 +177,29 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         body: JSON.stringify({ user_id: user.id, kode: user.username || user.id, jenis: isVendor ? 'REKANAN' : 'PANITIA', created_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat validasi.'); }
+      if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat validasi.'); }
   };
 
   const myPaktaDone = pakta.some(p => p.user_id === user.id);
 
   const handleAddPeringkat = async () => {
-    if (!newPeringkat.vendor_id || !newPeringkat.peringkat) return alert('Lengkapi vendor dan peringkat.');
+    if (!newPeringkat.vendor_id || !newPeringkat.peringkat) return toast('Lengkapi vendor dan peringkat.');
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/peringkat-pemenang`, {
         method: 'POST', headers: getAuthHeaders(),
         body: JSON.stringify({ ...newPeringkat, peringkat: Number(newPeringkat.peringkat), created_by: user.id }),
       });
       const json = await res.json();
-      if (json.success) { setNewPeringkat({ vendor_id: '', peringkat: '', keterangan: '' }); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menyimpan peringkat.'); }
+      if (json.success) { setNewPeringkat({ vendor_id: '', peringkat: '', keterangan: '' }); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menyimpan peringkat.'); }
   };
 
   const handleDeletePeringkat = async (id) => {
     if (!confirm('Hapus data peringkat ini?')) return;
     const res = await fetch(`${API_BASE}/tenders/${tenderId}/peringkat-pemenang/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     const json = await res.json();
-    if (json.success) fetchAll(); else alert('Gagal: ' + json.message);
+    if (json.success) fetchAll(); else toast('Gagal: ' + json.message);
   };
 
   const handleValidasiPembukaan = async (tahap) => {
@@ -208,12 +209,12 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
         body: JSON.stringify({ user_id: user.id, kode: pembukaanKode || null, jenis: user.role, tahap }),
       });
       const json = await res.json();
-      if (json.success) { setPembukaanKode(''); fetchAll(); } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat validasi pembukaan.'); }
+      if (json.success) { setPembukaanKode(''); fetchAll(); } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat validasi pembukaan.'); }
   };
 
   const handleAddUndangan = async () => {
-    if (!newUndangan.vendor_id || !newUndangan.tanggal_undangan) return alert('Lengkapi vendor dan tanggal undangan.');
+    if (!newUndangan.vendor_id || !newUndangan.tanggal_undangan) return toast('Lengkapi vendor dan tanggal undangan.');
     try {
       const res = await fetch(`${API_BASE}/tenders/${tenderId}/undangan-klarifikasi`, {
         method: 'POST', headers: getAuthHeaders(),
@@ -223,8 +224,8 @@ export default function DokumenPaketTab({ tenderId, tenderStatus, participants, 
       if (json.success) {
         setNewUndangan({ vendor_id: '', tanggal_undangan: '', jam: '', tempat: '', pelaksanaan: 'Tatap Muka', keterangan: '' });
         fetchAll();
-      } else alert('Gagal: ' + json.message);
-    } catch { alert('Terjadi kesalahan saat menyimpan undangan.'); }
+      } else toast('Gagal: ' + json.message);
+    } catch { toast('Terjadi kesalahan saat menyimpan undangan.'); }
   };
 
   const bukaCetak = (jenis, vendorId) => {

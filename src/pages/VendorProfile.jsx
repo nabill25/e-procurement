@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
 import BidangUsahaTab from '../components/profile/BidangUsahaTab';
 import RekeningKoranTab from '../components/profile/RekeningKoranTab';
+import { toast } from '../lib/toast';
 
 function IdentityTab({ vendor }) {
   if (!vendor) return null;
@@ -48,7 +49,7 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file || !formData.doc_number) return alert('Lengkapi dokumen dan nomor dokumen!');
+    if (!file || !formData.doc_number) return toast('Lengkapi dokumen dan nomor dokumen!');
     
     setIsUploading(true);
     const data = new FormData();
@@ -66,15 +67,15 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert('Dokumen berhasil diunggah!');
+        toast('Dokumen berhasil diunggah!');
         setFormData({ doc_type: 'akta', doc_number: '', issue_date: '', expiry_date: '' });
         setFile(null);
         fetchQualifications();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -186,14 +187,14 @@ function ExperiencesTab({ experiences, vendorId, fetchQualifications }) {
       });
       const json = await res.json();
       if (json.success) {
-        alert('Pengalaman kerja berhasil ditambahkan!');
+        toast('Pengalaman kerja berhasil ditambahkan!');
         setFormData({ project_name: '', client_name: '', contract_value: '', start_date: '', end_date: '' });
         fetchQualifications();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast('Error: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }

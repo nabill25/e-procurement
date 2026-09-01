@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Send, History, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../context/AppContext';
+import { toast } from '../lib/toast';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -46,10 +47,10 @@ export default function DocumentExpiry() {
     try {
       const res = await fetch(`${API_BASE}/master/dokumen-expired/${docId}/notify`, { method: 'POST', headers: getAuthHeaders() });
       const json = await res.json();
-      if (json.success) alert(json.message);
-      else alert('Gagal: ' + json.message);
+      if (json.success) toast(json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat mencatat notifikasi.');
+      toast('Terjadi kesalahan saat mencatat notifikasi.');
     } finally {
       setSendingId(null);
     }

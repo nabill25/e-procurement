@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageSquare } from 'lucide-react';
 import { API_BASE, getAuthHeaders } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 // Chat umum per paket (padanan CHATSHOUTBOX di eProc lama) - chat 1-ke-1 antara panitia dan
 // satu vendor tertentu, dipisah per konteks (jenis_chat), TERPISAH dari chat aanwijzing
@@ -51,8 +52,8 @@ export default function GeneralChatModal({ tenderId, vendorId, vendorName, jenis
       });
       const data = await res.json();
       if (data.success) { setMessage(''); fetchChats(); }
-      else alert(data.message);
-    } catch { alert('Gagal mengirim pesan.'); } finally { setLoading(false); }
+      else toast(data.message);
+    } catch { toast('Gagal mengirim pesan.'); } finally { setLoading(false); }
   };
 
   return (

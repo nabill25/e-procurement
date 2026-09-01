@@ -4,6 +4,7 @@ import { X, ClipboardCheck, Plus, Trash2, CheckCircle2, XCircle, Printer } from 
 import { getAuthHeaders, useApp, API_BASE } from '../../context/AppContext';
 import FormulaCategorySection from './FormulaCategorySection';
 import clsx from 'clsx';
+import { toast } from '../../lib/toast';
 
 const FORMULA_CATEGORIES = ['personil', 'peralatan', 'sertifikat_lain'];
 
@@ -67,10 +68,10 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
         setNewCriteria({ category: 'administrasi', name: '', is_mandatory: true, weight: '' });
         fetchData();
       } else {
-        alert('Gagal: ' + json.message);
+        toast('Gagal: ' + json.message);
       }
     } catch {
-      alert('Terjadi kesalahan saat menambah kriteria.');
+      toast('Terjadi kesalahan saat menambah kriteria.');
     } finally {
       setAdding(false);
     }
@@ -84,9 +85,9 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menghapus kriteria.');
+      toast('Terjadi kesalahan saat menghapus kriteria.');
     }
   };
 
@@ -107,9 +108,9 @@ export default function EvaluationDetailModal({ isOpen, onClose, tenderId, vendo
       });
       const json = await res.json();
       if (json.success) fetchData();
-      else alert('Gagal: ' + json.message);
+      else toast('Gagal: ' + json.message);
     } catch {
-      alert('Terjadi kesalahan saat menyimpan skor.');
+      toast('Terjadi kesalahan saat menyimpan skor.');
     }
   };
 

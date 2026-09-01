@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Repeat, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
 export default function RoleSwitcherModal() {
   const { showRoleSwitcher, setShowRoleSwitcher, availableRoles, switchRole, user } = useApp();
@@ -11,7 +12,7 @@ export default function RoleSwitcherModal() {
   const handleChoose = async (role_key) => {
     setSwitching(role_key);
     const result = await switchRole(role_key);
-    if (!result.success) alert('Gagal: ' + result.message);
+    if (!result.success) toast('Gagal: ' + result.message);
     setSwitching(null);
   };
 
