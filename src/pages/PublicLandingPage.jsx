@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, ClipboardList, ArrowRight, Phone, Mail, MapPin, Menu, X, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
-import LiveClock from '../components/common/LiveClock';
+import { ChevronLeft, ChevronRight, AlertTriangle, ClipboardList, ArrowRight, Phone, Mail, MapPin, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import Reveal from '../components/common/Reveal';
+import PublicStatsStrip from '../components/common/PublicStatsStrip';
 import { TenderIcon, RegistrasiIcon } from '../components/common/ServiceIcons';
-import logoUIFull from '../assets/logo-ui-full.png';
+import PublicNav from '../components/layout/PublicNav';
+import PublicFooter from '../components/layout/PublicFooter';
 import { API_BASE, SERVER_BASE } from '../context/AppContext';
 
 function BannerSection() {
@@ -116,95 +117,18 @@ const slides = [
 
 export default function PublicLandingPage({ onNavigate, onLoginClick }) {
   const [slide, setSlide] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
     return () => clearInterval(t);
   }, []);
 
-  const NAV = [
-    { label: 'Home', id: 'public_home' },
-    { label: 'Tender', id: 'public_tender' },
-    { label: 'Daftar Hitam', id: 'public_blacklist' },
-    { label: 'Cek Dokumen', id: 'public_qr_verify' },
-    { label: 'Kontak Kami', id: 'kontak' },
-    { label: 'Registrasi', id: 'registrasi' },
-    { label: 'Login', id: 'login' },
-  ];
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Ticker */}
-      <div className="bg-dpbj-navy-dark text-white text-xs py-2 px-6 flex justify-between items-center font-semibold">
-        <LiveClock />
-        <span className="hidden sm:block">Sistem Pengadaan Barang Jasa DPBJ Universitas Indonesia</span>
-      </div>
-
-      {/* Nav */}
-      <header className="bg-dpbj-gold border-b border-dpbj-gold-dark px-4 md:px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <button className="md:hidden p-1 text-dpbj-navy-dark" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu size={24} />
-          </button>
-          <button className="flex items-center group" onClick={() => onNavigate('public_home')}>
-            <img src={logoUIFull} alt="Logo Universitas Indonesia" className="h-10 w-auto group-hover:scale-105 transition-transform drop-shadow-sm brightness-0" style={{ filter: 'brightness(0) sepia(1) hue-rotate(180deg) saturate(3) hue-rotate(20deg) brightness(0.3)' }} />
-          </button>
-        </div>
-        <nav className="hidden md:flex items-center gap-1.5">
-          {NAV.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'login') onLoginClick();
-                else onNavigate(item.id);
-              }}
-              className={`px-4 py-2 text-sm font-bold transition-all relative group rounded-full ${item.id === 'public_home' ? 'text-white bg-dpbj-navy-dark shadow-sm' : 'text-dpbj-navy hover:text-dpbj-navy-dark hover:bg-white/40'}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      {/* Mobile Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex animate-fade-in md:hidden">
-          {/* Overlay */}
-          <div className="fixed inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} />
-          
-          {/* Sidebar */}
-          <div className="relative w-[280px] bg-white h-full flex flex-col animate-slide-in-right" style={{ animationDirection: 'normal', transformOrigin: 'left' }}>
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center">
-                <img src={logoUIFull} alt="Logo Universitas Indonesia" className="h-8 w-auto" />
-              </div>
-              <button className="p-1 text-gray-500" onClick={() => setIsMobileMenuOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <nav className="flex-1 overflow-y-auto py-4">
-              {NAV.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => { 
-                    setIsMobileMenuOpen(false); 
-                    if (item.id === 'login') onLoginClick();
-                    else onNavigate(item.id); 
-                  }}
-                  className={`w-full text-left px-6 py-3 text-sm font-bold ${item.id === 'public_home' ? 'text-dpbj-navy-dark bg-dpbj-gold' : 'text-dpbj-navy hover:bg-gray-50'}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-      )}
+      <PublicNav activePage="public_home" navigateTo={onNavigate} onLoginClick={onLoginClick} />
 
       {/* Hero Slider */}
-      <div className="relative overflow-hidden" style={{ height: '420px' }}>
+      <div className="relative overflow-hidden h-[380px] sm:h-[420px] md:h-[460px]">
         {slides.map((s, i) => (
           <div
             key={i}
@@ -226,9 +150,9 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '32px 32px' }} />
 
         {/* Content */}
-        <div className="relative z-10 h-full flex flex-col items-center justify-end text-center px-8 pb-10">
+        <div className="relative z-10 h-full flex flex-col items-center justify-end text-center px-8 pb-16 md:pb-20">
           {/* Dynamic tagline */}
-          <div className="w-full max-w-2xl h-16 relative">
+          <div className="w-full max-w-2xl h-20 md:h-24 relative">
             {slides.map((s, i) => (
               <div key={i} className={`absolute inset-0 w-full flex flex-col items-center justify-center transition-all duration-700 transform ${i === slide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <p className="text-white text-lg md:text-2xl font-bold tracking-tight drop-shadow-lg">{s.tagline}</p>
@@ -255,8 +179,11 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
         </div>
       </div>
 
+      {/* Strip statistik "hidup" - menumpang di tepi bawah hero */}
+      <PublicStatsStrip />
+
       {/* Quick Access Cards */}
-      <Reveal as="section" className="py-12 px-6 bg-white">
+      <Reveal as="section" className="pt-16 pb-12 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-center font-serif text-3xl font-bold text-dpbj-navy mb-10">Layanan Utama</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto stagger-grid">
@@ -377,25 +304,7 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
         </div>
       </Reveal>
 
-      {/* Footer */}
-      <footer className="bg-dpbj-gold text-dpbj-navy-dark text-xs py-8 px-6 mt-auto border-t-4 border-dpbj-navy-dark">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-            <img src={logoUIFull} alt="Logo UI" className="h-auto w-32 sm:h-10 sm:w-auto grayscale contrast-200 brightness-0" />
-            <div className="text-left">
-              <p className="font-bold text-base">Sistem Pengadaan Barang Jasa</p>
-              <p className="font-medium text-sm">Universitas Indonesia</p>
-            </div>
-          </div>
-          <div className="text-center md:text-right">
-            <button onClick={() => onNavigate('public_policy')} className="text-xs font-semibold hover:underline mb-2 inline-block">
-              Kebijakan
-            </button>
-            <p className="font-bold text-sm mb-1">© 2025 - 2026 | DPBJ UI</p>
-            <p className="opacity-80 font-medium">Version 3.1.0</p>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter onNavigate={onNavigate} />
     </div>
   );
 }

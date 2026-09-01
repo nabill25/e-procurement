@@ -39,9 +39,11 @@ export default function PublicPolicyPage({ onNavigateHome }) {
     <div className="animate-fade-in space-y-4">
       <Breadcrumb onHome={onNavigateHome} />
 
-      <div className="bg-white rounded-xl border border-border shadow-card p-6">
-        <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
-          <FileText size={18} className="text-dpbj-navy" />
+      <div className="section-card">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+          <div className="w-10 h-10 rounded-xl bg-dpbj-gold-faint flex items-center justify-center shrink-0">
+            <FileText size={18} className="text-dpbj-navy" />
+          </div>
           <h2 className="font-bold text-dpbj-navy text-base">Kebijakan</h2>
         </div>
 

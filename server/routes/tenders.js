@@ -68,6 +68,33 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
+// ── GET /api/tenders/public-stats — Angka ringkas untuk strip statistik di portal publik
+// (landing page). Sengaja cuma hitungan (bukan nilai rupiah/HPS) supaya aman ditampilkan
+// tanpa login. Ditaruh SEBELUM route GET /:id (pelajaran route-ordering dari kelompok A). ──
+router.get('/public-stats', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('pengumuman','pendaftaran','penawaran','evaluasi','pemenang','masa_sanggah')) AS tender_aktif,
+        COUNT(*) FILTER (WHERE status = 'kontrak') AS kontrak_berjalan,
+        COUNT(*) FILTER (WHERE created_at >= date_trunc('year', CURRENT_DATE)) AS total_tahun_ini
+      FROM tenders
+    `);
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      data: {
+        tender_aktif: parseInt(row.tender_aktif, 10),
+        kontrak_berjalan: parseInt(row.kontrak_berjalan, 10),
+        total_tahun_ini: parseInt(row.total_tahun_ini, 10),
+      },
+    });
+  } catch (err) {
+    console.error('[GET /tenders/public-stats]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil statistik.' });
+  }
+});
+
 // ── SK PANITIA (master roster, terpisah dari data master.js karena spesifik ke tender workflow) ──
 // Ditaruh sebelum route GET /:id supaya "master" tidak ketangkap sebagai :id.
 router.get('/master/sk-panitia', requireAuth, async (req, res) => {

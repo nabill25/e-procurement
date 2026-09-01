@@ -1,21 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, DollarSign, MapPin, Tag, Search, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { API_BASE, useApp } from '../context/AppContext';
 import { methodConfig } from '../data/mockData';
 import { procurementPhases, getTenderPhaseIndex } from '../data/procurementPhases';
 
 import TenderDetailView from '../components/views/TenderDetailView';
 
-// Badge for tender phase
+// Badge tahap tender + mini progress dots - diselaraskan ke tema navy/gold DPBJ
+// (versi lama pakai warna merah/ungu ala Bootstrap yang bentrok dengan tema di
+// seluruh halaman lain).
 function TahapBadge({ status }) {
   const phaseIndex = getTenderPhaseIndex(status);
   if (phaseIndex < 0) return null;
   const phase = procurementPhases[phaseIndex];
   if (!phase) return null;
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-500 text-white text-[10px] font-bold rounded-md">
-      Tahap: {phase.label}
-    </span>
+    <div className="flex items-center gap-2.5 flex-wrap">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-dpbj-navy text-white text-[10px] font-bold rounded-md uppercase tracking-wide">
+        Tahap: {phase.label}
+      </span>
+      <div className="flex items-center gap-1">
+        {procurementPhases.map((_, i) => (
+          <span
+            key={i}
+            className={`w-1.5 h-1.5 rounded-full transition-colors ${i <= phaseIndex ? 'bg-dpbj-gold' : 'bg-gray-200'}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -89,85 +102,74 @@ export default function PublicTenderPage({ onNavigateHome }) {
       <Breadcrumb onHome={onNavigateHome} />
 
       {/* Search bar */}
-      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+      <div className="section-card !p-4">
         <div className="flex flex-col sm:flex-row gap-3">
-          <button className="h-[42px] px-4 bg-[#39b4d6] hover:bg-[#2b9ab8] text-white rounded-md flex items-center justify-center transition-colors">
-            <span className="flex items-center gap-2 text-sm">⚙ <span>▼</span></span>
-          </button>
-          <input
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Cari Tender . . ."
-            className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none focus:border-dpbj-gold"
-          />
-          <button
-            onClick={handleSearch}
-            className="h-[42px] px-8 bg-[#dc3545] hover:bg-[#c82333] text-white text-sm rounded-md transition-colors font-medium shadow-sm"
-          >
-            Cari
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="Cari nama paket atau nomor tender..."
+              className="form-input !pl-11"
+            />
+          </div>
+          <button onClick={handleSearch} className="btn-primary">
+            Cari Tender
           </button>
         </div>
       </div>
 
       {/* Tender list */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-        <div className="p-4 space-y-4 stagger-list">
-          {isLoading ? (
-            <div className="py-16 text-center text-gray-500 text-sm">Memuat data tender...</div>
-          ) : tenders.length === 0 ? (
-            <div className="py-16 text-center text-gray-500 text-sm">Tidak ada paket tender yang ditemukan.</div>
-          ) : (
-            tenders.map((tender) => (
-              <div
-                key={tender.id}
-                onClick={() => setSelectedTender(tender)}
-                className="stagger-item interactive-lift bg-white rounded-md border border-[#c4a4e8] p-4 cursor-pointer hover:border-[#a274db]"
-              >
-                <p className="text-xs text-gray-500 italic mb-1">
-                  No. Paket: {tender.tender_number}
-                </p>
-                <h3 className="font-bold text-black text-sm uppercase mb-3 hover:text-dpbj-gold transition-colors">
-                  {tender.title}
-                </h3>
-                
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-gray-800 font-medium mb-4">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-gray-600" />
-                    Tahun Anggaran: {new Date(tender.created_at || Date.now()).getFullYear()}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <DollarSign size={13} className="text-gray-600" />
-                    Harga Perkiraan Sendiri IDR {Number(tender.hps || tender.pagu_anggaran).toLocaleString('id-ID')}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Tag size={13} className="text-gray-600" />
-                    Metode Pengadaan: {methodConfig[tender.method] || tender.method}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MapPin size={13} className="text-gray-600" />
-                    Lokasi Pekerjaan: {tender.unit_kerja || 'Kampus UI Depok'}
-                  </span>
-                </div>
+      <div className="space-y-4 stagger-list">
+        {isLoading ? (
+          <div className="section-card py-16 text-center text-gray-500 text-sm">Memuat data tender...</div>
+        ) : tenders.length === 0 ? (
+          <div className="section-card py-16 text-center text-gray-500 text-sm">Tidak ada paket tender yang ditemukan.</div>
+        ) : (
+          tenders.map((tender) => (
+            <motion.button
+              key={tender.id}
+              onClick={() => setSelectedTender(tender)}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.995 }}
+              className="stagger-item section-card !p-5 w-full text-left block group"
+            >
+              <p className="text-xs text-muted font-mono mb-1">
+                No. Paket: {tender.tender_number}
+              </p>
+              <h3 className="font-bold text-dpbj-navy text-sm mb-3 group-hover:text-dpbj-gold-dark transition-colors">
+                {tender.title}
+              </h3>
 
-                <div className="mt-1">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#d9534f] text-white text-[10px] rounded-l-sm">
-                    Tahap:
-                  </span>
-                  <span className="inline-flex items-center px-2 py-1 bg-[#a981db] text-white text-[10px] rounded-r-sm">
-                    {procurementPhases[getTenderPhaseIndex(tender.status)]?.label || tender.status}
-                  </span>
-                </div>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] text-gray-600 font-medium mb-4">
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={13} className="text-dpbj-navy/50" />
+                  Tahun Anggaran: {new Date(tender.created_at || Date.now()).getFullYear()}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <DollarSign size={13} className="text-dpbj-navy/50" />
+                  Pagu Anggaran: IDR {Number(tender.pagu_anggaran || 0).toLocaleString('id-ID')}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Tag size={13} className="text-dpbj-navy/50" />
+                  Metode: {methodConfig[tender.method] || tender.method}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={13} className="text-dpbj-navy/50" />
+                  {tender.unit_kerja || 'Kampus UI Depok'}
+                </span>
               </div>
-            ))
-          )}
-        </div>
 
-        {/* Footer count */}
-        <div className="px-5 py-4 bg-gray-50 border-t border-gray-200 text-xs text-gray-600 font-medium">
-          Menampilkan : {tenders.length}
-        </div>
+              <TahapBadge status={tender.status} />
+            </motion.button>
+          ))
+        )}
       </div>
+
+      {tenders.length > 0 && totalItems <= perPage && (
+        <p className="text-xs text-muted text-center">Menampilkan {tenders.length} paket tender</p>
+      )}
 
       {/* Pagination */}
       {totalItems > perPage && (

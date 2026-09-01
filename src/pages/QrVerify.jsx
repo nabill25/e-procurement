@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { QrCode, CheckCircle2, XCircle, Home, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../context/AppContext';
 
 const SOURCE_LABEL = {
@@ -52,9 +53,11 @@ export default function QrVerify({ initialCode, onNavigateHome }) {
     <div className="animate-fade-in space-y-4">
       <Breadcrumb onHome={onNavigateHome} />
 
-      <div className="bg-white rounded-xl border border-border shadow-card p-6 max-w-xl mx-auto">
-        <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
-          <QrCode size={18} className="text-dpbj-navy" />
+      <div className="section-card max-w-xl mx-auto">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
+          <div className="w-10 h-10 rounded-xl bg-dpbj-gold-faint flex items-center justify-center shrink-0">
+            <QrCode size={19} className="text-dpbj-navy" />
+          </div>
           <h2 className="font-bold text-dpbj-navy text-base">Verifikasi <span className="font-light">Keaslian Dokumen</span></h2>
         </div>
 
@@ -74,29 +77,46 @@ export default function QrVerify({ initialCode, onNavigateHome }) {
           </button>
         </form>
 
-        {isLoading && <p className="text-sm text-muted text-center py-6">Memeriksa...</p>}
-
-        {!isLoading && checked && result && (
-          result.valid ? (
-            <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <div className="flex items-center gap-2 text-emerald-700 font-bold mb-3">
-                <CheckCircle2 size={22} /> Dokumen Terverifikasi Asli
-              </div>
-              <div className="space-y-1.5 text-sm text-dpbj-navy">
-                <p><span className="text-muted">Jenis Dokumen:</span> {SOURCE_LABEL[result.data.source_type] || result.data.source_type}</p>
-                {result.data.tender_title && <p><span className="text-muted">Tender:</span> {result.data.tender_title} ({result.data.tender_number})</p>}
-                {result.data.vendor_name && <p><span className="text-muted">Vendor:</span> {result.data.vendor_name}</p>}
-                {result.data.info && <p><span className="text-muted">Keterangan:</span> {result.data.info}</p>}
-                <p><span className="text-muted">Diterbitkan:</span> {new Date(result.data.created_at).toLocaleString('id-ID')}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
-              <XCircle size={22} className="text-red-600 shrink-0" />
-              <p className="text-sm text-red-700">{result.message || 'Kode tidak ditemukan. Dokumen ini tidak dapat diverifikasi keasliannya.'}</p>
-            </div>
-          )
+        {isLoading && (
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted">
+            <span className="w-4 h-4 border-2 border-dpbj-gold border-t-transparent rounded-full animate-spin" />
+            Memeriksa keaslian dokumen...
+          </div>
         )}
+
+        <AnimatePresence mode="wait">
+          {!isLoading && checked && result && (
+            <motion.div
+              key={result.valid ? 'valid' : 'invalid'}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {result.valid ? (
+                <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <div className="flex items-center gap-2 text-emerald-700 font-bold mb-3">
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: 'spring', stiffness: 400, damping: 15 }}>
+                      <CheckCircle2 size={22} />
+                    </motion.div>
+                    Dokumen Terverifikasi Asli
+                  </div>
+                  <div className="space-y-1.5 text-sm text-dpbj-navy">
+                    <p><span className="text-muted">Jenis Dokumen:</span> {SOURCE_LABEL[result.data.source_type] || result.data.source_type}</p>
+                    {result.data.tender_title && <p><span className="text-muted">Tender:</span> {result.data.tender_title} ({result.data.tender_number})</p>}
+                    {result.data.vendor_name && <p><span className="text-muted">Vendor:</span> {result.data.vendor_name}</p>}
+                    {result.data.info && <p><span className="text-muted">Keterangan:</span> {result.data.info}</p>}
+                    <p><span className="text-muted">Diterbitkan:</span> {new Date(result.data.created_at).toLocaleString('id-ID')}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+                  <XCircle size={22} className="text-red-600 shrink-0" />
+                  <p className="text-sm text-red-700">{result.message || 'Kode tidak ditemukan. Dokumen ini tidak dapat diverifikasi keasliannya.'}</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
