@@ -259,20 +259,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ── PATCH /api/tenders/:id/status — Update status saja ──
-router.patch('/:id/status', async (req, res) => {
-  try {
-    const { status } = req.body;
-    const allowed = ['draft','proses_review','disetujui','ditolak','tender_buka','evaluasi','selesai','dibatalkan'];
-    if (!allowed.includes(status)) {
-      return res.status(400).json({ success: false, message: 'Status tidak valid.' });
-    }
-    await pool.query('UPDATE tenders SET status = $1 WHERE id = $2', [status, req.params.id]);
-    res.json({ success: true, message: `Status tender diubah ke: ${status}` });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+// Catatan: endpoint PATCH /:id/status (lama) sudah dihapus dari sini - isinya dulu masih
+// pakai vocabulary status peninggalan mock data lama (proses_review/tender_buka/selesai dst,
+// sama seperti bug STATUS_OPTIONS di TenderTable.jsx yang sudah diperbaiki), sudah lama
+// tergantikan penuh oleh /:id/stage di bawah ini (vocabulary yang benar, dipakai frontend),
+// dan dikonfirmasi (grep ke seluruh src/) tidak ada satupun kode yang masih memanggilnya.
 
 // ── PATCH /api/tenders/:id/stage — Update tahapan tender (Oleh Pokja) ──
 router.patch('/:id/stage', async (req, res) => {
