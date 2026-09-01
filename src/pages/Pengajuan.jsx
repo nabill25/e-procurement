@@ -10,6 +10,7 @@ export default function Pengajuan() {
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null); // ID yang sedang diproses
+  const [search, setSearch] = useState('');
 
   const fetchRequests = useCallback(async () => {
     setIsLoading(true);
@@ -127,6 +128,14 @@ export default function Pengajuan() {
     }
   };
 
+  const q = search.trim().toLowerCase();
+  const filteredRequests = q
+    ? requests.filter(r =>
+        r.title?.toLowerCase().includes(q) ||
+        r.request_number?.toLowerCase().includes(q) ||
+        r.unit_kerja?.toLowerCase().includes(q))
+    : requests;
+
   // Tentukan aksi yang tersedia berdasarkan status dan role
   // Mengikuti alur eProc: hanya admin/ppk yang bisa ACC, pemilik yang bisa submit
   const isAdmin    = user?.role === 'admin';
@@ -174,10 +183,15 @@ export default function Pengajuan() {
       </div>
 
       <div className="section-card">
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 mb-4 w-64 focus-within:border-dpbj-gold transition-all">
+        {/* Search - filter di sisi klien, sebelumnya dekoratif (tidak ada value/onChange) */}
+        <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 mb-4 w-64 focus-within:border-dpbj-gold focus-within:ring-2 focus-within:ring-dpbj-gold/20 transition-all">
           <Search size={13} className="text-gray-400" />
-          <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full" placeholder="Cari pengajuan..." />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full"
+            placeholder="Cari judul, no. pengajuan, unit kerja..."
+          />
         </div>
 
         <p className="table-scroll-hint">
@@ -201,7 +215,9 @@ export default function Pengajuan() {
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : requests.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada data.</td></tr>
-              ) : requests.map(req => (
+              ) : filteredRequests.length === 0 ? (
+                <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada pengajuan yang cocok dengan pencarian "{search}".</td></tr>
+              ) : filteredRequests.map(req => (
                 <tr key={req.id} className={`stagger-item ${req.is_from_sap ? "bg-emerald-50/30" : ""}`}>
                   <td>
                     <span className="font-mono text-xs font-semibold text-dpbj-slate">{req.request_number}</span>

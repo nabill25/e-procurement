@@ -406,7 +406,7 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
   return (
     <div className="bg-surface border border-border p-5 rounded-xl mt-4">
       <h3 className="font-bold text-dpbj-navy text-sm mb-4 flex items-center gap-2">
-        <Upload size={16} className="text-purple-600" /> Form Pemasukan Dokumen Penawaran
+        <Upload size={16} className="text-dpbj-gold-dark" /> Form Pemasukan Dokumen Penawaran
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -436,7 +436,7 @@ function VendorBidForm({ tenderId, onClose, refreshData }) {
           />
           <p className="text-[10px] text-gray-400 mt-1">*Maksimal 10MB.</p>
         </div>
-        <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20">
+        <button type="submit" disabled={isSubmitting} className="btn-primary w-full justify-center">
           {isSubmitting ? 'Mengirim...' : 'Kirim Penawaran Sekarang'}
         </button>
       </form>
@@ -931,10 +931,10 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
 
               {/* Vendor Actions */}
               {user.role === 'vendor' && data.status === 'pendaftaran' && (
-                <button onClick={handleRegister} disabled={isRegistering} className="btn-primary w-full justify-center bg-blue-600 hover:bg-blue-700 text-white shadow-md">Daftar Tender Ini</button>
+                <button onClick={handleRegister} disabled={isRegistering} className="btn-primary w-full justify-center shadow-md">Daftar Tender Ini</button>
               )}
               {user.role === 'vendor' && data.status === 'penawaran' && !showBidForm && (
-                <button onClick={() => setShowBidForm(true)} className="btn-primary w-full justify-center bg-purple-600 hover:bg-purple-700 text-white shadow-md">Kirim Dokumen Penawaran</button>
+                <button onClick={() => setShowBidForm(true)} className="btn-primary w-full justify-center shadow-md">Kirim Dokumen Penawaran</button>
               )}
             </div>
           </div>
