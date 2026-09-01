@@ -1,17 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, ChevronUp, ChevronDown, Eye, MoreVertical, Download, Calendar, MoveHorizontal } from 'lucide-react';
+import { Search, Eye, Download, Calendar, MoveHorizontal } from 'lucide-react';
 import { useApp, API_BASE } from '../../context/AppContext';
-import { statusConfig, methodConfig } from '../../data/mockData'; // we can keep configs
+import { methodConfig } from '../../data/mockData';
+import { tenderStatusConfig } from '../../data/procurementPhases';
 import { StatusBadge, formatRupiah } from '../ui/shared';
 import clsx from 'clsx';
 
+// Nilai & urutan ini mengikuti PERSIS status tender asli (lihat tenderStatusConfig / alur
+// tahapan di procurementPhases.js) - versi sebelumnya pakai nilai peninggalan mock data lama
+// (draft/proses_review/tender_buka/evaluasi/selesai) yang TIDAK PERNAH cocok dengan status
+// asli tersimpan di database, jadi filter status di tabel ini sebelumnya nyaris selalu
+// mengembalikan hasil kosong untuk pilihan manapun selain "Semua Status".
 const STATUS_OPTIONS = [
   { value: '',             label: 'Semua Status' },
   { value: 'draft',        label: 'Draft' },
-  { value: 'proses_review',label: 'Proses Review' },
-  { value: 'tender_buka',  label: 'Tender Buka' },
+  { value: 'pengumuman',   label: 'Pengumuman' },
+  { value: 'pendaftaran',  label: 'Pendaftaran' },
+  { value: 'penawaran',    label: 'Upload Penawaran' },
   { value: 'evaluasi',     label: 'Evaluasi' },
-  { value: 'selesai',      label: 'Selesai' },
+  { value: 'pemenang',     label: 'Penetapan Pemenang' },
+  { value: 'masa_sanggah', label: 'Masa Sanggah' },
+  { value: 'kontrak',      label: 'Kontrak & BAST' },
   { value: 'dibatalkan',   label: 'Dibatalkan' },
 ];
 
@@ -174,7 +183,7 @@ export default function TenderTable({ compact = false }) {
                   <p className="text-sm font-semibold text-dpbj-navy">{formatRupiah(tender.pagu_anggaran, true)}</p>
                   {tender.hps && <p className="text-xs text-muted">HPS: {formatRupiah(tender.hps, true)}</p>}
                 </td>
-                <td><StatusBadge status={tender.status} config={statusConfig} /></td>
+                <td><StatusBadge status={tender.status} config={tenderStatusConfig} /></td>
                 <td>
                   {tender.submission_deadline ? (
                     <div className="flex items-center gap-1.5 text-xs text-muted">
@@ -185,14 +194,16 @@ export default function TenderTable({ compact = false }) {
                 </td>
                 <td>
                   <div className="flex items-center gap-1">
-                    <button 
+                    {/* Tombol titik-tiga dekoratif (tanpa aksi apapun) yang sebelumnya ada di
+                        sini sudah dihapus - dicatat sejak lama sebagai tombol tanpa fungsi,
+                        sekarang dibereskan sekalian waktu memperbaiki bug status di file ini. */}
+                    <button
                       onClick={(e) => { e.stopPropagation(); setSelectedTender(tender); }}
                       className="p-1.5 rounded-lg hover:bg-dpbj-gold-faint hover:text-dpbj-gold-dark transition-colors"
                       title="Lihat Detail Tender"
                     >
                       <Eye size={14} />
                     </button>
-                    <button className="p-1.5 rounded-lg hover:bg-surface transition-colors text-muted"><MoreVertical size={14} /></button>
                   </div>
                 </td>
               </tr>

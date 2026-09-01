@@ -40,6 +40,7 @@ export default function Vendor() {
   const [vendors, setVendors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [search, setSearch] = useState('');
 
   const fetchVendors = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +63,18 @@ export default function Vendor() {
 
   const totalVerified = vendors.filter(v => v.status === 'terverifikasi').length;
   const totalPending  = vendors.filter(v => v.status === 'pending').length;
+
+  // Filter di sisi klien (data vendor sudah diambil semua sekaligus, tidak lewat backend
+  // seperti pencarian tender). Kotak pencarian ini sebelumnya cuma dekorasi - tidak ada
+  // value/onChange sama sekali, ketik apapun tidak berefek apapun.
+  const q = search.trim().toLowerCase();
+  const filteredVendors = q
+    ? vendors.filter(v =>
+        v.company_name?.toLowerCase().includes(q) ||
+        v.npwp?.includes(q) ||
+        v.category?.toLowerCase().includes(q) ||
+        v.city?.toLowerCase().includes(q))
+    : vendors;
 
   // ── Update status vendor (general) — mengikuti mapping status_validasi eProc ──
   const handleUpdateStatus = async (vendor, newStatus) => {
@@ -173,11 +186,18 @@ export default function Vendor() {
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="flex-1 min-w-[180px]">
             <h2 className="text-base font-bold text-dpbj-navy">Daftar Penyedia Barang & Jasa</h2>
-            <p className="text-xs text-muted">{vendors.length} vendor terdaftar dalam sistem DPBJ UI</p>
+            <p className="text-xs text-muted">
+              {q ? `${filteredVendors.length} dari ${vendors.length} vendor cocok pencarian` : `${vendors.length} vendor terdaftar dalam sistem DPBJ UI`}
+            </p>
           </div>
-          <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 focus-within:border-dpbj-gold transition-all w-full sm:w-auto">
+          <div className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 focus-within:border-dpbj-gold focus-within:ring-2 focus-within:ring-dpbj-gold/20 transition-all w-full sm:w-auto">
             <Search size={13} className="text-gray-400 shrink-0" />
-            <input className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full sm:w-40" placeholder="Cari vendor..." />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="bg-transparent text-sm text-dpbj-navy placeholder:text-gray-400 focus:outline-none w-full sm:w-40"
+              placeholder="Cari nama, NPWP, kota..."
+            />
           </div>
         </div>
 
@@ -202,7 +222,9 @@ export default function Vendor() {
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Memuat data...</td></tr>
               ) : vendors.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada vendor terdaftar.</td></tr>
-              ) : vendors.map(v => (
+              ) : filteredVendors.length === 0 ? (
+                <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada vendor yang cocok dengan pencarian "{search}".</td></tr>
+              ) : filteredVendors.map(v => (
                 <tr key={v.id} className="stagger-item cursor-pointer hover:bg-surface" onClick={() => setSelectedVendor(v)}>
                   <td>
                     <div className="flex items-center gap-3">

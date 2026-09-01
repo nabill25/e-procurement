@@ -56,15 +56,16 @@ export const dashboardStats = {
   nilaiKontrakBerjalan: 18_400_000_000,
 };
 
+// Khusus status Pengajuan Pengadaan (procurement_requests.status) - dipakai di Pengajuan.jsx
+// dan DetailPengajuanModal.jsx. Untuk status TENDER, pakai `tenderStatusConfig` di
+// src/data/procurementPhases.js (beda vocabulary, jangan dicampur - lihat catatan di sana).
 export const statusConfig = {
   draft:         { label: 'Draft',          className: 'badge-draft',   dot: '#9CA3AF' },
   diajukan:      { label: 'Diajukan',       className: 'badge-open',    dot: '#2563EB' },
   proses_review: { label: 'Proses Review',  className: 'badge-review',  dot: '#D97706' },
+  revisi:        { label: 'Perlu Revisi',   className: 'badge-review',  dot: '#D97706' },
   disetujui:     { label: 'Disetujui',      className: 'badge-done',    dot: '#059669' },
   ditolak:       { label: 'Ditolak',        className: 'badge-cancel',  dot: '#DC2626' },
-  tender_buka:   { label: 'Tender Buka',    className: 'badge-open',    dot: '#2563EB' },
-  evaluasi:      { label: 'Evaluasi',       className: 'badge-eval',    dot: '#7C3AED' },
-  selesai:       { label: 'Selesai',        className: 'badge-done',    dot: '#059669' },
   dibatalkan:    { label: 'Dibatalkan',     className: 'badge-cancel',  dot: '#DC2626' },
 };
 

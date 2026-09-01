@@ -15,7 +15,10 @@ export function formatRupiah(value, compact = false) {
 }
 
 /** Status Badge */
-export function StatusBadge({ status, config }) {
+// `config = {}` sebagai jaga-jaga: sempat ketemu pemanggilan tanpa prop `config` sama sekali
+// (Purchasing.jsx) yang bikin baris ini crash (`Cannot read properties of undefined`) begitu
+// ada data order sungguhan untuk dirender, bukan cuma soal gaya kalau config-nya kosong.
+export function StatusBadge({ status, config = {} }) {
   const cfg = config[status];
   if (!cfg) return <span className="badge badge-draft">{status}</span>;
   return (

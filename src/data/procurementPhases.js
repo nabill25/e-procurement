@@ -22,3 +22,22 @@ export const getTenderPhaseIndex = (status) => {
     default: return -1;
   }
 };
+
+// Konfigurasi badge status untuk StatusBadge (label + warna), khusus tender - dipakai di
+// TenderTable.jsx dan DetailTenderModal.jsx. Sebelumnya kedua tempat itu salah pakai
+// `statusConfig` dari data/mockData.js (isinya cuma untuk status Pengajuan: draft/diajukan/
+// proses_review/disetujui/ditolak/revisi/dibatalkan), yang TIDAK PUNYA satupun entri untuk
+// status tender asli (pengumuman/pendaftaran/penawaran/evaluasi/pemenang/masa_sanggah/kontrak)
+// - akibatnya badge status tender selama ini tampil sebagai teks mentah bahasa Inggris/kode
+// tanpa warna sama sekali (StatusBadge jatuh ke tampilan fallback), bukan cuma soal gaya.
+export const tenderStatusConfig = {
+  draft:        { label: 'Draft',              className: 'badge-draft',  dot: '#9CA3AF' },
+  pengumuman:   { label: 'Pengumuman',          className: 'badge-open',   dot: '#2563EB' },
+  pendaftaran:  { label: 'Pendaftaran',         className: 'badge-open',   dot: '#2563EB' },
+  penawaran:    { label: 'Upload Penawaran',    className: 'badge-review', dot: '#D97706' },
+  evaluasi:     { label: 'Evaluasi',            className: 'badge-eval',   dot: '#7C3AED' },
+  pemenang:     { label: 'Penetapan Pemenang',  className: 'badge-eval',   dot: '#7C3AED' },
+  masa_sanggah: { label: 'Masa Sanggah',        className: 'badge-review', dot: '#D97706' },
+  kontrak:      { label: 'Kontrak & BAST',      className: 'badge-done',   dot: '#059669' },
+  dibatalkan:   { label: 'Dibatalkan',          className: 'badge-cancel', dot: '#DC2626' },
+};

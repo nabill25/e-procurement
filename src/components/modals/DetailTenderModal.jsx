@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
-import { statusConfig, methodConfig } from '../../data/mockData';
-import { procurementPhases, getTenderPhaseIndex } from '../../data/procurementPhases';
+import { methodConfig } from '../../data/mockData';
+import { procurementPhases, getTenderPhaseIndex, tenderStatusConfig } from '../../data/procurementPhases';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import clsx from 'clsx';
 import ObjectionsTab from './ObjectionsTab';
@@ -793,7 +793,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-muted font-medium mb-1">Status</p>
-                    <StatusBadge status={data.status} config={statusConfig} />
+                    <StatusBadge status={data.status} config={tenderStatusConfig} />
                   </div>
                   <div>
                     <p className="text-xs text-muted font-medium mb-1">Metode Pemilihan</p>

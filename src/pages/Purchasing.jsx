@@ -4,6 +4,18 @@ import { Package, FileText, CheckCircle, XCircle, Search, Clock } from 'lucide-r
 import { formatRupiah, StatusBadge } from '../components/ui/shared';
 import { toast } from '../lib/toast';
 
+// Sebelumnya <StatusBadge> di halaman ini dipanggil TANPA prop `config` sama sekali, yang
+// bikin komponennya crash begitu ada order sungguhan untuk dirender (lihat perbaikan jaga-jaga
+// di StatusBadge sendiri). Config ini melengkapi label+warna yang tadinya tidak pernah ada,
+// mengikuti nilai status asli yang dipakai tombol aksi vendor di bawah (pending/approved/
+// rejected/completed).
+const purchasingStatusConfig = {
+  pending:   { label: 'Menunggu Konfirmasi', className: 'badge-review', dot: '#D97706' },
+  approved:  { label: 'Diproses Vendor',     className: 'badge-open',   dot: '#2563EB' },
+  completed: { label: 'Selesai Dikirim',     className: 'badge-done',   dot: '#059669' },
+  rejected:  { label: 'Ditolak Vendor',      className: 'badge-cancel', dot: '#DC2626' },
+};
+
 export default function Purchasing() {
   const { user, navigateTo } = useApp();
   const [orders, setOrders] = useState([]);
@@ -93,7 +105,7 @@ export default function Purchasing() {
                   <p className="font-bold text-sm text-dpbj-navy line-clamp-1">
                     {user.role === 'vendor' ? order.buyer_name : order.vendor_name}
                   </p>
-                  <StatusBadge status={order.status} />
+                  <StatusBadge status={order.status} config={purchasingStatusConfig} />
                 </div>
                 <p className="text-xs text-muted flex items-center gap-1 mb-2">
                   <Clock size={12} /> {new Date(order.created_at).toLocaleDateString('id-ID')}
@@ -111,7 +123,7 @@ export default function Purchasing() {
                     <h2 className="font-bold text-xl text-dpbj-navy mb-1">Detail Purchase Order</h2>
                     <p className="text-sm text-muted">Order ID: <span className="font-mono text-xs">{selectedOrder.id}</span></p>
                   </div>
-                  <StatusBadge status={selectedOrder.status} />
+                  <StatusBadge status={selectedOrder.status} config={purchasingStatusConfig} />
                 </div>
                 
                 <div className="p-6 grid grid-cols-2 gap-6 border-b border-border text-sm">
