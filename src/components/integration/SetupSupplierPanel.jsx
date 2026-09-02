@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Landmark, Plus, X, Clock, Send, UserCheck, PlayCircle, Upload, CheckCircle2,
-  Building2, ChevronRight, History,
+  Building2, History,
 } from 'lucide-react';
-import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
-import { toast } from '../lib/toast';
+import { API_BASE, getAuthHeaders, useApp } from '../../context/AppContext';
+import { toast } from '../../lib/toast';
 
-// Modul "Setup Supplier Oracle" - alur tiket permintaan setup supplier baru di Oracle EBS,
+// Panel "Setup Supplier Oracle" - alur tiket permintaan setup supplier baru di Oracle EBS,
 // padanan aplikasi terpisah yang ditunjukkan pengguna (folder root project
-// setup-supplier-request/). BUKAN bagian dari fitur "Integrasi Oracle" yang sudah ada (itu
-// soal sinkronisasi RKA/PR lewat SFTP, lihat Integration.jsx) - ini modul terpisah, alur:
-// Pengaju -> Verifikator -> Dispatcher -> Pelaksana.
+// setup-supplier-request/). Ini murni fitur di dalam Oracle EBS sendiri (staf Tim Support
+// Oracle yang mengerjakan setup supplier-nya langsung di Oracle) - panel ini cuma tiket
+// permintaannya, jadi digabung sebagai tab di dalam halaman "Integrasi Oracle" yang sudah
+// ada (Integration.jsx), bukan menu tersendiri di sidebar. Alur: Pengaju -> Verifikator ->
+// Dispatcher -> Pelaksana.
 
 const STATUS_META = {
   diajukan:    { label: 'Diajukan',           className: 'bg-gray-100 text-gray-600' },
@@ -316,7 +318,7 @@ function NewRequestModal({ isOpen, onClose, onCreated }) {
   );
 }
 
-export default function OracleSupplierSetup() {
+export default function SetupSupplierPanel() {
   const { user } = useApp();
   const [requests, setRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -339,32 +341,28 @@ export default function OracleSupplierSetup() {
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
   const columns = COLUMNS_BY_ROLE[user?.role] || COLUMNS_BY_ROLE.admin;
+  const gridClass = columns.length >= 4 ? 'md:grid-cols-4' : columns.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <div className="section-card">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-base font-bold text-dpbj-navy flex items-center gap-2"><Landmark size={16} /> Setup Supplier Oracle</h2>
-            <p className="text-xs text-muted">Alur permintaan setup supplier baru di Oracle EBS: Pengaju &rarr; Verifikator &rarr; Dispatcher &rarr; Pelaksana.</p>
-          </div>
-          {['admin', 'pengaju_oracle'].includes(user?.role) && (
-            <button onClick={() => setShowNew(true)} className="btn-primary text-xs"><Plus size={14} /> Ajukan Baru</button>
-          )}
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <p className="text-xs text-muted max-w-xl">Permintaan setup supplier baru untuk dikerjakan Tim Support Oracle langsung di Oracle EBS: Pengaju &rarr; Verifikator &rarr; Dispatcher &rarr; Pelaksana.</p>
+        {['admin', 'pengaju_oracle'].includes(user?.role) && (
+          <button onClick={() => setShowNew(true)} className="btn-primary text-xs shrink-0"><Plus size={14} /> Ajukan Baru</button>
+        )}
       </div>
 
       {isLoading ? (
-        <div className="section-card text-center py-10 text-sm text-muted">Memuat data...</div>
+        <div className="text-center py-10 text-sm text-muted">Memuat data...</div>
       ) : (
-        <div className={`grid grid-cols-1 gap-4 ${columns.length >= 4 ? 'md:grid-cols-4' : columns.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div className={`grid grid-cols-1 gap-4 ${gridClass}`}>
           {columns.map(col => {
             const items = requests.filter(r => col.statuses.includes(r.status) && (!col.onlyMine || r.assigned_to === user.id));
             return (
-              <div key={col.label} className="section-card !p-3">
+              <div key={col.label} className="bg-surface border border-border rounded-xl p-3">
                 <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-border">
                   <h3 className="text-xs font-bold text-dpbj-navy uppercase tracking-wide">{col.label}</h3>
-                  <span className="text-[10px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded-full">{items.length}</span>
+                  <span className="text-[10px] font-bold text-muted bg-white px-1.5 py-0.5 rounded-full">{items.length}</span>
                 </div>
                 <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
                   {items.length === 0 ? (

@@ -1207,3 +1207,36 @@ menu, terus bertambah tiap modul baru) makin sering mepet/lewat timeout default 
 karena harus klik lebih banyak item satu-satu, bukan karena render lambat (dicek terisolasi,
 tidak ada halaman yang benar-benar outlier lambat) - dinaikkan jadi 60 detik khusus test ini
 supaya tidak perlu dinaikkan lagi tiap nambah 1-2 menu baru ke sidebar admin.
+
+### Koreksi: Setup Supplier Oracle digabung jadi tab di "Integrasi Oracle" (2026-09-02)
+
+Setelah modul di atas dilaporkan selesai, pengguna meluruskan: "Setup Supplier" itu memang
+fitur yang ADA DI DALAM Oracle EBS sendiri (tim support Oracle yang mengerjakannya langsung di
+Oracle) - jadi tiket permintaannya lebih pas jadi bagian dari menu "Integrasi Oracle" yang
+sudah ada, bukan menu tersendiri di sidebar. Konsep/alur/data yang sudah dibangun (4 role,
+state machine, tabel `oracle_supplier_requests`) **tidak berubah sama sekali** - cuma
+tempatnya di UI yang dipindah.
+
+**Perubahan**: papan kanban dari `OracleSupplierSetup.jsx` diekstrak jadi komponen reusable
+`src/components/integration/SetupSupplierPanel.jsx`, dipasang sebagai tab baru "Setup Supplier"
+di `Integration.jsx` (bersama tab RKA/Purchase Requisition/Ekspor Supplier & PO/Log Aktivitas
+yang sudah ada). Halaman `OracleSupplierSetup.jsx` dan menu sidebar terpisahnya dihapus.
+
+**Detail penting**: 4 tab lama (RKA/PR/Ekspor/Log) memanggil endpoint
+`server/routes/integration.js` yang **admin-only** (`requireRole('admin')`) - kalau 4 role Tim
+Support Oracle (`pengaju_oracle` dkk) ikut memanggil endpoint itu saat buka halaman, mereka
+akan selalu dapat 403. Makanya `Integration.jsx` sekarang sadar role: untuk role Tim Support
+Oracle, cuma tab "Setup Supplier" yang ditampilkan dan endpoint admin-only itu **tidak pernah
+dipanggil sama sekali** (fetch RKA/PR/status/logs di-skip lewat pengecekan
+`isOracleTicketRole`); untuk admin, kelima tab tetap tampil seperti biasa.
+
+**Migrasi** `migrations/036_gabung_setup_supplier_ke_integrasi_oracle.sql`: pindahkan hak akses
+4 role dari menu `oracle_supplier_setup` (dihapus) ke menu `integration_oracle` yang sudah ada.
+`getDefaultAllowedMenus()` di `Sidebar.jsx` disamakan.
+
+Sudah dites lewat browser sungguhan Playwright: sidebar admin tidak lagi punya menu terpisah,
+tab "Setup Supplier" muncul sebagai tab ke-5 di halaman Integrasi Oracle dan kanban-nya tampil
+normal; akun uji `verifikator_oracle` cuma melihat 1 menu ("Integrasi Oracle") dan begitu
+dibuka cuma tab "Setup Supplier" yang ada (tanpa RKA/PR/Ekspor/Log), nol error console, nol
+request gagal. Akun uji dibersihkan. 17 test regresi tetap lulus bersih (navigasi admin malah
+sedikit lebih cepat, 20 detik, karena satu menu top-level berkurang).

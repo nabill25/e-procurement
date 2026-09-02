@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff } from 'lucide-react';
-import { API_BASE, getAuthHeaders } from '../context/AppContext';
+import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff, Landmark } from 'lucide-react';
+import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
 import { toast } from '../lib/toast';
+import SetupSupplierPanel from '../components/integration/SetupSupplierPanel';
 
 function formatTanggal(iso) {
   if (!iso) return '-';
@@ -12,12 +13,18 @@ function formatRupiah(n) {
   return `Rp ${Number(n).toLocaleString('id-ID')}`;
 }
 
-const TABS = [
+// Sinkronisasi RKA/PR/Ekspor/Log cuma untuk admin (endpoint-nya di server memang admin-only).
+// Tab "Setup Supplier" dibuka juga untuk 4 role Tim Support Oracle - itu tiket permintaan
+// setup supplier baru (dikerjakan langsung di Oracle EBS), beda dari sinkronisasi data RKA/PR
+// di atas, tapi sama-sama soal Oracle jadi digabung satu halaman.
+const SYNC_TABS = [
   { key: 'rka', label: 'RKA', icon: FileSpreadsheet },
   { key: 'pr', label: 'Purchase Requisition', icon: ClipboardList },
   { key: 'export', label: 'Ekspor Supplier & PO', icon: Download },
   { key: 'logs', label: 'Log Aktivitas', icon: History },
 ];
+const SETUP_SUPPLIER_TAB = { key: 'setup_supplier', label: 'Setup Supplier', icon: Landmark };
+const ORACLE_TICKET_ROLES = ['pengaju_oracle', 'verifikator_oracle', 'dispatcher_oracle', 'pelaksana_oracle'];
 
 // ── Kotak upload manual - dipakai sama untuk tab RKA dan PR ──
 function UploadBox({ label, uploadUrl, onDone }) {
@@ -111,12 +118,19 @@ function RemoteFetchPanel({ jenis, sftpConfigured }) {
 }
 
 export default function Integration() {
-  const [activeTab, setActiveTab] = useState('rka');
+  const { user } = useApp();
+  // Endpoint sinkronisasi RKA/PR/Ekspor/Log (server/routes/integration.js) memang admin-only -
+  // 4 role Tim Support Oracle cuma boleh pakai tab "Setup Supplier" (endpoint terpisah,
+  // /api/oracle-supplier, terbuka untuk mereka). Jangan panggil endpoint admin-only itu untuk
+  // role-role ini, nanti selalu 403.
+  const isOracleTicketRole = ORACLE_TICKET_ROLES.includes(user?.role);
+  const TABS = isOracleTicketRole ? [SETUP_SUPPLIER_TAB] : [...SYNC_TABS, SETUP_SUPPLIER_TAB];
+  const [activeTab, setActiveTab] = useState(isOracleTicketRole ? 'setup_supplier' : 'rka');
   const [status, setStatus] = useState({ sftp_configured: false });
   const [rka, setRka] = useState([]);
   const [pr, setPr] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isOracleTicketRole);
 
   const fetchStatus = useCallback(async () => {
     const res = await fetch(`${API_BASE}/integration/status`, { headers: getAuthHeaders() });
@@ -143,9 +157,10 @@ export default function Integration() {
   }, []);
 
   useEffect(() => {
+    if (isOracleTicketRole) return; // panel Setup Supplier fetch datanya sendiri
     setIsLoading(true);
     Promise.all([fetchStatus(), fetchRka(), fetchPr(), fetchLogs()]).finally(() => setIsLoading(false));
-  }, [fetchStatus, fetchRka, fetchPr, fetchLogs]);
+  }, [isOracleTicketRole, fetchStatus, fetchRka, fetchPr, fetchLogs]);
 
   const handleExport = async (jenis) => {
     try {
@@ -171,12 +186,18 @@ export default function Integration() {
       <div className="section-card">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h2 className="text-base font-bold text-dpbj-navy flex items-center gap-2"><RefreshCw size={16} /> Integrasi Oracle ERP</h2>
-            <p className="text-xs text-muted">Sinkronisasi data anggaran (RKA), permintaan pembelian (PR), dan pengiriman data Supplier/PO ke sistem keuangan kampus.</p>
+            <h2 className="text-base font-bold text-dpbj-navy flex items-center gap-2"><RefreshCw size={16} /> Integrasi Oracle</h2>
+            <p className="text-xs text-muted">
+              {isOracleTicketRole
+                ? 'Permintaan setup supplier baru di Oracle EBS.'
+                : 'Sinkronisasi data anggaran (RKA), permintaan pembelian (PR), pengiriman data Supplier/PO, dan permintaan setup supplier baru ke Oracle ERP kampus.'}
+            </p>
           </div>
-          <span className={`badge text-[10px] ${status.sftp_configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-            {status.sftp_configured ? 'SFTP Terhubung' : 'SFTP Belum Dikonfigurasi'}
-          </span>
+          {!isOracleTicketRole && (
+            <span className={`badge text-[10px] ${status.sftp_configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+              {status.sftp_configured ? 'SFTP Terhubung' : 'SFTP Belum Dikonfigurasi'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -252,6 +273,8 @@ export default function Integration() {
                 </table>
               </div>
             </div>
+          ) : activeTab === 'setup_supplier' ? (
+            <SetupSupplierPanel />
           ) : activeTab === 'export' ? (
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="bg-surface border border-border rounded-xl p-5 text-center">
