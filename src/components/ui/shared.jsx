@@ -7,8 +7,12 @@ export function formatRupiah(value, compact = false) {
   value = Number(value);
   if (Number.isNaN(value)) return '-';
   if (compact) {
-    if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
-    if (value >= 1_000_000)     return `Rp ${(value / 1_000_000).toFixed(1)} Jt`;
+    // Pakai Math.abs() buat nentuin ambang batas (M/Jt) - sebelumnya nilai negatif (misal
+    // -35 juta, kasus "defisit" di dashboard efisiensi) selalu lolos ke baris angka mentah
+    // "Rp -35.000.000" karena "value >= 1_000_000" tidak akan pernah benar untuk angka minus.
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(1)} M`;
+    if (abs >= 1_000_000)     return `Rp ${(value / 1_000_000).toFixed(1)} Jt`;
     return `Rp ${value.toLocaleString('id-ID')}`;
   }
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);

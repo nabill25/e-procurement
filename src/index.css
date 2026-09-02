@@ -111,7 +111,13 @@
   .data-table tbody tr {
     @apply border-b border-border hover:bg-dpbj-gold-faint/50 transition-colors duration-150;
   }
-  .data-table tbody td { @apply px-4 py-3.5 text-dpbj-navy; }
+  /* :where(...) bikin seluruh selector ini beratnya nol secara specificity CSS, supaya warna
+     navy di sini cuma jadi DEFAULT dan gampang ditimpa kelas warna langsung di satu <td>
+     tertentu (mis. text-emerald-600/text-red-500 buat kolom angka positif/negatif) - sebelum
+     ini class warna semacam itu selalu kalah diam-diam karena selector lama (.data-table tbody
+     td, tanpa :where) specificity-nya lebih berat dari kelas util manapun. Ditemukan waktu
+     membangun tabel efisiensi di Dashboard Pimpinan. */
+  :where(.data-table tbody td) { @apply px-4 py-3.5 text-dpbj-navy; }
 
   /* ── Pembungkus tabel/tab yang bisa digeser mendatar (mobile) ──
      Beda dari overflow-x-auto polos: scrollbar dibuat SELALU terlihat jelas (bukan cuma

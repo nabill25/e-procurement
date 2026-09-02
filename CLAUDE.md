@@ -1096,3 +1096,53 @@ lama di tombolnya sebelum akhirnya selesai - datanya tetap tersimpan benar begit
 cuma responsnya lambat. Sama seperti endpoint kirim-email lain yang sudah ada (dicatat di sesi
 sebelumnya sebagai keterbatasan jaringan sandbox, bukan bug kode). Semua data uji dibersihkan
 dari Supabase. 17 test regresi tetap lulus bersih.
+
+## Dashboard Pimpinan: redesain glassmorphism + grafik efisiensi (selesai 2026-09-02)
+
+Pengguna minta Dashboard Pimpinan (`ExecutiveDashboard.jsx`) diperkaya UI/UX-nya: tema
+glassmorphism, ikon menarik, animasi, transisi, interaktif, reaktif, responsif - sebagai
+titik mulai dari permintaan lebih besar "perkaya UI/UX seluruh sistem".
+
+**Yang dikerjakan**: kartu KPI kaca (`bg-white/55 backdrop-blur-md` + `shadow-glass`, token
+yang ternyata SUDAH ada di `tailwind.config.js` sejak awal tapi belum pernah dipakai), badge
+ikon gradien per kartu, angka Rupiah yang menghitung naik (`AnimatedRupiah`, pola sama seperti
+`AnimatedCounter` di landing page publik), latar belakang gradien navy/emas lembut, dan
+**grafik batang divergen baru** "Efisiensi per Unit Kerja" (hijau = hemat, merah = defisit,
+dari garis nol di tengah) menggantikan tabel polos yang sudah ada - dilengkapi toggle Grafik/
+Tabel (aksesibilitas), hover buat lihat nilai persis, dibangun ikuti skill `dataviz` (palet
+divergen emerald/red yang SUDAH dipakai konsisten di seluruh app divalidasi lewat
+`scripts/validate_palette.js`, hasilnya PASS/aman buta warna).
+
+**2 bug lama ditemukan dan diperbaiki sekalian** (bukan bagian dari redesain, ketemu waktu
+membangun grafik baru):
+1. `formatRupiah(value, compact=true)` di `src/components/ui/shared.jsx` - ambang batas
+   "Jt"/"M" cuma dicek pakai `value >= 1_000_000` dkk, jadi nilai NEGATIF (kasus defisit di
+   dashboard ini) selalu lolos ke baris angka mentah "Rp -35.000.000" bukannya "Rp -35.0 Jt".
+   Diperbaiki pakai `Math.abs(value)` untuk pengecekan ambang batas.
+2. CSS `.data-table tbody td` di `src/index.css` selama ini secara diam-diam MENGALAHKAN kelas
+   warna langsung di `<td>` manapun (mis. `text-emerald-600`/`text-red-500` untuk kolom angka
+   positif/negatif) karena specificity CSS selector itu lebih berat dari kelas utility manapun
+   - ditemukan waktu tabel efisiensi baru ini malah tampil semua navy padahal classnya sudah
+   benar hijau/merah. Diperbaiki dengan `:where(.data-table tbody td)` (bikin specificity
+   selector itu nol, defaultnya tetap sama, tapi sekarang kelas warna per-sel bisa menang).
+   Dicek dampaknya ke seluruh app (grep), cuma kena 1 tempat lain (`Blacklist.jsx`, link file
+   SK yang seharusnya biru) - ikut otomatis benar juga, tidak ada downside ditemukan.
+
+**Pelajaran performa penting**: draft pertama sempat bikin test navigasi otomatis 2x lebih
+lambat (~19.8s jadi ~49s buat role admin) gara-gara 2 hal: (1) bola gradien blur yang dianimasi
+terus-menerus (`animate-float` di elemen `blur-3xl`, mahal buat browser re-composite tiap
+frame) - diperbaiki jadi statis (blur tetap ada, animasinya dihapus, dari sisi visual bedanya
+nyaris tidak kelihatan); (2) bar grafik efisiensi dianimasi lewat properti `width` (memicu
+reflow layout tiap frame di 6 bar sekaligus) - diperbaiki pakai `scaleX` (transform, GPU,
+tanpa reflow) dengan `transform-origin` di sisi yang menempel garis nol supaya visualnya tetap
+sama ("tumbuh dari tengah"). Setelah kedua perbaikan ini, dicek terisolasi (klik halaman ini
+vs halaman lain bolak-balik) - waktu render-nya sudah sebanding dengan halaman lain yang sudah
+ada, bukan lagi outlier. **Pelajaran buat kelanjutan kerjaan UI/UX di halaman lain**: jangan
+animasikan elemen `blur-*` secara terus-menerus, dan jangan animasikan `width`/`height`/`top`/
+`left` lewat Framer Motion - selalu lewat `scale`/`translate`/`opacity` (transform, GPU-only).
+
+Sudah dites end-to-end: data uji sungguhan (6 kontrak lintas unit kerja, campuran efisiensi
+positif dan defisit) di-seed sementara buat verifikasi visual grafik lewat browser (toggle
+grafik/tabel, hover, filter tahun, tampilan mobile), lalu dibersihkan total. 17 test regresi
+tetap lulus bersih (termasuk navigasi admin yang sempat gagal karena masalah performa di atas,
+sekarang stabil ~20-25 detik lagi).
