@@ -245,4 +245,5 @@ export const navItems = [
   { id: 'document_expiry', label: 'Dokumen Kedaluwarsa', icon: 'AlertTriangle' },
   { id: 'integration_oracle', label: 'Integrasi Oracle', icon: 'RefreshCw' },
   { id: 'executive_dashboard', label: 'Dashboard Pimpinan', icon: 'LayoutGrid' },
+  { id: 'oracle_supplier_setup', label: 'Setup Supplier Oracle', icon: 'Landmark' },
 ];

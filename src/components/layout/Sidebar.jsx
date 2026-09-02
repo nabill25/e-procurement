@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
-  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X, RefreshCw, LayoutGrid
+  Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X, RefreshCw, LayoutGrid, Landmark
 } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders } from '../../context/AppContext';
 import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
-const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound, RefreshCw, LayoutGrid };
+const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound, RefreshCw, LayoutGrid, Landmark };
 
 // Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
@@ -32,6 +32,10 @@ function getDefaultAllowedMenus(role) {
   if (role === 'admin_vms') return ['dashboard', 'blacklist', 'vendor', 'inbox'];
   if (role === 'administrator_approval') return ['dashboard', 'user_management'];
   if (role === 'perencanaan') return ['dashboard', 'pengajuan'];
+  // Setup Supplier Oracle (modul baru, padanan aplikasi terpisah setup-supplier-request/)
+  if (['pengaju_oracle', 'verifikator_oracle', 'dispatcher_oracle', 'pelaksana_oracle'].includes(role)) {
+    return ['dashboard', 'oracle_supplier_setup'];
+  }
   return ['dashboard'];
 }
 

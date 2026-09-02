@@ -34,6 +34,7 @@ const pageTitles = {
   // (jatuh ke pageTitles.dashboard sebagai fallback).
   integration_oracle: { title: 'Integrasi Oracle', subtitle: 'Sinkronisasi RKA, Purchase Requisition, dan data Supplier/PO ke Oracle ERP' },
   executive_dashboard: { title: 'Dashboard Pimpinan', subtitle: 'Rekap portofolio dan efisiensi anggaran' },
+  oracle_supplier_setup: { title: 'Setup Supplier Oracle', subtitle: 'Alur permintaan setup supplier baru di Oracle EBS' },
   public_home:     { title: 'Portal Publik', subtitle: 'Halaman publik e-Procurement UI' },
   public_tender:   { title: 'Daftar Tender', subtitle: 'Informasi paket tender yang sedang dibuka' },
   public_blacklist:{ title: 'Daftar Hitam Publik', subtitle: 'Informasi sanksi daftar hitam penyedia' },

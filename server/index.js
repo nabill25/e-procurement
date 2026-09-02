@@ -88,6 +88,7 @@ app.use('/api/qr', require('./routes/qr'));               // proteksi per-route 
 app.use('/api/users', requireAuth, require('./routes/users')); // proteksi per-route di dalam file (GET / dan GET /roles dipakai PPK juga untuk dropdown staff)
 app.use('/api/print', require('./routes/print'));         // 100% privat (requireAuth dipasang di dalam file sendiri)
 app.use('/api/integration', require('./routes/integration')); // 100% privat, admin-only (requireRole dipasang di dalam file sendiri)
+app.use('/api/oracle-supplier', requireAuth, require('./routes/oracleSupplier')); // 100% privat, alur tiket setup supplier Oracle EBS
 
 // ── Default Route / Health Check ──
 app.get('/api', (req, res) => {

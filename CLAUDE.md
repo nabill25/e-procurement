@@ -1146,3 +1146,64 @@ positif dan defisit) di-seed sementara buat verifikasi visual grafik lewat brows
 grafik/tabel, hover, filter tahun, tampilan mobile), lalu dibersihkan total. 17 test regresi
 tetap lulus bersih (termasuk navigasi admin yang sempat gagal karena masalah performa di atas,
 sekarang stabil ~20-25 detik lagi).
+
+## Modul baru: Setup Supplier Oracle (selesai 2026-09-02)
+
+Pengguna menunjukkan folder terpisah `setup-supplier-request/` (aplikasi CodeIgniter 4 + login
+Keycloak sendiri, project berdiri sendiri, bukan bagian dari repo ini) dan awalnya mengira itu
+kredensial untuk mengaktifkan menu "Integrasi Oracle" yang sudah ada. Setelah dibaca lengkap
+(CLAUDE.md, README, dokumen `diff_dikirim/.../BACA-DULU.md` di folder itu), ternyata ini **beda
+fitur sama sekali**: bukan sinkronisasi data otomatis (itu yang dimaksud "Integrasi Oracle" di
+sistem ini, `Integration.jsx`/`server/routes/integration.js`, soal RKA/PR/SFTP), tapi **alur
+tiket permintaan setup supplier BARU di Oracle EBS** - staf Operating Unit ajukan, diverifikasi,
+diteruskan ke tim Oracle, di-dispatch, dikerjakan, selesai dengan bukti screenshot. Dikonfirmasi
+ke pengguna: dibangun ulang sebagai modul baru di sistem ini (bukan kredensial yang tinggal
+dicolok), terintegrasi ke sistem login yang sudah ada (bukan Keycloak terpisah).
+
+**4 role baru** ditambahkan mengikuti pola "10 role tambahan" yang sudah established
+(migrations/014, 032, 033): `pengaju_oracle` (ajukan), `verifikator_oracle` (validasi &
+teruskan), `dispatcher_oracle` (bagi tugas ke pelaksana atau ambil sendiri), `pelaksana_oracle`
+(kerjakan di Oracle EBS, upload bukti selesai). Menu baru "Setup Supplier Oracle" (ikon
+Landmark) diberi akses ke keempat role ini + admin.
+
+**Migrasi** `migrations/035_setup_supplier_oracle.sql`: tabel `oracle_supplier_requests` (18
+field wajib + 2 opsional persis mengikuti rancangan asli, status snake_case: diajukan ->
+diteruskan -> didispatch -> dikerjakan -> selesai, kolom timestamp per tahap buat hitung "usia
+status") + `oracle_supplier_request_logs` (riwayat lengkap tiap perpindahan status).
+
+**Backend** (`server/routes/oracleSupplier.js`, mount di `/api/oracle-supplier`): CRUD +
+5 aksi state-machine (`POST /`, `GET /` dengan filter per role, `GET /:id`, `POST /:id/
+verify-and-forward`, `POST /:id/dispatch`, `POST /:id/start`, `POST /:id/complete` dengan
+upload bukti wajib, `GET /pelaksana` buat dropdown dispatch). **Penyederhanaan sengaja dari
+rancangan asli**: rancangan asli mencatat `verified_at` OTOMATIS begitu Verifikator membuka
+halaman detail (efek samping dari GET), lalu form catatan+aktivasi dikirim terpisah untuk
+"teruskan" - di sini digabung jadi SATU aksi eksplisit (`verify-and-forward`) supaya tidak ada
+operasi GET yang mengubah data (anti-pattern REST), hasil akhirnya sama.
+
+**Frontend**: `src/pages/OracleSupplierSetup.jsx` (baru) - papan kanban yang kolomnya
+menyesuaikan role yang login (Pengaju: Aktif/Selesai, Verifikator: Menunggu Verifikasi/Sudah
+Diproses, Dispatcher: Perlu Di-dispatch/Sudah Di-dispatch, Pelaksana: Tugas Saya/Selesai, Admin:
+semua tahap), modal detail dengan aksi sesuai role+status saat itu, modal form pengajuan baru,
+riwayat status sebagai timeline. Terdaftar di `src/data/mockData.js` (navItems), `Sidebar.jsx`
+(getDefaultAllowedMenus + iconMap Landmark), `App.jsx` (routing), `TopBar.jsx` (judul halaman -
+pelajaran dari sesi sebelumnya, langsung didaftarkan supaya tidak jatuh ke fallback "Dashboard").
+
+Sudah dites end-to-end lewat curl (siklus penuh ajukan->verifikasi->dispatch->mulai->selesai
+dengan bukti, validasi urutan status ditolak kalau dilompati, proteksi role per aksi, upload
+tanpa bukti ditolak) DAN lewat browser sungguhan Playwright (isi form pengajuan penuh, submit,
+login sebagai verifikator, buka detail, verifikasi & teruskan - toast sukses & riwayat tampil
+benar, nol error console). 4 akun uji + 2 permintaan uji (RSS-2026-00001, RSS-2026-00002)
+dibersihkan total dari Supabase setelah testing, termasuk file bukti screenshot yang ikut
+terunggah dan baris user_login_logs yang tercatat selama testing (baru ketahuan perlu dihapus
+duluan sebelum akun bisa dihapus karena foreign key).
+
+**Perbaikan kestabilan test regresi (ditemukan waktu testing modul ini)**: `tests/e2e/
+navigation.spec.js` sempat gagal flaky 2 cara berbeda saat mengetes modul baru ini (bukan bug
+di modul ini sendiri, murni masalah test): (1) pola `waitFor(...).catch(()=>{})` sebelum
+menghitung jumlah menu bisa diam-diam gagal kalau render sedikit lebih lambat dari timeout,
+`items.count()` yang dipanggil sesudahnya tidak auto-retry jadi hasilnya 0 - diganti
+`expect.poll()` yang benar-benar coba ulang sampai menu terisi; (2) role admin (sekarang 21
+menu, terus bertambah tiap modul baru) makin sering mepet/lewat timeout default 30 detik cuma
+karena harus klik lebih banyak item satu-satu, bukan karena render lambat (dicek terisolasi,
+tidak ada halaman yang benar-benar outlier lambat) - dinaikkan jadi 60 detik khusus test ini
+supaya tidak perlu dinaikkan lagi tiap nambah 1-2 menu baru ke sidebar admin.

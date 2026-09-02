@@ -25,6 +25,7 @@ import ApiKeys from './pages/ApiKeys';
 import DocumentExpiry from './pages/DocumentExpiry';
 import Integration from './pages/Integration';
 import ExecutiveDashboard from './pages/ExecutiveDashboard';
+import OracleSupplierSetup from './pages/OracleSupplierSetup';
 import PublicLandingPage from './pages/PublicLandingPage';
 import PublicTenderPage from './pages/PublicTenderPage';
 import KontakKami from './pages/KontakKami';
@@ -207,6 +208,7 @@ function AppShell() {
     document_expiry: <DocumentExpiry />,
     integration_oracle: <Integration />,
     executive_dashboard: <ExecutiveDashboard />,
+    oracle_supplier_setup: <OracleSupplierSetup />,
   };
 
   const renderPage = () => pages[activePage] || <Dashboard />;
