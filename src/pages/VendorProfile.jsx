@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
 import BidangUsahaTab from '../components/profile/BidangUsahaTab';
 import RekeningKoranTab from '../components/profile/RekeningKoranTab';
+import FollowupPanel from '../components/vendor/FollowupPanel';
 import { toast } from '../lib/toast';
 
 function IdentityTab({ vendor }) {
@@ -341,6 +342,10 @@ export default function VendorProfile() {
         <h1 className="text-2xl font-bold text-dpbj-navy mb-2">Profil & Kualifikasi Vendor</h1>
         <p className="text-sm text-muted">Kelengkapan data kualifikasi merupakan syarat wajib untuk mengikuti pengadaan.</p>
       </div>
+
+      {/* Muncul otomatis cuma kalau ada permintaan kelengkapan dokumen yang belum dijawab -
+          lihat src/components/vendor/FollowupPanel.jsx */}
+      <FollowupPanel vendorId={vendorData.id} mode="penyedia" />
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="flex border-b border-border overflow-x-auto" style={{ scrollbarWidth: "thin" }}>

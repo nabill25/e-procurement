@@ -1,0 +1,153 @@
+diff --git a/application/config/constants.php b/application/config/constants.php
+index a4c8287e..8cb119e3 100644
+--- a/application/config/constants.php
++++ b/application/config/constants.php
+@@ -62,6 +62,11 @@ define('SYSTEM_TLP', 'Phone. +62 888 8888 888');
+ define('SYSTEM_FAX', '-');
+ define('SYSTEM_TLP_FAX', '');
+ define('SYSTEM_EMAIL_VMS', 'admin.eproc@namapt.co.id');
++// Tujuan email "penyedia sudah melengkapi dokumen" (fitur Tindak Lanjut
++// Kelengkapan, 2026-09-01). Di DB tidak ada kolom email per akun verifikator
++// internal, jadi notifikasi diarahkan ke satu inbox tim verifikasi penyedia.
++// ISI dengan alamat email tim yang benar sebelum fitur dipakai sungguhan.
++define('EMAIL_TINDAK_LANJUT_FALLBACK', '');
+ define('SYSTEM_LOGO', 'logo.png');
+ define('SYSTEM_LOGO_CETAK', 'logo.png'); // logo-cetak-copy.jpg
+ define('SYSTEM_LOGO_URL', $eproc_self_url.'/images/logo.png');
+diff --git a/application/views/main/daftar_rekanan_rekomendasi.php b/application/views/main/daftar_rekanan_rekomendasi.php
+index 86d0a9e7..7d8aa104 100644
+--- a/application/views/main/daftar_rekanan_rekomendasi.php
++++ b/application/views/main/daftar_rekanan_rekomendasi.php
+@@ -906,6 +906,15 @@ $reqTanggalValidasi = $rekanan->getField("TANGGAL_VALIDASI");
+                       <?php
+                       }
+ 
++                      // Tindak lanjut kelengkapan dokumen penyedia (fitur 2026-09-01).
++                      // Muncul untuk Admin VMS selama penyedia masih diverifikasi
++                      // (status 0/10), terutama saat masih ada dokumen kurang.
++                      if ($this->USER_TYPE_ID == 2 && ($tempStatusValidasi == 0 || $tempStatusValidasi == 10)) {
++                        $this->load->library("libtindaklanjut");
++                        $libTL = new libtindaklanjut();
++                        echo $libTL->panelVerifikator($reqId);
++                      }
++
+                       if($this->USER_TYPE_ID == 2 && $jumlahUncentang == 0) // Admin VMS
+                       {
+                       ?>
+diff --git a/application/views/main/konfirmasi_pendaftaran.php b/application/views/main/konfirmasi_pendaftaran.php
+index b9fc46fa..be4d6cf0 100644
+--- a/application/views/main/konfirmasi_pendaftaran.php
++++ b/application/views/main/konfirmasi_pendaftaran.php
+@@ -77,6 +77,14 @@ function countChecked() {
+             <span class="alert-icon"><i class="fa fa-th"></i></span>
+             <strong>Checklist Kelengkapan</strong>
+           </div>
++
++          <?php // Tindak lanjut kelengkapan dokumen dari verifikator (fitur 2026-09-01)
++          $this->load->library("libtindaklanjut"); $libTL = new libtindaklanjut();
++          if ($libTL->adaPermintaanTerbuka($this->ID)) {
++            echo $libTL->panelPenyedia($this->ID);
++          }
++          ?>
++
+           <form id="ff" class="easyui-form form-horizontal" method="post" novalidate enctype="multipart/form-data">
+               <?php
+                 $jumlahUncentang = 0;
+diff --git a/application/views/main/validasi_rekanan.php b/application/views/main/validasi_rekanan.php
+index 9c1ac3e4..215eb7d0 100644
+--- a/application/views/main/validasi_rekanan.php
++++ b/application/views/main/validasi_rekanan.php
+@@ -491,12 +491,12 @@ if ($reqRekananTipeId == '7') { // Konsultan Perorangan ?>
+                   <input type="hidden" name="reqId" value="<?=$reqId?>">
+                   <input type="hidden" name="reqRekananNama" value="<?=$tempRekananNama?>">
+                   <input type="hidden"  name="submitSimpan" value="Simpan" />
+-                  <a href="main/index/validasi" class="btn btn-danger mr-1 text-white"> <i class="fa fa-arrow-left"></i> Kembali </a> 
++                  <a href="main/index/validasi" class="btn btn-danger mr-1 text-white"> <i class="fa fa-arrow-left"></i> Kembali </a>
+ 
+                   <?php
+                   $user_login->selectByParams(array("REKANAN_ID" => $reqId));
+                   $user_login->firstRow();
+-                  $user_status = $user_login->getField("USER_STATUS"); 
++                  $user_status = $user_login->getField("USER_STATUS");
+ 
+                   if($tempStatusValidasi == 1)
+                   { ?>
+@@ -511,21 +511,28 @@ if ($reqRekananTipeId == '7') { // Konsultan Perorangan ?>
+                     echo '<button type="submit" class="btn btn-primary mr-1 text-white" id="btnValidasi"><i class="fa fa-check-square-o"></i> VALIDASI & MINTA REKOMENDASI</button>';
+                   }
+                   ?>
+-                   
+-              </div> 
+ 
++              </div>
++
++              <?php // Tindak lanjut kelengkapan dokumen penyedia (fitur 2026-09-01)
++              $this->load->library("libtindaklanjut"); $libTL = new libtindaklanjut();
++              $tlRingkas = $libTL->statusRingkas($reqId);
++              if ($tempStatusValidasi == 0 || $tempStatusValidasi == 10 || $tlRingkas['ada']) {
++                echo $libTL->panelVerifikator($reqId);
++              }
++              ?>
+ 
+           </div>
+         </div>
+         </form>
+ 
+       </div>
+-    </div> 
+-  </div>  
+-<?php 
+-} else 
++    </div>
++  </div>
++<?php
++} else
+ { ?>
+-  <div class="row"> 
++  <div class="row">
+     <div class="col-md-12 col-sm-12">
+       <div class="card">
+         <div class="card-header card-head-inverse bg-primary">
+@@ -896,6 +903,7 @@ if ($reqRekananTipeId == '7') { // Konsultan Perorangan ?>
+                   <input type="hidden" name="reqId" value="<?=$reqId?>">
+                   <input type="hidden" name="reqRekananNama" value="<?=$tempRekananNama?>">
+                   <input type="hidden"  name="submitSimpan" value="Simpan" />
++
+                   <?php
+                   $user_login->selectByParams(array("REKANAN_ID" => $reqId));
+                   $user_login->firstRow();
+@@ -911,21 +919,28 @@ if ($reqRekananTipeId == '7') { // Konsultan Perorangan ?>
+                   } else if ($tempStatusValidasi == 10 || $tempStatusValidasi == 0) { // Tolak, Melengkapi Data
+                     echo '<label id="note1">Catatan</label><input type="text" class="form-control" id="note11" name="reqNote1" placeholder="Ketik disini" style="margin-bottom:2%">';
+                     echo '<button type="submit" class="btn btn-primary mr-1 text-white" id="btnValidasi"><i class="fa fa-check-square-o"></i> VALIDASI & MINTA REKOMENDASI</button>';
+-                  } 
++                  }
+                   ?>
+                   <!-- <a href="main/index/validasi" class="btn btn-danger mr-1 text-white"> <i class="fa fa-arrow-left"></i> Kembali </a>  -->
+ 
+-              </div> 
++              </div>
+ 
++              <?php // Tindak lanjut kelengkapan dokumen penyedia (fitur 2026-09-01)
++              $this->load->library("libtindaklanjut"); $libTL = new libtindaklanjut();
++              $tlRingkas = $libTL->statusRingkas($reqId);
++              if ($tempStatusValidasi == 0 || $tempStatusValidasi == 10 || $tlRingkas['ada']) {
++                echo $libTL->panelVerifikator($reqId);
++              }
++              ?>
+ 
+           </div>
+         </div>
+         </form>
+ 
+       </div>
+-    </div> 
+-  </div>   
+-<?php 
++    </div>
++  </div>
++<?php
+ } ?>
+  
+  
+\ No newline at end of file

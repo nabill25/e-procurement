@@ -1,20 +1,29 @@
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertCircle, FileText, Download, Ban, Printer, Trash2 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders, SERVER_BASE } from '../../context/AppContext';
+import FollowupPanel from '../vendor/FollowupPanel';
 
 export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, onReject, onSuspend, onBlock, onDelete }) {
   const { user } = useApp();
+  const [docs, setDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+
+  // Dokumen legalitas asli yang diunggah vendor (sebelumnya panel ini menampilkan daftar
+  // dokumen HARDCODED/palsu yang tidak pernah nyambung ke data sungguhan - selalu bilang
+  // "Dokumen Valid" apapun kondisi sebenarnya. vendor.user_id dipakai karena vendor_documents
+  // di-FK ke users.id, bukan vendors.id.
+  useEffect(() => {
+    if (!isOpen || !vendor?.user_id) { setDocs([]); setDocsLoading(false); return; }
+    setDocsLoading(true);
+    fetch(`${API_BASE}/vendors/${vendor.user_id}/qualifications`, { headers: getAuthHeaders() })
+      .then(res => res.json())
+      .then(json => { if (json.success) setDocs(json.data.documents || []); })
+      .catch(() => {})
+      .finally(() => setDocsLoading(false));
+  }, [isOpen, vendor?.user_id]);
 
   if (!isOpen || !vendor) return null;
-
-  const docs = [
-    { name: 'Nomor Induk Berusaha (NIB)', status: 'valid' },
-    { name: 'Surat Izin Usaha Perdagangan (SIUP)', status: 'valid' },
-    { name: 'Tanda Daftar Perusahaan (TDP)', status: 'valid' },
-    { name: 'NPWP Perusahaan', status: 'valid' },
-    { name: 'Akta Pendirian', status: 'valid' },
-    { name: 'Bukti Setor Pajak Tahunan', status: 'warning' },
-  ];
 
   // Status badge config (mengikuti mapping status rekanan eProc)
   const statusCfg = {
@@ -89,35 +98,49 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
             <div className="md:col-span-2">
               <h3 className="font-bold text-dpbj-navy mb-4">Dokumen Kualifikasi Elektronik</h3>
               <div className="space-y-3">
-                {docs.map((doc, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 border border-border rounded-xl hover:shadow-sm transition-all bg-surface">
+                {docsLoading ? (
+                  <p className="text-sm text-muted">Memuat dokumen...</p>
+                ) : docs.length === 0 ? (
+                  <p className="text-sm text-muted">Vendor ini belum mengunggah dokumen legalitas apapun.</p>
+                ) : docs.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-4 border border-border rounded-xl hover:shadow-sm transition-all bg-surface">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-border shadow-sm">
                         <FileText size={18} className="text-dpbj-slate" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-dpbj-navy">{doc.name}</p>
+                        <p className="text-sm font-semibold text-dpbj-navy uppercase">{doc.doc_type}</p>
+                        <p className="text-xs text-muted">No. {doc.doc_number || '-'}</p>
                         <div className="flex items-center gap-1 mt-1">
-                          {doc.status === 'valid' ? (
+                          {doc.status === 'verified' ? (
                             <CheckCircle2 size={12} className="text-emerald-500" />
                           ) : (
                             <AlertCircle size={12} className="text-amber-500" />
                           )}
-                          <span className={`text-[10px] font-medium ${doc.status === 'valid' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {doc.status === 'valid' ? 'Dokumen Valid' : 'Butuh Perhatian'}
+                          <span className={`text-[10px] font-medium ${doc.status === 'verified' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                            {doc.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <button className="p-2 text-dpbj-navy hover:text-dpbj-gold transition-colors hover:bg-white rounded-lg border border-transparent hover:border-border">
+                    <a
+                      href={`${SERVER_BASE}${doc.file_path}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 text-dpbj-navy hover:text-dpbj-gold transition-colors hover:bg-white rounded-lg border border-transparent hover:border-border"
+                      title="Lihat / unduh dokumen"
+                    >
                       <Download size={16} />
-                    </button>
+                    </a>
                   </div>
                 ))}
               </div>
             </div>
 
           </div>
+
+          {/* Tindak Lanjut Kelengkapan Dokumen - lihat src/components/vendor/FollowupPanel.jsx */}
+          <FollowupPanel vendorId={vendor.id} mode="verifikator" />
         </div>
 
         {/* Footer Actions — mengikuti alur eProc status rekanan */}

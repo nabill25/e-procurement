@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Alur Logika - Pencatatan Tindak Lanjut Kelengkapan Dokumen Penyedia</title>
+<style>
+  :root{
+    --navy-900:#0A2540; --navy-800:#163a63; --navy-700:#1A365D;
+    --gold-500:#FFDE01; --gold-600:#D9BD01;
+    --paper-0:#FFFFFF; --paper-50:#F8F9FA; --paper-100:#eef0f2;
+    --ink-900:#333333; --ink-700:#4a4a4a; --ink-500:#666666;
+    --verify-600:#1d7a5f; --verify-100:#e3f3ec;
+    --danger-600:#b3261e; --danger-100:#fbeceb;
+    --info-600:#1A365D; --info-100:#e7eef6;
+    --line-200:#e4e7eb; --line-300:#ccd2d9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper-100);
+    color:var(--ink-900);
+    font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+    font-size:12px; line-height:1.5;
+  }
+  .page{
+    background:var(--paper-0);
+    width:210mm; min-height:297mm;
+    margin:10mm auto; padding:16mm 16mm 18mm;
+    box-shadow:0 1px 6px rgba(0,0,0,.15);
+  }
+  @media print{
+    body{background:#fff;}
+    .page{width:auto; min-height:0; margin:0; padding:0 6mm; box-shadow:none;}
+    .page + .page{page-break-before:always;}
+    h2{page-break-after:avoid;}
+    .card,.flow-row,table{page-break-inside:avoid;}
+  }
+  @page{size:A4; margin:14mm;}
+
+  header.doc{
+    border-bottom:3px solid var(--gold-500);
+    padding-bottom:14px; margin-bottom:20px;
+  }
+  header.doc .eyebrow{
+    text-transform:uppercase; letter-spacing:.09em; font-size:10px;
+    font-weight:700; color:var(--navy-700);
+  }
+  header.doc h1{
+    margin:6px 0 4px; font-size:20px; color:var(--navy-900); line-height:1.3;
+  }
+  header.doc .sub{color:var(--ink-500); font-size:11.5px;}
+  header.doc .meta{margin-top:8px; font-size:10.5px; color:var(--ink-500);}
+
+  h2{
+    font-size:14px; color:var(--navy-900); margin:22px 0 8px;
+    padding-bottom:4px; border-bottom:1px solid var(--line-200);
+  }
+  h3{font-size:12.5px; color:var(--navy-800); margin:14px 0 4px;}
+  p{margin:6px 0;}
+  ul,ol{margin:6px 0; padding-left:20px;}
+  li{margin-bottom:4px;}
+  b,strong{color:var(--navy-900);}
+  code{
+    background:var(--paper-100); border:1px solid var(--line-200);
+    border-radius:3px; padding:0 4px; font-family:'Consolas','Courier New',monospace;
+    font-size:11px;
+  }
+
+  .card{
+    border:1px solid var(--line-200); border-left:4px solid var(--navy-700);
+    border-radius:5px; padding:12px 14px; margin:10px 0;
+    background:var(--paper-50);
+  }
+  .card.gold{border-left-color:var(--gold-500);}
+  .card.green{border-left-color:var(--verify-600);}
+  .card.danger{border-left-color:var(--danger-600);}
+
+  .badge{
+    display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.02em;
+    padding:2px 7px; border-radius:999px; vertical-align:middle;
+  }
+  .badge.perlu{background:var(--danger-100); color:var(--danger-600);}
+  .badge.sudah{background:var(--info-100); color:var(--info-600);}
+  .badge.selesai{background:var(--verify-100); color:var(--verify-600);}
+  .badge.sistem{background:var(--paper-100); color:var(--ink-700);}
+
+  table{width:100%; border-collapse:collapse; font-size:11px; margin:8px 0;}
+  th,td{border:1px solid var(--line-200); padding:6px 8px; text-align:left; vertical-align:top;}
+  th{background:var(--navy-900); color:#fff; font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.03em;}
+  tr:nth-child(even) td{background:var(--paper-50);}
+
+  /* swimlane */
+  .flow-row{display:grid; grid-template-columns:96px 1fr; gap:0; border-bottom:1px dashed var(--line-300);}
+  .flow-row:last-child{border-bottom:none;}
+  .lane{
+    font-size:10.5px; font-weight:700; padding:12px 8px 12px 0;
+    display:flex; align-items:flex-start; color:var(--navy-800);
+  }
+  .lane.penyedia{color:var(--gold-600);}
+  .lane.sistem{color:var(--ink-500);}
+  .step{padding:12px 0; display:flex; gap:11px;}
+  .step .n{
+    flex:none; width:22px; height:22px; border-radius:50%;
+    background:var(--navy-900); color:#fff; font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .step.penyedia .n{background:var(--gold-600);}
+  .step.sistem .n{background:var(--ink-500); font-size:13px;}
+  .step .t b{display:block; font-size:12px; margin-bottom:1px;}
+  .step .t span{font-size:11px; color:var(--ink-500);}
+
+  .kv{font-size:11px;}
+  .kv td:first-child{width:38%; color:var(--ink-500);}
+  .foot{margin-top:26px; padding-top:10px; border-top:1px solid var(--line-200); font-size:10px; color:var(--ink-500); text-align:center;}
+  .tag-ok{color:var(--verify-600); font-weight:700;}
+  .tag-no{color:var(--danger-600); font-weight:700;}
+  .tag-wait{color:var(--gold-600); font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- ============ HALAMAN 1 ============ -->
+<div class="page">
+  <header class="doc">
+    <div class="eyebrow">Dokumen Diskusi Internal &middot; DPBJ Universitas Indonesia</div>
+    <h1>Pencatatan Tindak Lanjut Kelengkapan Dokumen Penyedia</h1>
+    <div class="sub">Fitur baru untuk sistem e-Procurement (eproc) &mdash; melacak proses bolak-balik verifikator dan penyedia saat melengkapi dokumen registrasi, dengan pemberitahuan email otomatis dan status yang terlihat.</div>
+    <div class="meta">Versi rancangan: 1 September 2026 &nbsp;|&nbsp; Status: <b>draft untuk demo &amp; diskusi, sudah diuji jalan lewat browser di komputer lokal</b> &nbsp;|&nbsp; Belum dipasang di server production.</div>
+  </header>
+
+  <h2>1. Latar belakang &amp; permintaan</h2>
+  <p>
+    Saat verifikator (petugas VMS) memeriksa dokumen registrasi penyedia dan menemukan ada yang kurang,
+    komunikasi "tolong dilengkapi" selama ini terjadi <b>di luar sistem</b> (telepon, WhatsApp, email manual)
+    atau hanya berupa satu kolom catatan yang <b>tertimpa</b> setiap kali diisi ulang. Akibatnya:
+  </p>
+  <ul>
+    <li>Tidak ada jejak: sudah berapa kali penyedia diingatkan, kapan terakhir, apa saja yang diminta.</li>
+    <li>Penyedia sering tidak sadar dokumennya kurang karena tidak ada notifikasi resmi.</li>
+    <li>Atasan tidak bisa melihat sekilas: berkas ini <b>masih ditunggu penyedia</b> atau <b>sudah kita follow up</b>.</li>
+  </ul>
+  <div class="card gold">
+    <b>Permintaan (hasil arahan Kasubdit):</b> buat pencatatan yang "tektok" antar peran, statusnya berubah
+    mengikuti tindak lanjut, verifikator kirim catatan minta kelengkapan ke penyedia, sistem otomatis kirim
+    email, penyedia melengkapi lalu konfirmasi, sistem kirim email balik, dan semua statusnya terlihat.
+    Polanya mirip modul "Setup User Oracle" yang sedang dikerjakan (alur berjenjang yang tercatat rapi).
+  </div>
+
+  <h2>2. Yang SUDAH ada di eproc (dipakai ulang, bukan bikin dari nol)</h2>
+  <table>
+    <tr><th style="width:34%">Komponen yang sudah ada</th><th>Dipakai untuk apa di fitur ini</th></tr>
+    <tr>
+      <td><b>Checklist kelengkapan per dokumen</b> di halaman Validasi Rekanan (tanda centang/silang + label "Kurang X data wajib belum dilengkapi")</td>
+      <td>Tetap dipakai apa adanya untuk menjawab "dokumen mana yang kurang". Fitur baru <b>tidak menggantikannya</b>, hanya menambah lapisan komunikasi + pelacakan di atasnya.</td>
+    </tr>
+    <tr>
+      <td><b>Kolom <code>STATUS_VALIDASI</code></b> di tabel <code>REKANAN</code> (0=Belum, 10=Tolak, 3=Rekomendator, 4=Validator, 1=Valid)</td>
+      <td>Tetap jadi status resmi verifikasi. Fitur baru tidak mengubahnya. Tombol "VALIDASI &amp; MINTA REKOMENDASI" yang sudah ada tetap berfungsi seperti biasa.</td>
+    </tr>
+    <tr>
+      <td><b>Pola email + template</b> (library <code>KMail</code>, folder <code>views/email/</code>, dipanggil lewat <code>main/loadUrl/email/...</code>)</td>
+      <td>Dipakai untuk 3 template email baru (minta lengkapi, sudah lengkap, pengingat). Gaya HTML disamakan dengan email <code>dokumen_expired</code> yang sudah ada.</td>
+    </tr>
+    <tr>
+      <td><b>Pola cron pengingat</b> (<code>cronjobs_notif_dokexpired</code> + tabel log + saklar on/off di <code>MASTER_PENGATURAN</code>)</td>
+      <td>Ditiru persis untuk pengingat otomatis penyedia yang belum melengkapi dokumen (<code>cronjobs_reminder_kelengkapan</code>).</td>
+    </tr>
+    <tr>
+      <td><b>Pola timeline "Rekam Jejak"</b> (<code>librekamjejak-&gt;viewRJ()</code>)</td>
+      <td>Ditiru untuk tampilan riwayat tektok (badge status + catatan + waktu) di dalam panel verifikator maupun penyedia.</td>
+    </tr>
+  </table>
+  <p style="font-size:11px; color:var(--ink-500)">
+    Catatan: fitur ini <b>tidak</b> menumpang tabel "Rekam Jejak" umum, karena tabel itu hanya mengenal ID paket/permohonan,
+    bukan ID penyedia. Jadi dibuat tabel baru <code>REKANAN_TINDAK_LANJUT</code> yang memang punya kolom <code>REKANAN_ID</code>.
+  </p>
+</div>
+
+<!-- ============ HALAMAN 2 ============ -->
+<div class="page">
+  <h2>3. Diagram alur</h2>
+  <p>Satu siklus bisa berulang berkali-kali (tektok) sampai verifikator menyatakan dokumen lengkap. Semua kejadian tersimpan sebagai baris riwayat.</p>
+
+  <div class="flow">
+    <div class="flow-row">
+      <div class="lane">Verifikator</div>
+      <div class="step">
+        <div class="n">1</div>
+        <div class="t">
+          <b>Cek dokumen, tulis catatan kekurangan</b>
+          <span>Di layar verifikasi penyedia (modal "Lihat Detil / Verifikasi"), verifikator melihat checklist (dokumen mana yang bertanda silang), lalu membuka panel <b>"Tindak Lanjut Kelengkapan Dokumen"</b> dan menulis catatan, contoh: "NPWP kedaluwarsa, mohon upload ulang. Akta perubahan terakhir belum ada."</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="lane sistem">Sistem</div>
+      <div class="step sistem">
+        <div class="n">&rarr;</div>
+        <div class="t">
+          <b>Simpan riwayat + kirim email otomatis ke penyedia</b>
+          <span>Status berkas jadi <span class="badge perlu">PERLU DILENGKAPI</span>. Email berisi catatan tadi dikirim ke alamat email penyedia terdaftar. Kalau email gagal terkirim, catatan tetap tersimpan dan ditandai "email gagal".</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="lane penyedia">Penyedia</div>
+      <div class="step penyedia">
+        <div class="n">2</div>
+        <div class="t">
+          <b>Terima email, login, lengkapi dokumen, konfirmasi</b>
+          <span>Di halaman Konfirmasi Pendaftaran muncul banner merah berisi catatan verifikator. Penyedia memperbaiki dokumennya, lalu menekan tombol <b>"Sudah Saya Lengkapi"</b> (boleh menambah keterangan singkat).</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="lane sistem">Sistem</div>
+      <div class="step sistem">
+        <div class="n">&rarr;</div>
+        <div class="t">
+          <b>Simpan konfirmasi + kirim email otomatis ke verifikator</b>
+          <span>Status berkas jadi <span class="badge sudah">SUDAH DILENGKAPI</span>. Email pemberitahuan dikirim ke verifikator yang menangani supaya tahu harus cek ulang.</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="lane">Verifikator</div>
+      <div class="step">
+        <div class="n">3</div>
+        <div class="t">
+          <b>Cek ulang &mdash; tutup, atau minta lagi</b>
+          <span>Kalau sudah lengkap: tekan <b>"Tandai Dokumen Sudah Lengkap"</b> &rarr; status <span class="badge selesai">TERVERIFIKASI</span>, siklus selesai. Lalu verifikator lanjut ke tombol "VALIDASI &amp; MINTA REKOMENDASI" seperti biasa. Kalau masih kurang: ulang dari langkah 1 dengan catatan baru.</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-row">
+      <div class="lane sistem">Sistem (opsional)</div>
+      <div class="step sistem">
+        <div class="n">&#8635;</div>
+        <div class="t">
+          <b>Pengingat otomatis kalau penyedia diam</b>
+          <span>Kalau status masih <span class="badge perlu">PERLU DILENGKAPI</span> lebih dari 7 hari, cron harian mengirim email pengingat ke penyedia (maksimal 3 kali). Fitur ini punya saklar on/off dan default <b>mati</b>.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>4. Status yang dicatat</h2>
+  <table>
+    <tr><th style="width:24%">Status</th><th>Artinya</th><th style="width:30%">Dipicu oleh</th></tr>
+    <tr><td><span class="badge perlu">PERLU_DILENGKAPI</span></td><td>Bola ada di penyedia. Verifikator sudah minta kelengkapan, menunggu penyedia.</td><td>Verifikator kirim catatan, atau pengingat otomatis</td></tr>
+    <tr><td><span class="badge sudah">SUDAH_DILENGKAPI</span></td><td>Bola ada di verifikator. Penyedia bilang sudah lengkap, menunggu dicek ulang.</td><td>Penyedia klik "Sudah Saya Lengkapi"</td></tr>
+    <tr><td><span class="badge selesai">TERVERIFIKASI</span></td><td>Siklus tindak lanjut selesai. Dokumen dinyatakan lengkap oleh verifikator.</td><td>Verifikator klik "Tandai Dokumen Sudah Lengkap"</td></tr>
+  </table>
+  <p>Di layar verifikator juga muncul info tambahan: <b>sudah berapa kali</b> penyedia ini dikirimi permintaan/pengingat, dan <b>sejak kapan</b> statusnya tidak berubah ("umur status"). Ini menjawab pertanyaan "masih ditunggu atau sudah di-follow up".</p>
+</div>
+
+<!-- ============ HALAMAN 3 ============ -->
+<div class="page">
+  <h2>5. Titik integrasi (halaman yang berubah)</h2>
+  <table>
+    <tr><th style="width:32%">Halaman / berkas</th><th>Perubahan</th></tr>
+    <tr><td><b>Checklist verifikasi di modal</b> (verifikator)<br><code>views/main/daftar_rekanan_rekomendasi.php</code></td><td>Tambah panel "Tindak Lanjut Kelengkapan Dokumen" (bisa buka/tutup) di bawah checklist. Ini layar yang paling sering dipakai tim (dari menu Daftar Penyedia, tombol "Lihat Detil / Verifikasi").</td></tr>
+    <tr><td><b>Validasi Rekanan</b> (verifikator)<br><code>views/main/validasi_rekanan.php</code></td><td>Panel yang sama, di halaman dari menu "Validasi Penyedia".</td></tr>
+    <tr><td><b>Konfirmasi Pendaftaran</b> (penyedia)<br><code>views/main/konfirmasi_pendaftaran.php</code></td><td>Tambah panel penyedia (catatan verifikator + riwayat + tombol "Sudah Saya Lengkapi"), cuma muncul kalau ada permintaan yang belum dijawab.</td></tr>
+    <tr><td><code>config/constants.php</code></td><td>Tambah 1 baris konstanta alamat email tim verifikasi (untuk notifikasi "penyedia sudah melengkapi").</td></tr>
+  </table>
+  <p style="font-size:11px; color:var(--ink-500)">Panel dirender langsung di halaman (bagian yang bisa dibuka/tutup), bukan popup, supaya aman di dalam modal/iframe eproc. Semua berkas lain adalah <b>berkas baru</b> (model, library, 2 controller, 3 template email) dan 1 berkas SQL migrasi. Tidak ada logika lama yang dihapus atau diubah perilakunya.</p>
+
+  <h2>6. Mana yang otomatis, mana yang manual</h2>
+  <table>
+    <tr><th style="width:46%">Langkah</th><th>Sifat</th></tr>
+    <tr><td>Verifikator memutuskan dokumen kurang &amp; menulis catatan</td><td class="tag-no">Manual (penilaian manusia)</td></tr>
+    <tr><td>Kirim email ke penyedia setelah catatan disimpan</td><td class="tag-ok">Otomatis</td></tr>
+    <tr><td>Ubah status berkas mengikuti tiap kejadian</td><td class="tag-ok">Otomatis</td></tr>
+    <tr><td>Penyedia melengkapi dokumen &amp; menekan "Sudah Saya Lengkapi"</td><td class="tag-no">Manual</td></tr>
+    <tr><td>Kirim email ke verifikator setelah penyedia konfirmasi</td><td class="tag-ok">Otomatis</td></tr>
+    <tr><td>Pengingat berkala kalau penyedia diam &gt; 7 hari</td><td class="tag-ok">Otomatis (cron, bisa dimatikan)</td></tr>
+    <tr><td>Menyatakan dokumen akhirnya lengkap / terverifikasi</td><td class="tag-no">Manual</td></tr>
+  </table>
+
+  <h2>7. Yang belum final &mdash; perlu keputusan bersama atasan</h2>
+  <ol>
+    <li>
+      <b>Alamat email tujuan notifikasi "penyedia sudah melengkapi".</b>
+      Di database tidak ada kolom email per akun verifikator internal, dan tidak ada satu pun akun verifikator yang <code>USER_LOGIN</code>-nya berupa email.
+      Sementara ini notifikasi diarahkan ke <b>satu alamat email tim</b> (lewat konstanta yang harus diisi). Perlu dipastikan: alamat tim mana yang benar?
+    </li>
+    <li>
+      <b>Apakah "Tindak Lanjut" ini menggantikan kolom catatan lama</b> (<code>NOTE_1</code>) atau berdampingan? Rancangan ini: <b>berdampingan</b>, kolom lama tidak disentuh.
+    </li>
+    <li>
+      <b>Perlukah status tindak lanjut ikut tampil sebagai kolom/filter di daftar "Validasi Rekanan"?</b>
+      Belum dibuat (agar perubahan minim). Mudah ditambahkan kalau memang diinginkan untuk pemantauan atasan.
+    </li>
+    <li>
+      <b>Jeda &amp; jumlah pengingat otomatis</b> (sekarang: mulai setelah 7 hari, maksimal 3 kali). Angka ini gampang diubah.
+    </li>
+    <li>
+      <b>Scope pekerjaan.</b> Ini penambahan alur/logika, bukan sekadar perbaikan tampilan. Sebaiknya ada konfirmasi tertulis dari atasan bahwa ini memang diminta sebagai pekerjaan tambahan.
+    </li>
+  </ol>
+
+  <h2>8. Cara pasang ke server (urutan)</h2>
+  <ol>
+    <li>Jalankan berkas SQL <code>sql/buat_tabel_rekanan_tindak_lanjut.sql</code> di database production (aman diulang, tidak menghapus apa pun).</li>
+    <li>Timpa kode pakai isi folder <code>source_code/</code> atau terapkan <code>perubahan-file-lama.diff</code> untuk 4 berkas yang sudah ada.</li>
+    <li>Isi konstanta <code>EMAIL_TINDAK_LANJUT_FALLBACK</code> di <code>constants.php</code> dengan alamat email tim verifikasi.</li>
+    <li>(Opsional) Aktifkan pengingat otomatis: ubah kolom <code>AKTIF</code> jadi <code>y</code> pada baris <code>MASTER_PENGATURAN</code> dengan <code>URL='cronjobs_reminder_kelengkapan'</code>, lalu daftarkan cron harian ke <code>/cronjobs_reminder_kelengkapan/sendMail</code>.</li>
+    <li>Tidak perlu restart server.</li>
+  </ol>
+
+  <h2>9. Yang sudah diuji</h2>
+  <ul>
+    <li>Semua berkas PHP lolos cek sintaks (<code>php -l</code>).</li>
+    <li>Berkas SQL migrasi dijalankan ke salinan database production lokal (<code>eproc_migrasi</code>): tabel + indeks + FK terbentuk, aman dijalankan berulang.</li>
+    <li>Semua query model diuji langsung ke database: simpan kejadian, ambil riwayat urut waktu, ambil status terakhir, hitung jumlah follow up, cari verifikator penangani, dan antrian pengingat cron.</li>
+    <li><span class="tag-ok">Alur lengkap diuji lewat browser + Docker, lewat layar verifikasi yang asli</span>: verifikator buka modal Lihat Detil -> panel muncul -> kirim catatan -> penyedia buka Konfirmasi Pendaftaran -> panel muncul -> konfirmasi -> verifikator tandai selesai -> riwayat menampilkan siklus penuh. Login pakai fitur <code>devlogin</code> lokal.</li>
+    <li>Cron diuji: saklar OFF tidak kirim; saklar ON kirim ke penyedia yang diam &gt; 7 hari, tidak dobel, berhenti setelah 3 kali. Penyedia tidak bisa konfirmasi atas nama perusahaan lain (ditolak).</li>
+    <li><span class="tag-wait">Pengiriman email belum bisa diuji sungguhan</span> dari komputer lokal (SMTP UI tidak bisa diakses dari luar jaringan). Ini <b>tidak menghentikan</b> alur: catatan/status tetap tersimpan dan ditandai "email gagal terkirim". Perlu diuji ulang di server.</li>
+  </ul>
+
+  <div class="foot">
+    Dokumen internal untuk keperluan diskusi. Dibuat 1 September 2026 &middot; e-Procurement &middot; DPBJ Universitas Indonesia.
+  </div>
+</div>
+
+</body>
+</html>

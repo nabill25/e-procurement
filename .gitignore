@@ -36,8 +36,11 @@ eproc/
 *.dump
 database/dump-eproc_migrasi-*.sql
 
-# PHP dependencies (aplikasi lama eproc)
-vendor/
+# (Baris "PHP dependencies (aplikasi lama eproc): vendor/" yang dulu ada di sini dihapus -
+# selain sudah redundan (eproc/ di atas sudah meng-ignore semuanya termasuk vendor/ di dalamnya),
+# pola itu ternyata juga ikut mengenai folder BENAR src/components/vendor/ punya sistem baru
+# ini sendiri, jadi folder itu diam-diam tidak pernah ter-track git. Ditemukan 2026-09-02 waktu
+# menambahkan fitur Tindak Lanjut Verifikasi Vendor.)
 
 # File yang diunggah pengguna lewat aplikasi baru (dokumen vendor, dst) - bukan source code
 # (folder ini otomatis dibuat lagi oleh server/index.js kalau belum ada)

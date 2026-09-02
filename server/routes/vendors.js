@@ -105,8 +105,8 @@ router.get('/', async (req, res) => {
     const { status, search, page = 1, limit = 20 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
     let sql = `
-      SELECT v.id, v.company_name, v.npwp, v.nib, v.company_type, v.city, v.province, v.email, v.phone, v.status, v.blacklisted, v.qualification_class, v.created_at, 
-             u.rating_avg, u.rating_count 
+      SELECT v.id, v.user_id, v.company_name, v.npwp, v.nib, v.company_type, v.city, v.province, v.email, v.phone, v.status, v.blacklisted, v.qualification_class, v.created_at,
+             u.rating_avg, u.rating_count
       FROM vendors v
       LEFT JOIN users u ON v.user_id = u.id
       WHERE v.deleted_at IS NULL
@@ -119,6 +119,34 @@ router.get('/', async (req, res) => {
     sql += ` ORDER BY v.created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     params.push(parseInt(limit), offset);
     const result = await pool.query(sql, params);
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Antrian vendor yang perlu diingatkan (tindak lanjut kelengkapan dokumen) — path statis,
+// WAJIB ditaruh sebelum GET /:id supaya tidak salah tertangkap sebagai id="followup-reminder-queue" ──
+router.get('/followup-reminder-queue', requireVendorApproval, async (req, res) => {
+  try {
+    const hariJeda = parseInt(req.query.hari) || HARI_JEDA_REMINDER_TL;
+    const maksReminder = parseInt(req.query.maks) || MAKS_REMINDER_TL;
+    const result = await pool.query(`
+      SELECT v.id AS vendor_id, v.company_name, v.email,
+             t.catatan, t.created_at AS sejak,
+             EXTRACT(DAY FROM (NOW() - t.created_at))::int AS hari_diam,
+             (SELECT COUNT(*) FROM vendor_followups x WHERE x.vendor_id = v.id AND x.jenis = 'reminder') AS jumlah_reminder
+      FROM vendors v
+      JOIN LATERAL (
+        SELECT status, catatan, created_at FROM vendor_followups
+        WHERE vendor_id = v.id ORDER BY created_at DESC, id DESC LIMIT 1
+      ) t ON true
+      WHERE t.status = 'perlu_dilengkapi'
+        AND t.created_at < NOW() - ($1 || ' days')::interval
+        AND v.email IS NOT NULL AND v.email <> ''
+        AND (SELECT COUNT(*) FROM vendor_followups x WHERE x.vendor_id = v.id AND x.jenis = 'reminder') < $2
+      ORDER BY t.created_at ASC
+    `, [hariJeda, maksReminder]);
     res.json({ success: true, data: result.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -395,6 +423,229 @@ router.get('/:id/qualifications', ownVendorDataOnly, async (req, res) => {
         neraca: sikap.neraca || []
       }
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── TINDAK LANJUT KELENGKAPAN DOKUMEN PENYEDIA ──
+// Padanan fitur "Pencatatan Tindak Lanjut Kelengkapan Dokumen Penyedia" yang dirancang untuk
+// sistem lama (draft di folder root project 2026-09-01_pencatatan-tindak-lanjut-verifikasi-
+// penyedia/, belum pernah dipasang di eproc production). Melacak bolak-balik (tektok) antara
+// verifikator dan penyedia saat melengkapi dokumen registrasi: verifikator kirim catatan minta
+// lengkapi -> penyedia konfirmasi sudah lengkap -> verifikator cek ulang -> tandai terverifikasi
+// atau ulang dari awal. :id di sini adalah vendors.id (konsisten dengan endpoint verify/status/
+// suspend/block di atas), BUKAN users.id seperti kebanyakan endpoint lain di file ini.
+//
+// Perbedaan sengaja dari rancangan aslinya (disesuaikan dengan sistem baru):
+// - Status/jenis/pihak pakai huruf kecil snake_case, konsisten dengan vocabulary status vendor
+//   yang sudah ada (pending/terverifikasi/ditangguhkan/diblokir), bukan UPPERCASE.
+// - Tidak butuh konstanta "email fallback verifikator" seperti rancangan lama - tabel users di
+//   sistem baru sudah punya kolom email asli untuk semua akun (beda dari sistem lama yang
+//   username stafnya belum tentu berupa email), jadi email tujuan "penyedia sudah melengkapi"
+//   diambil langsung dari akun verifikator yang terakhir menangani. FOLLOWUP_EMAIL_FALLBACK
+//   (env var opsional) cuma jaga-jaga kalau baris tersebut somehow tidak ketemu.
+// - Rancangan lama pakai cron OS (crontab) yang panggil endpoint HTTP terjadwal. Sistem baru ini
+//   tidak punya cron OS aktif, jadi "pengingat otomatis" diganti jadi tombol yang dipicu manual
+//   admin/approval_vms dari daftar antrian (GET /followup-reminder-queue di bawah), sama seperti
+//   pola yang sudah dipakai fitur "Dokumen Kedaluwarsa" (lihat server/routes/master.js). Saklar
+//   on/off-nya reuse app_settings yang sudah ada (kunci 'reminder_tindak_lanjut_vendor').
+const HARI_JEDA_REMINDER_TL = 7;
+const MAKS_REMINDER_TL = 3;
+
+// Ringkasan + riwayat tindak lanjut untuk 1 vendor. Bisa dibaca verifikator (admin/pokja/
+// admin_vms/approval_vms, semuanya yang bisa membuka modal Verifikasi Vendor) ATAU vendor yang
+// bersangkutan sendiri (dicek lewat vendors.user_id, bukan string compare sederhana seperti
+// ownVendorDataOnly karena :id di sini vendors.id, bukan users.id).
+router.get('/:id/followup', async (req, res) => {
+  try {
+    const vendorRow = await pool.query('SELECT id, user_id FROM vendors WHERE id = $1', [req.params.id]);
+    if (!vendorRow.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+
+    const isOwner = req.user.role === 'vendor' && vendorRow.rows[0].user_id === req.user.id;
+    const isStaff = ['admin', 'pokja', 'admin_vms', 'approval_vms'].includes(req.user.role);
+    if (!isOwner && !isStaff) {
+      return res.status(403).json({ success: false, message: 'Anda tidak berhak melihat data ini.' });
+    }
+
+    const timeline = await pool.query(`
+      SELECT f.*, u.full_name AS created_by_name
+      FROM vendor_followups f
+      LEFT JOIN users u ON f.created_by = u.id
+      WHERE f.vendor_id = $1
+      ORDER BY f.created_at ASC, f.id ASC
+    `, [req.params.id]);
+
+    const rows = timeline.rows;
+    const last = rows.length ? rows[rows.length - 1] : null;
+    const followUpCount = rows.filter(r => r.jenis === 'permintaan' || r.jenis === 'reminder').length;
+
+    res.json({
+      success: true,
+      data: {
+        ada: !!last,
+        status: last ? last.status : null,
+        catatan_terakhir: last ? last.catatan : null,
+        sejak: last ? last.created_at : null,
+        follow_up_count: followUpCount,
+        timeline: rows,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Verifikator kirim catatan minta penyedia melengkapi berkas. Status jadi perlu_dilengkapi,
+// email otomatis ke penyedia (kalau SMTP dikonfigurasi, kalau tidak tetap tercatat).
+router.post('/:id/followup/request', requireVendorApproval, async (req, res) => {
+  try {
+    const catatan = (req.body.catatan || '').trim();
+    if (!catatan) return res.status(400).json({ success: false, message: 'Catatan wajib diisi.' });
+
+    const vendorRow = await pool.query('SELECT company_name, email FROM vendors WHERE id = $1', [req.params.id]);
+    if (!vendorRow.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+    const vendor = vendorRow.rows[0];
+
+    let emailTerkirim = false;
+    if (vendor.email) {
+      const mailResult = await sendMail({
+        to: vendor.email,
+        subject: 'Permintaan Kelengkapan Dokumen - Sistem e-Procurement DPBJ Universitas Indonesia',
+        html: `
+          <p>Yth. ${vendor.company_name},</p>
+          <p>Verifikator kami sudah memeriksa dokumen registrasi perusahaan Anda dan menemukan ada yang perlu dilengkapi:</p>
+          <blockquote style="border-left:3px solid #c0392b; margin:12px 0; padding:8px 14px; background:#fbeceb; font-style:italic;">${catatan.replace(/</g, '&lt;')}</blockquote>
+          <p>Mohon segera lengkapi lewat halaman Profil &amp; Kualifikasi pada akun Anda, lalu klik tombol <strong>"Sudah Saya Lengkapi"</strong> supaya kami bisa memeriksa ulang.</p>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      });
+      emailTerkirim = mailResult.sent;
+    }
+
+    await pool.query(`
+      INSERT INTO vendor_followups (vendor_id, status, jenis, catatan, pihak, created_by, email_tujuan, email_terkirim, email_terkirim_at)
+      VALUES ($1, 'perlu_dilengkapi', 'permintaan', $2, 'verifikator', $3, $4, $5, $6)
+    `, [req.params.id, catatan, req.user.id, vendor.email || null, emailTerkirim, emailTerkirim ? new Date() : null]);
+
+    res.json({
+      success: true,
+      message: emailTerkirim
+        ? 'Catatan tersimpan. Email pemberitahuan terkirim ke penyedia.'
+        : 'Catatan tersimpan. Email ke penyedia belum terkirim (lihat riwayat), status tetap tercatat.',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Verifikator menyatakan dokumen penyedia sudah lengkap/oke - menutup satu siklus tindak
+// lanjut. TIDAK menyentuh kolom vendors.status, itu tetap lewat tombol Verifikasi/Blokir/
+// Tangguhkan yang sudah ada (sama seperti rancangan aslinya).
+router.post('/:id/followup/complete', requireVendorApproval, async (req, res) => {
+  try {
+    const vendorRow = await pool.query('SELECT id FROM vendors WHERE id = $1', [req.params.id]);
+    if (!vendorRow.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+
+    await pool.query(`
+      INSERT INTO vendor_followups (vendor_id, status, jenis, catatan, pihak, created_by)
+      VALUES ($1, 'terverifikasi', 'selesai', $2, 'verifikator', $3)
+    `, [req.params.id, (req.body.catatan || '').trim() || null, req.user.id]);
+
+    res.json({ success: true, message: 'Dokumen ditandai terverifikasi.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Penyedia konfirmasi sudah melengkapi berkas sesuai catatan verifikator. Cuma boleh untuk
+// vendor miliknya sendiri (dicegah konfirmasi atas nama perusahaan lain), admin boleh override.
+router.post('/:id/followup/confirm', async (req, res) => {
+  try {
+    const vendorRow = await pool.query('SELECT id, user_id, company_name FROM vendors WHERE id = $1', [req.params.id]);
+    if (!vendorRow.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+    const vendor = vendorRow.rows[0];
+
+    const isOwner = req.user.role === 'vendor' && vendor.user_id === req.user.id;
+    if (!isOwner && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Anda hanya bisa konfirmasi untuk perusahaan sendiri.' });
+    }
+
+    const catatan = (req.body.catatan || '').trim() || null;
+
+    // Cari verifikator yang paling terakhir mengirim permintaan/selesai untuk vendor ini,
+    // kirim pemberitahuan ke email akun verifikator itu (bukan broadcast ke semua verifikator).
+    const lastVerif = await pool.query(`
+      SELECT u.email, u.full_name FROM vendor_followups f
+      JOIN users u ON u.id = f.created_by
+      WHERE f.vendor_id = $1 AND f.jenis IN ('permintaan', 'selesai')
+      ORDER BY f.created_at DESC, f.id DESC LIMIT 1
+    `, [req.params.id]);
+
+    const tujuanEmail = lastVerif.rows[0]?.email || process.env.FOLLOWUP_EMAIL_FALLBACK || null;
+    const tujuanNama = lastVerif.rows[0]?.full_name || 'Tim Verifikasi Penyedia';
+
+    let emailTerkirim = false;
+    if (tujuanEmail) {
+      const mailResult = await sendMail({
+        to: tujuanEmail,
+        subject: `Penyedia Sudah Melengkapi Dokumen - ${vendor.company_name}`,
+        html: `
+          <p>Yth. ${tujuanNama},</p>
+          <p>Penyedia <strong>${vendor.company_name}</strong> sudah mengkonfirmasi kelengkapan dokumen sesuai catatan yang diberikan sebelumnya.</p>
+          ${catatan ? `<blockquote style="border-left:3px solid #27ae60; margin:12px 0; padding:8px 14px; background:#eafaf0; font-style:italic;">${catatan.replace(/</g, '&lt;')}</blockquote>` : ''}
+          <p>Mohon diperiksa ulang lewat halaman Manajemen Penyedia.</p>
+          <p>Terima kasih.<br/>Sistem e-Procurement DPBJ Universitas Indonesia</p>
+        `,
+      });
+      emailTerkirim = mailResult.sent;
+    }
+
+    await pool.query(`
+      INSERT INTO vendor_followups (vendor_id, status, jenis, catatan, pihak, created_by, email_tujuan, email_terkirim, email_terkirim_at)
+      VALUES ($1, 'sudah_dilengkapi', 'konfirmasi', $2, 'penyedia', $3, $4, $5, $6)
+    `, [req.params.id, catatan, req.user.id, tujuanEmail, emailTerkirim, emailTerkirim ? new Date() : null]);
+
+    res.json({
+      success: true,
+      message: emailTerkirim
+        ? 'Konfirmasi tersimpan. Verifikator sudah diberi tahu lewat email untuk memeriksa ulang.'
+        : 'Konfirmasi tersimpan. Verifikator akan memeriksa ulang dokumen Anda.',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Kirim satu pengingat manual ke vendor yang masih perlu_dilengkapi (dipicu admin/approval_vms
+// dari daftar antrian, padanan cron pengingat di rancangan asli - lihat komentar di atas soal
+// kenapa manual bukan cron OS).
+router.post('/:id/followup/remind', requireVendorApproval, async (req, res) => {
+  try {
+    const vendorRow = await pool.query('SELECT company_name, email FROM vendors WHERE id = $1', [req.params.id]);
+    if (!vendorRow.rows.length) return res.status(404).json({ success: false, message: 'Vendor tidak ditemukan.' });
+    const vendor = vendorRow.rows[0];
+
+    let emailTerkirim = false;
+    if (vendor.email) {
+      const mailResult = await sendMail({
+        to: vendor.email,
+        subject: 'Pengingat: Kelengkapan Dokumen Registrasi Anda Masih Ditunggu',
+        html: `
+          <p>Yth. ${vendor.company_name},</p>
+          <p>Ini pengingat bahwa dokumen registrasi perusahaan Anda masih menunggu kelengkapan sesuai catatan verifikator sebelumnya. Mohon segera dilengkapi supaya proses verifikasi bisa dilanjutkan.</p>
+          <p>Terima kasih.<br/>Direktorat Pengadaan Barang dan Jasa, Universitas Indonesia</p>
+        `,
+      });
+      emailTerkirim = mailResult.sent;
+    }
+
+    await pool.query(`
+      INSERT INTO vendor_followups (vendor_id, status, jenis, catatan, pihak, created_by, email_tujuan, email_terkirim, email_terkirim_at)
+      VALUES ($1, 'perlu_dilengkapi', 'reminder', 'Pengingat kelengkapan dokumen.', 'sistem', $2, $3, $4, $5)
+    `, [req.params.id, req.user.id, vendor.email || null, emailTerkirim, emailTerkirim ? new Date() : null]);
+
+    res.json({ success: true, message: emailTerkirim ? 'Pengingat terkirim ke penyedia.' : 'Pengingat dicatat, email belum terkirim.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

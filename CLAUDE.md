@@ -1024,3 +1024,75 @@ ada), contracting rekapitulasi, rekapitulasi pekerjaan, paket cetak umum, aanwij
 (forum terpisah untuk tahap pra-kualifikasi), pakta integritas versi panitia (roster, beda dari
 versi per-vendor yang sudah ada), template penilaian print, VMS daftar penyedia/terverifikasi
 (laporan listing, beda dari SKT per-vendor yang sudah ada).
+
+## Fitur baru: Pencatatan Tindak Lanjut Kelengkapan Dokumen Penyedia (selesai 2026-09-02)
+
+Pengguna menunjukkan folder `2026-09-01_pencatatan-tindak-lanjut-verifikasi-penyedia/` di root
+project - draft fitur yang dirancang khusus untuk sistem LAMA (eproc) tapi **belum pernah
+dipasang di production sana**, masih menunggu keputusan atasan (lihat `BACA-DULU.md` di folder
+itu). Pengguna minta fitur ini diterapkan ke sistem BARU sekarang.
+
+**Fiturnya**: melacak bolak-balik (tektok) antara verifikator (admin/approval_vms) dan penyedia
+saat melengkapi dokumen registrasi. Verifikator buka detail vendor, tulis catatan dokumen apa
+yang kurang, kirim (status jadi "Perlu Dilengkapi" + email ke penyedia). Penyedia login, lihat
+catatan di halaman Profil & Kualifikasi, lengkapi dokumen, klik "Sudah Saya Lengkapi" (status
+"Sudah Dilengkapi" + email ke verifikator). Verifikator cek ulang, klik "Tandai Dokumen Sudah
+Lengkap" (status "Terverifikasi") atau ulang dari awal kalau masih kurang. Riwayat lengkap
+tersimpan sebagai timeline, terpisah dari kolom `vendors.status` (verifikasi/blokir/tangguhkan)
+yang sudah ada - fitur ini murni lapisan pelacakan komunikasi tambahan, tidak menggantikan alur
+verifikasi yang sudah ada.
+
+**Perbedaan sengaja dari rancangan asli** (disesuaikan konvensi sistem baru): status/jenis/pihak
+pakai snake_case huruf kecil (bukan UPPERCASE), PK uuid (bukan integer manual), tidak perlu
+konstanta "email fallback verifikator" seperti rancangan lama karena `users.email` di sistem
+baru sudah selalu ada untuk semua akun (beda dari sistem lama yang username stafnya belum tentu
+berupa email) - email tujuan "penyedia sudah melengkapi" diambil langsung dari akun verifikator
+yang terakhir menangani. Rancangan lama pakai cron OS (crontab) untuk pengingat otomatis;
+sistem baru ini tidak punya cron OS aktif, jadi diganti tombol manual yang dipicu admin/
+approval_vms dari daftar antrian, persis pola yang sudah dipakai fitur "Dokumen Kedaluwarsa"
+(Kelompok K) - saklar on/off-nya reuse `app_settings` yang sudah ada, tidak perlu tabel baru.
+
+**Migrasi** `migrations/034_pencatatan_tindak_lanjut_verifikasi_vendor.sql`: tabel baru
+`vendor_followups` (vendor_id FK ke `vendors.id`, status/jenis/catatan/pihak/created_by,
+jejak email tujuan+terkirim), 1 baris baru di `app_settings` (kunci
+`reminder_tindak_lanjut_vendor`, default mati).
+
+**Backend** (`server/routes/vendors.js`, ditaruh dekat endpoint qualifications yang sudah ada):
+`GET /:id/followup` (ringkasan+timeline, bisa dibaca verifikator ATAU vendor pemilik sendiri),
+`POST /:id/followup/request` (verifikator, requireVendorApproval), `POST /:id/followup/complete`
+(verifikator), `POST /:id/followup/confirm` (vendor pemilik sendiri atau admin), `POST
+/:id/followup/remind` (verifikator, pengingat manual satu vendor), `GET /followup-reminder-queue`
+(statis, ditaruh sebelum `/:id` - daftar vendor perlu diingatkan: status masih perlu_dilengkapi,
+diam >7 hari, punya email, belum lewat 3x pengingat). Saklar reminder reuse endpoint generik
+yang sudah ada (`GET/PATCH /api/master/settings/:kunci`), tidak perlu endpoint baru.
+
+**Frontend**: `src/components/vendor/FollowupPanel.jsx` (baru, dual-mode lewat prop `mode`) -
+`mode="verifikator"` dipasang di `VendorDetailModal.jsx` (panel bisa dibuka/tutup, timeline +
+form catatan + 2 tombol aksi, cuma admin/approval_vms yang lihat tombol aksinya), `mode="penyedia"`
+dipasang di `VendorProfile.jsx` (banner merah, cuma tampil otomatis kalau memang ada permintaan
+terbuka). `src/components/vendor/ReminderQueuePanel.jsx` (baru, collapsible di halaman Vendor.jsx,
+cuma untuk admin/approval_vms) - daftar antrian pengingat + toggle saklar + tombol kirim per vendor.
+
+**Bug lama ditemukan dan diperbaiki sekalian** (ditemukan waktu membangun fitur ini, bukan
+disengaja dicari): panel "Dokumen Kualifikasi Elektronik" di `VendorDetailModal.jsx` ternyata
+dari awal menampilkan **data dokumen HARDCODED/palsu** (array tetap 6 dokumen berstatus "Valid"
+semua, tidak pernah nyambung ke data sungguhan) - verifikator sebenarnya tidak pernah bisa lihat
+dokumen asli yang diunggah vendor lewat modal ini. Diperbaiki: sekarang mengambil data sungguhan
+lewat `GET /api/vendors/:userId/qualifications` yang sudah ada (pakai `vendor.user_id`, field
+baru yang ditambahkan ke query daftar vendor supaya tersedia di modal ini). Ini penting supaya
+verifikator benar-benar bisa lihat dokumen asli saat menulis catatan tindak lanjut lewat fitur
+baru di atas.
+
+Sudah dites end-to-end: lewat curl (siklus penuh request->confirm->complete->ulang lagi,
+validasi catatan kosong ditolak, proteksi role vendor ditolak kirim catatan, vendor cuma bisa
+konfirmasi punya sendiri, mekanisme antrian pengingat diverifikasi dengan data backdated
+sungguhan, saklar on/off) dan lewat browser sungguhan Playwright (form terisi, tombol
+diklik, banner penyedia muncul lalu hilang otomatis setelah beres, modal verifikator
+menampilkan status+timeline+dokumen asli, nol error console). **Catatan ditemukan waktu testing
+browser** (bukan bug baru dari fitur ini, karakteristik yang sudah ada di semua endpoint kirim
+email di sistem ini): karena SMTP dikonfigurasi ke Gmail tapi jaringan sandbox pengembangan ini
+lambat/terblokir ke sana, aksi yang mengirim email (request/confirm) bisa terasa "macet" cukup
+lama di tombolnya sebelum akhirnya selesai - datanya tetap tersimpan benar begitu selesai,
+cuma responsnya lambat. Sama seperti endpoint kirim-email lain yang sudah ada (dicatat di sesi
+sebelumnya sebagai keterbatasan jaringan sandbox, bukan bug kode). Semua data uji dibersihkan
+dari Supabase. 17 test regresi tetap lulus bersih.

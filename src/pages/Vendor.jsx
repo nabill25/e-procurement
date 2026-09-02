@@ -3,6 +3,7 @@ import { Star, MapPin, CheckCircle2, Clock, XCircle, Search, Eye, MoveHorizontal
 import { API_BASE, useApp, getAuthHeaders } from '../context/AppContext';
 import clsx from 'clsx';
 import VendorDetailModal from '../components/modals/VendorDetailModal';
+import ReminderQueuePanel from '../components/vendor/ReminderQueuePanel';
 import { toast } from '../lib/toast';
 
 function VendorStatusBadge({ status }) {
@@ -265,7 +266,9 @@ export default function Vendor() {
         </div>
       </div>
 
-      <VendorDetailModal 
+      {['admin', 'approval_vms'].includes(user?.role) && <ReminderQueuePanel />}
+
+      <VendorDetailModal
         isOpen={!!selectedVendor} 
         vendor={selectedVendor} 
         onClose={() => setSelectedVendor(null)}
