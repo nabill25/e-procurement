@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, ClipboardList, ArrowRight, Phone, Mail, MapPin, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, ArrowRight, Phone, Mail, MapPin, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import Reveal from '../components/common/Reveal';
 import PublicStatsStrip from '../components/common/PublicStatsStrip';
 import { TenderIcon, RegistrasiIcon } from '../components/common/ServiceIcons';
@@ -232,29 +232,6 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
                 <ArrowRight size={20} className="text-blue-400 group-hover:text-white transition-colors" />
               </div>
             </button>
-          </div>
-        </div>
-      </Reveal>
-
-
-      {/* Pengumuman & Berita */}
-      <Reveal as="section" className="py-12 px-6 bg-white border-t border-gray-100">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
-            <div>
-              <h2 className="font-serif font-bold text-dpbj-navy text-2xl sm:text-3xl mb-1">Pengumuman & Berita</h2>
-              <p className="text-sm font-medium text-muted uppercase tracking-widest">Informasi Terbaru</p>
-            </div>
-            <button onClick={() => onNavigate('public_tender')} className="text-sm text-dpbj-gold hover:text-dpbj-gold-dark font-semibold flex items-center gap-1 transition-colors shrink-0">
-              Lihat Semua <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-3xl p-12 text-center shadow-inner">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
-              <ClipboardList size={28} />
-            </div>
-            <p className="text-dpbj-navy font-semibold text-base mb-1">Belum ada pengumuman terbaru saat ini.</p>
-            <p className="text-sm text-gray-500">Informasi akan ditampilkan di sini secara otomatis.</p>
           </div>
         </div>
       </Reveal>

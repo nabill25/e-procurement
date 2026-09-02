@@ -18,6 +18,11 @@ export const getTenderPhaseIndex = (status) => {
     case 'pemenang': return 4;
     case 'masa_sanggah': return 5;
     case 'kontrak': return 6;
+    // 'selesai' (tender yang kontraknya sudah tuntas) sengaja disamakan indeksnya dengan
+    // 'kontrak', bukan jatuh ke default -1 - supaya semua tab yang butuh tahap kontrak
+    // (Evaluasi, Negosiasi, Kontrak & BAST, dst) TETAP bisa dibuka untuk ditinjau ulang
+    // setelah tender benar-benar selesai, bukan mendadak hilang semua.
+    case 'selesai': return 6;
     case 'dibatalkan': return -2;
     default: return -1;
   }
@@ -39,5 +44,6 @@ export const tenderStatusConfig = {
   pemenang:     { label: 'Penetapan Pemenang',  className: 'badge-eval',   dot: '#7C3AED' },
   masa_sanggah: { label: 'Masa Sanggah',        className: 'badge-review', dot: '#D97706' },
   kontrak:      { label: 'Kontrak & BAST',      className: 'badge-done',   dot: '#059669' },
+  selesai:      { label: 'Selesai',             className: 'badge-done',   dot: '#059669' },
   dibatalkan:   { label: 'Dibatalkan',          className: 'badge-cancel', dot: '#DC2626' },
 };

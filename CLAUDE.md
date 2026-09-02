@@ -1240,3 +1240,94 @@ normal; akun uji `verifikator_oracle` cuma melihat 1 menu ("Integrasi Oracle") d
 dibuka cuma tab "Setup Supplier" yang ada (tanpa RKA/PR/Ekspor/Log), nol error console, nol
 request gagal. Akun uji dibersihkan. 17 test regresi tetap lulus bersih (navigasi admin malah
 sedikit lebih cepat, 20 detik, karena satu menu top-level berkurang).
+
+## Skrip Data Demo: `server/seed_demo_data.js` (baru, permanen - selesai 2026-09-02)
+
+Pengguna minta database diisi data contoh untuk SEMUA modul (bukan cuma 1-2), supaya seluruh
+alur proses bisnis & alur logika sistem bisa benar-benar dilihat/dicoba di browser - database
+sebelumnya nyaris kosong (5 user, 2 vendor, 0 tender/pengajuan/produk katalog dst).
+
+**Beda dari kebiasaan sesi-sesi sebelumnya**: setiap testing selama ini SELALU diakhiri dengan
+membersihkan data uji. Kali ini SENGAJA DIBIARKAN - itu memang tujuannya (untuk dilihat-lihat
+pengguna), bukan data uji sekali-pakai.
+
+**Dibangun sebagai tool permanen** (bukan skrip sekali-pakai yang dihapus setelah dipakai),
+supaya bisa dijalankan ulang kapan saja pengguna mau menambah/reset data demo:
+`npm run seed:demo` dari folder root. Backend (`npm run server`) harus sudah menyala dulu -
+skrip ini murni memanggil API sungguhan (bukan INSERT SQL langsung) untuk hampir semua alur
+bisnis, supaya validasi & efek samping otomatis (activity log, email, hitung ulang total,
+riwayat harga, dst) ikut jalan persis seperti dipakai manusia lewat form. Cuma data referensi
+murni (master data) dan 2 baris contoh Integrasi Oracle yang lewat INSERT SQL langsung (tidak
+ada logika bisnis di situ, importnya sendiri butuh file .xlsx sungguhan yang tidak relevan
+disiapkan untuk data demo).
+
+**Isi yang dibuat** (rangkuman, detail lengkap ada di komentar tiap fase dalam file):
+- Data master: bank, mata uang, negara, satuan, incoterm, metode pembayaran, tipe vendor, jenis
+  sertifikat, jenis belanja, kategori analisa, ijin usaha, pendidikan, direktorat, unit kerja,
+  kategori katalog, template dokumen, hari libur, template penilaian kinerja (bab/pasal).
+- **14 akun staf** (satu per role tambahan yang selama ini cuma terdaftar di database tanpa
+  pernah ada yang login sungguhan) + **5 vendor baru** dengan status berbeda-beda (terverifikasi
+  dengan kualifikasi lengkap, terverifikasi sederhana, pending, ditangguhkan, diblokir+blacklist)
+  ditambah 1 vendor retail.
+- **6 pengajuan/RUP** di status berbeda (disetujui jadi tender, disetujui untuk katalog, masih
+  diajukan, revisi, ditolak).
+- **5 tender** di tahap berbeda: 1 hero (alur PENUH dari pengumuman sampai kontrak selesai -
+  panitia, aanwijzing, pernyataan minat, pakta integritas, pembukaan, klarifikasi, undangan
+  klarifikasi, evaluasi semua kategori termasuk 3 kategori rumus resmi/personil-peralatan-
+  sertifikat, pemenang, peringkat, sanggah+balasan, negosiasi+sepakat, kontrak lengkap dengan
+  SPPBJ/SPK/SPMK/jaminan/SLA/material/surat pesanan/addendum/catatan/pengingat/dokumen/
+  perubahan status/SPPJB/termin pembayaran/sanksi/progres pekerjaan 100%/penilaian kinerja/kode
+  QR/rating vendor), 1 di tahap penawaran, 1 baru diumumkan, 1 dibatalkan.
+- Katalog: 3 produk (dengan foto, lampiran, kategori, riwayat harga), alur keranjang-nego-
+  checkout terikat ke satu pengajuan, purchasing langsung.
+- Daftar hitam manual, Pusat Pesan (kontak biasa + komplain terstruktur + balasan), Konten
+  Publik (2 berita, 2 FAQ, 1 banner, 1 kebijakan), Setup Supplier Oracle (5 tiket di 5 tahap
+  berbeda), Tindak Lanjut Kelengkapan Dokumen Vendor (siklus terbuka + siklus selesai), API Key.
+
+**3 bug nyata ditemukan dan diperbaiki lewat proses ini** (baru ketahuan sekarang karena baru
+kali ini ada tender yang benar-benar didorong sampai status akhir 'selesai' dan ada data
+CMS/banner sungguhan untuk dilihat):
+1. `tenderStatusConfig` (`src/data/procurementPhases.js`) tidak punya entri untuk status
+   `selesai` - badge status tampil polos tanpa warna. Ditambahkan (styling sama seperti
+   `kontrak`, keduanya "hijau selesai").
+2. **Lebih serius**: `getTenderPhaseIndex('selesai')` jatuh ke `default: return -1` (disamakan
+   dengan tender draft/belum apa-apa!) - akibatnya begitu tender mencapai status akhir
+   `selesai`, SEMUA tab yang butuh tahap kontrak (Aanwijzing, Sanggahan, Negosiasi, Kontrak &
+   BAST, dst) **hilang total** dari modal detail tender, padahal itu justru saat paling penting
+   untuk ditinjau ulang (riwayat lengkap tender yang sudah selesai). Diperbaiki: `selesai`
+   sekarang disamakan indeksnya dengan `kontrak` (bukan -1).
+3. `PublicLandingPage.jsx` punya section statis lama "Pengumuman & Berita" yang PERMANEN
+   menampilkan "Belum ada pengumuman terbaru saat ini" apa pun isi database-nya (peninggalan
+   sebelum modul CMS berita/FAQ dibangun, tidak pernah dibersihkan) - duduk tepat di atas
+   section `NewsAndFaqSection` yang sudah benar (fetch data asli + auto-sembunyi kalau kosong).
+   Baru ketahuan sekarang karena baru kali ini ada berita sungguhan untuk membuat kontradiksinya
+   kelihatan jelas. Section statis itu dihapus (kode mati/duplikat, `NewsAndFaqSection` sudah
+   cukup menggantikannya).
+
+**Pelajaran proses dari sesi ini**: percobaan pertama skrip ini sempat gagal berantai gara-gara
+1 baris bug (`GET /auth/me` mengembalikan `{success, user: {...}}`, bukan `{success, data:
+{...}}` seperti endpoint lain kebanyakan - skrip salah asumsi field `.data`) yang membuat
+`ctx.adminId`/`ctx.ppkId`/dst selalu `undefined`, merambat jadi puluhan kegagalan kecil di
+langkah-langkah berikutnya. Juga ditemukan: `POST /api/pengajuan/:id/approve` menghasilkan
+nomor tender dari akhiran nomor pengajuan (`TENDER/tahun/xxx` mengikuti `PENGAJUAN/tahun/xxx`),
+BEDA dari `POST /api/tenders` yang menghasilkan nomor dari hitungan tender yang sudah ada -
+dua skema penomoran berbeda untuk tabel yang sama, bisa tabrakan kalau urutan pembuatannya
+tidak hati-hati (bukan bug yang diperbaiki, cuma dihindari dengan urutan seeding yang tepat -
+pengajuan yang di-ACC dulu, baru tender yang dibuat langsung). Ditambahkan juga retry otomatis
+di helper HTTP skrip ini untuk hiccup jaringan transient yang sempat terjadi saat banyak
+request beruntun ke server lokal.
+
+**Akun untuk login dan jelajahi alur bisnis** (semua password `Demo2026!` kecuali 4 akun dasar
+yang sudah ada sejak awal project): akun dasar admin/PPK/Pokja/vendor tetap yang lama (lihat
+tabel di bagian atas dokumen ini). Vendor baru: `mitra_konstruksi` (pemenang tender hero),
+`sinar_abadi` (kalah tender, mengajukan sanggah), `cipta_data` (pending verifikasi),
+`berkah_jaya` (ditangguhkan), `global_sukses` (diblokir/blacklist). 14 akun staf role
+tambahan: `<role_key>_demo` (misal `admin_vms_demo`, `verifikator_oracle_demo`, dst - daftar
+lengkap 14 role ada di bagian "Tahap ketiga" dan "10 role tambahan" di atas). Tender contoh
+alur lengkap: **TENDER/2026/001** ("Renovasi Gedung Laboratorium Fakultas Teknik Tahap II").
+
+Sudah diverifikasi lewat browser sungguhan (Playwright) di 11+ halaman berbeda (Dashboard,
+Paket Pengadaan + modal detail tender lengkap semua tab, Manajemen Vendor, Daftar Hitam,
+E-Purchasing, Integrasi Oracle + tab Setup Supplier, Manajemen User, Pengajuan, portal publik)
+- nol error console, nol request gagal, semua 3 bug di atas dicek ulang sesudah diperbaiki.
+17 test regresi tetap lulus bersih.

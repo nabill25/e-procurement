@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "test:e2e": "playwright test --config=playwright.config.cjs",
+    "seed:demo": "node server/seed_demo_data.js",
     "db:backup": "node server/backup_database.js",
     "db:restore": "node server/restore_database.js",
     "load-test": "node server/load_test.js"
