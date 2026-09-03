@@ -1756,3 +1756,81 @@ template dokumen, dst, semuanya lewat `server/lib/upload.js` yang sekarang berba
 supaya menyimpan ke Supabase Storage alih-alih disk lokal, dan menyesuaikan cara file itu
 dibaca kembali (URL publik dari Supabase Storage, bukan lagi `/uploads/...`). Ini pekerjaan
 yang cukup besar, belum dikerjakan sampai pengguna memutuskan mau lanjut atau tidak.
+
+## Perbaikan sesungguhnya: pindah penyimpanan file ke Supabase Storage (selesai 2026-09-03)
+
+Pengguna minta perbaikan besar di atas benar-benar dikerjakan sekarang. Kredensialnya BEDA dari
+`SUPABASE_DB_URL` yang sudah ada (itu password database) - butuh kunci API terpisah dari
+Supabase Dashboard > Settings > API. Pengguna sempat kirim kunci `anon` dulu (dicek dengan
+mendekode isi JWT-nya, ketahuan `"role":"anon"`, ditolak dan diminta ulang), baru kunci
+`service_role` yang benar diberikan setelahnya.
+
+**Kendala teknis yang ditemukan dan diperbaiki saat pengerjaan**: percobaan pertama pakai paket
+resmi `@supabase/supabase-js` langsung CRASH saat start (`Error: Node.js detected but native
+WebSocket not found`) - paket itu otomatis menyalakan modul Realtime yang butuh WebSocket
+bawaan Node 22+, sedangkan komputer development ini masih Node 20. Diperbaiki dengan pindah ke
+paket inti `@supabase/storage-js` (dipakai `supabase-js` sendiri di baliknya untuk fitur
+storage, API-nya identik: `listBuckets`, `createBucket`, `.from(bucket).upload()`,
+`.getPublicUrl()`, `.remove()`) - paket ini tidak menyentuh modul Realtime sama sekali, jadi
+aman di Node versi berapapun tanpa perlu upgrade Node atau workaround lain.
+
+**Yang dikerjakan**:
+- `server/lib/storage.js` (baru) - jembatan ke Supabase Storage: `uploadBuffer()` (upload +
+  otomatis bikin bucket kalau belum ada, bucket dibuat publik), `deleteByStoragePath()`,
+  `isConfigured()`.
+- `server/lib/upload.js` ditulis ulang: multer sekarang pakai `memoryStorage()` (file ditampung
+  di memori dulu, bukan ditulis ke disk server), lalu middleware baru `makeStorageUploader()`
+  mengunggah buffer-nya ke Supabase Storage dan MENIMPA `req.file.filename` jadi URL publik
+  lengkap. Trik ini penting: karena SELURUH route yang sudah ada di 10 file berbeda membaca
+  `req.file.filename` (bukan properti lain), tidak satupun route perlu diubah cara kerjanya,
+  cukup nilai yang mereka baca sekarang sudah berupa URL lengkap. `createUpload(prefix, {
+  persist: false })` ditambahkan untuk kasus khusus (file Excel Integrasi Oracle yang cuma
+  dibaca sekali untuk diparsing, tidak perlu disimpan permanen - dipakai `req.file.buffer`
+  langsung, tidak lagi `fs.readFileSync(req.file.path)` yang memang sudah tidak ada lagi di
+  memoryStorage).
+- **Konvensi lama yang membingungkan (2 cara beda nyimpan path) disatukan**: sebagian route
+  dulu simpan `/uploads/xxx.pdf` (path lengkap), sebagian lain cuma simpan `xxx.pdf` (nama file
+  polos, frontend yang nambahin `/uploads/` sendiri). Sekarang SEMUA kolom `file_path`/
+  `document_path`/`gambar_path`/dst di database selalu berisi URL lengkap siap pakai, tidak ada
+  lagi pola ganda. Dirapikan di 10 file route: `blacklist.js`, `cms.js`, `inbox.js`,
+  `master.js`, `katalog.js`, `oracleSupplier.js`, `pengajuan.js`, `tenders.js`, `vendors.js`.
+- `src/context/AppContext.jsx` - fungsi baru `resolveFileUrl(filePath)`: kalau nilainya sudah
+  URL lengkap (`https://...`) dipakai apa adanya, kalau masih format lama (path relatif/nama
+  file polos, sisa dari sebelum migrasi) tetap dicoba lewat `SERVER_BASE` sebagai jaring
+  pengaman. Dipasang di 13 file frontend yang sebelumnya menggabung manual
+  `` `${SERVER_BASE}${path}` `` (rawan salah kalau path-nya beda format).
+- `server/migrate_uploads_to_storage.js` (baru, disimpan permanen sebagai tool, bukan skrip
+  sekali pakai) - pindahkan file yang MASIH ADA di disk lokal ke Supabase Storage lalu update
+  baris database yang mereferensikannya. Daftar 31 kolom di 24 tabel yang dicek dikonfirmasi
+  SATU PER SATU dari kode (bukan tebakan dari nama kolom) lewat query
+  `information_schema.columns` lalu dicek baris kodenya - beberapa kolom yang KELIHATAN seperti
+  path file ternyata BUKAN (`cms_banners.link_url` dan `cms_news.image_url`/
+  `katalog_items.image_url` diisi manual oleh admin bukan hasil upload,
+  `integration_rka_budget.import_file` dkk cuma label nama file untuk tampilan bukan path bisa
+  diunduh, `tender_general_chats.file_path` diisi dari `req.body` bukan endpoint upload,
+  `procurement_request_files.esign_path_file` ada di skema tapi tidak pernah ditulis kode
+  manapun) - semua dikeluarkan dari daftar migrasi supaya tidak salah proses.
+- Env baru (BEDA dari `SUPABASE_DB_URL`): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `SUPABASE_STORAGE_BUCKET` (default `uploads`) - ditambahkan ke `server/.env`,
+  `server/.env.example`, dan Variables Railway (lewat `railway variables --set`).
+
+**Sudah dites end-to-end secara menyeluruh, termasuk LANGSUNG di server production sungguhan**
+(bukan cuma lokal): upload sungguhan lewat API (lokal dan production Railway, keduanya
+dikonfirmasi menghasilkan URL Supabase Storage yang benar-benar bisa diunduh publik), migrasi
+26 baris data lama (dari 103 file yang ada di disk lokal, semua yang punya referensi baris
+database berhasil dipindah, nol gagal) langsung ke database Supabase yang dipakai bersama
+lokal & Railway, verifikasi browser sungguhan (Playwright) di LIVE PRODUCTION
+(`e-procurement-sand.vercel.app` + `e-procurement-production-9800.up.railway.app` bersamaan) -
+link dokumen vendor di Manajemen Vendor terkonfirmasi mengarah ke Supabase Storage, nol link
+rusak, nol error console, nol request gagal. Data uji (baris database + file Storage) dibuat
+dan dibersihkan langsung di production setelah setiap verifikasi. Sudah dicommit dan dipush
+(`2d25a84a`), Railway di-redeploy manual lewat `railway redeploy --from-source -y` supaya
+langsung pakai kode + env var terbaru (Vercel auto-deploy dari push seperti biasa).
+
+**Yang TIDAK ikut dimigrasi (dan memang tidak bisa)**: kalau ada baris database lama yang
+mereferensikan file yang SUDAH TIDAK ADA di disk lokal manapun (misal dari sesi testing lama
+yang datanya sudah lama dibersihkan tapi entah kenapa baris ini terlewat), skrip migrasi
+membiarkannya apa adanya - tidak bisa memunculkan file yang memang sudah hilang. Saat migrasi
+dijalankan, SEMUA 26 baris yang ditemukan berhasil dimigrasi (nol kasus seperti ini di data
+saat ini), tapi kalau nanti ditemukan link yang masih rusak dari data yang jauh lebih lama,
+ini kemungkinan penyebabnya - bukan bug di kode migrasinya.
