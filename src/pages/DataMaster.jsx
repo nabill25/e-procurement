@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useHorizontalScrollHint } from '../hooks/useScrollHint';
 import { Plus, Trash2, Database, MoveHorizontal } from 'lucide-react';
 import { formatNPWP } from '../utils/npwp';
 import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
@@ -1321,6 +1322,8 @@ function PenilaianTemplateTable() {
 
 export default function DataMaster() {
   const [activeCategory, setActiveCategory] = useState('bank');
+  const categoryBarRef = useRef(null);
+  const showCategoryHint = useHorizontalScrollHint(categoryBarRef);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -1335,13 +1338,15 @@ export default function DataMaster() {
           </div>
         </div>
 
-        {/* Ditemukan 2026-09-03: 27 kategori jauh lebih lebar dari layar mobile manapun,
-            fade-nya sendiri (tab-scroll-fade) sudah ada tapi terlalu halus buat kelihatan -
-            ditambahkan hint yang sama dipakai di semua tabel/tab lain di sistem ini. */}
-        <p className="table-scroll-hint !mb-2">
-          <MoveHorizontal size={13} /> Geser untuk lihat kategori lainnya
-        </p>
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-1 tab-scroll-fade">
+        {/* Ditemukan 2026-09-03: 27 kategori bisa kepotong bahkan di layar desktop lebar,
+            bukan cuma HP - hint pakai deteksi overflow sungguhan, bukan disembunyikan di
+            layar lebar begitu saja. */}
+        {showCategoryHint && (
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark mb-2">
+            <MoveHorizontal size={13} /> Geser untuk lihat kategori lainnya
+          </p>
+        )}
+        <div ref={categoryBarRef} className="flex gap-2 mb-5 overflow-x-auto pb-1 tab-scroll-fade">
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}

@@ -1665,3 +1665,41 @@ sendiri jadi yatim piatu (tidak dipakai di manapun lagi) sehingga dihapus.
 Sudah dites lewat browser sungguhan: klik tender sungguhan dari portal publik menampilkan data
 ASLI paket itu (bukan lagi "AC Kamar Asrama" untuk semua paket), nol error console, dan 17 test
 regresi tetap lulus bersih.
+
+## Perbaikan tuntas: hint tab bar salah asumsi lebar layar + hapus strip statistik publik (2026-09-03)
+
+Pengguna kirim screenshot LAGI (kali ini jelas-jelas di layar DESKTOP, sidebar penuh
+kelihatan) menunjukkan tab bar utama modal Detail Tender masih kepotong tanpa petunjuk apapun,
+padahal 2 sesi sebelumnya sudah "diperbaiki". Ternyata perbaikan sebelumnya salah asumsi:
+petunjuk "Geser untuk lihat tab lainnya" dibangun pakai class CSS `table-scroll-hint` yang
+`sm:hidden` (cuma tampil di layar SEMPIT/HP). Asumsi itu masuk akal untuk TABEL BIASA (kolom
+sedikit, biasanya muat penuh di desktop), tapi SALAH untuk BARIS TAB - modal ini `max-w-6xl`
+(1152px), dan tab bar-nya (9 tab dengan label+ikon) butuh 1383px, jadi tetap kepotong di
+desktop manapun (dites di lebar 1920px, 1440px, 1280px, semuanya overflow) - bukan soal lebar
+layar pengguna, tapi lebar KONTEN yang memang melebihi lebar modal itu sendiri.
+
+**Perbaikan definitif**: dibuat hook baru `src/hooks/useScrollHint.js`
+(`useHorizontalScrollHint`), deteksi LANGSUNG apakah `scrollWidth > clientWidth` (dicek ulang
+otomatis lewat `ResizeObserver` tiap kali ukuran berubah), bukan lagi bergantung pada breakpoint
+lebar layar. Diterapkan ke SEMUA 5 tab bar yang sudah disentuh 2 sesi terakhir (`DetailTenderModal.jsx`,
+`ContractTab.jsx`, `DataMaster.jsx`, `Integration.jsx`, `VendorProfile.jsx`) - petunjuknya
+sekarang muncul kapanpun benar-benar dibutuhkan, di lebar layar manapun (HP maupun desktop
+sempit/lebar), dan otomatis hilang kalau memang tidak overflow. Dites ulang di 3 lebar layar
+desktop berbeda (1920/1440/1280px) plus mobile, semuanya benar dan nol error console.
+
+**Pelajaran penting**: dua sesi sebelumnya SAMA-SAMA cuma dites di viewport mobile (iPhone 13,
+390px) lewat Playwright - tidak pernah dites di lebar DESKTOP walau modal-modal ini jelas juga
+dipakai di desktop (mayoritas pengguna staf internal). Testing "sudah dites di HP" tidak cukup
+untuk komponen yang overflow-nya ditentukan oleh lebar KONTEN vs lebar KONTAINER (bisa terjadi
+di desktop juga kalau kontennya memang banyak), bukan cuma oleh lebar layar. Ke depan, kalau
+menguji perbaikan overflow/scroll semacam ini, harus dites di BEBERAPA lebar viewport termasuk
+desktop biasa, tidak cukup cuma satu ukuran HP.
+
+**Permintaan terpisah** (disampaikan pengguna di tengah sesi ini): strip 3 kartu statistik
+"hidup" di halaman utama publik (`PublicStatsStrip.jsx`, angka Tender Aktif/Kontrak Berjalan/
+Paket Diumumkan, menumpang di tepi bawah hero slider) diminta dihapus. Sudah dihapus
+(komponennya sendiri, pemanggilannya di `PublicLandingPage.jsx`, dan importnya) - halaman utama
+sekarang langsung dari hero slider ke section "Layanan Utama" tanpa strip itu.
+
+Sudah dites lewat browser sungguhan (desktop 1920/1440/1280px + mobile) dan 17 test regresi
+tetap lulus bersih.

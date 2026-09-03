@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, ArrowRight, Phone, Mail, MapPin, Newspaper, HelpCircle, ChevronDown } from 'lucide-react';
 import Reveal from '../components/common/Reveal';
-import PublicStatsStrip from '../components/common/PublicStatsStrip';
 import { TenderIcon, RegistrasiIcon } from '../components/common/ServiceIcons';
 import PublicNav from '../components/layout/PublicNav';
 import PublicFooter from '../components/layout/PublicFooter';
@@ -178,9 +177,6 @@ export default function PublicLandingPage({ onNavigate, onLoginClick }) {
           ))}
         </div>
       </div>
-
-      {/* Strip statistik "hidup" - menumpang di tepi bawah hero */}
-      <PublicStatsStrip />
 
       {/* Quick Access Cards */}
       <Reveal as="section" className="pt-16 pb-12 px-6 bg-white">

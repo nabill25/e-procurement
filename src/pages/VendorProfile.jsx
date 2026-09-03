@@ -8,6 +8,7 @@ import BidangUsahaTab from '../components/profile/BidangUsahaTab';
 import RekeningKoranTab from '../components/profile/RekeningKoranTab';
 import FollowupPanel from '../components/vendor/FollowupPanel';
 import VendorChecklistPanel from '../components/vendor/VendorChecklistPanel';
+import { useHorizontalScrollHint } from '../hooks/useScrollHint';
 import { toast } from '../lib/toast';
 
 function IdentityTab({ vendor }) {
@@ -286,6 +287,8 @@ function ExperiencesTab({ experiences, vendorId, fetchQualifications }) {
 export default function VendorProfile() {
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState('identitas');
+  const tabBarRef = useRef(null);
+  const showTabHint = useHorizontalScrollHint(tabBarRef);
   const [vendorData, setVendorData] = useState(null);
   const [qualifications, setQualifications] = useState({ documents: [], experiences: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -350,13 +353,14 @@ export default function VendorProfile() {
       <VendorChecklistPanel vendorId={user.id} mode="penyedia" />
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        {/* Ditemukan 2026-09-03: 11 tab jauh lebih lebar dari layar mobile, sebelumnya
-            overflow-x-auto polos tanpa fade ATAU hint sama sekali - paling parah dari semua
-            tab bar lain yang sudah dicek di sesi ini. */}
-        <p className="table-scroll-hint px-4 pt-3 !mb-0">
-          <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-        </p>
-        <div className="flex border-b border-border overflow-x-auto tab-scroll-fade" style={{ scrollbarWidth: "thin" }}>
+        {/* Ditemukan 2026-09-03: 11 tab, bisa kepotong bahkan di layar desktop lebar -
+            hint pakai deteksi overflow sungguhan, bukan disembunyikan di layar lebar. */}
+        {showTabHint && (
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark px-4 pt-3">
+            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+          </p>
+        )}
+        <div ref={tabBarRef} className="flex border-b border-border overflow-x-auto tab-scroll-fade" style={{ scrollbarWidth: "thin" }}>
           <button
             onClick={() => setActiveTab('identitas')}
             className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'identitas' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}

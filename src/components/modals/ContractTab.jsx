@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useHorizontalScrollHint } from '../../hooks/useScrollHint';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
 import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode, MoveHorizontal } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
@@ -38,7 +39,9 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
   const [workflowTab, setWorkflowTab] = useState('utama');
-  
+  const subTabBarRef = useRef(null);
+  const showSubTabHint = useHorizontalScrollHint(subTabBarRef, [contract?.id]);
+
   const [form, setForm] = useState({
     contract_number: '',
     contract_date: '',
@@ -176,14 +179,15 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
 
       {contract && (
         <>
-        {/* Ditemukan 2026-09-03 lewat laporan pengguna (screenshot langsung): sub-tab kontrak
-            ini ada 10 buah, terpotong tanpa tanda apapun di layar sempit - pola bug yang sama
-            seperti tab utama modal Detail Tender yang sudah diperbaiki, ternyata belum
-            menyeluruh. Ditambahkan hint yang sama (table-scroll-hint, cuma tampil di mobile). */}
-        <p className="table-scroll-hint !mb-1">
-          <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-        </p>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border tab-scroll-fade">
+        {/* Ditemukan 2026-09-03 (laporan pengguna, 2x): sub-tab kontrak ada 10 buah, bisa
+            kepotong bahkan di layar desktop lebar, bukan cuma HP - hint pakai deteksi overflow
+            sungguhan (useHorizontalScrollHint), bukan sekadar disembunyikan di layar lebar. */}
+        {showSubTabHint && (
+          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark mb-1">
+            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+          </p>
+        )}
+        <div ref={subTabBarRef} className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border tab-scroll-fade">
           {WORKFLOW_SUBTABS.map(t => (
             <button
               key={t.id}
