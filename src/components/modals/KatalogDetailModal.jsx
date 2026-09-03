@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Package, Upload, Download, Trash2, Image as ImageIcon, Paperclip, History, Flag } from 'lucide-react';
-import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../../context/AppContext';
+import { getAuthHeaders, API_BASE, SERVER_BASE, resolveFileUrl, useApp } from '../../context/AppContext';
 import { formatRupiah } from '../ui/shared';
 import { toast } from '../../lib/toast';
 
@@ -141,7 +141,7 @@ export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
               <div className="grid grid-cols-4 gap-2">
                 {item.photos.map(p => (
                   <div key={p.id} className="relative group">
-                    <img src={`${SERVER_BASE}${p.file_path}`} alt="" className="w-full h-20 object-cover rounded-lg border border-border" />
+                    <img src={resolveFileUrl(p.file_path)} alt="" className="w-full h-20 object-cover rounded-lg border border-border" />
                     {canManage && (
                       <button onClick={() => deletePhoto(p.id)} className="absolute top-1 right-1 bg-white/90 p-1 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Trash2 size={11} />
@@ -168,7 +168,7 @@ export default function KatalogDetailModal({ isOpen, onClose, katalogId }) {
                   <div key={a.id} className="flex items-center justify-between text-xs bg-surface p-2 rounded-lg">
                     <span>{a.nama}</span>
                     <div className="flex items-center gap-2">
-                      <a href={`${SERVER_BASE}${a.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
+                      <a href={resolveFileUrl(a.file_path)} target="_blank" rel="noreferrer" className="text-blue-600"><Download size={12} /></a>
                       {canManage && <button onClick={() => deleteAttachment(a.id)} className="text-red-400"><Trash2 size={11} /></button>}
                     </div>
                   </div>

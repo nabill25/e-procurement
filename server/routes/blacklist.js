@@ -53,7 +53,7 @@ router.post('/', requireAuth, requireRole('admin'), upload.single('sk_file'), as
       return res.status(400).json({ success: false, message: 'company_name dan reason wajib diisi.' });
     }
 
-    const sk_file_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const sk_file_path = req.file ? req.file.filename : null;
 
     const result = await pool.query(`
       INSERT INTO blacklist (vendor_id, company_name, npwp, address, city, start_date, end_date, sk_number, sk_file_path, reason, created_by)

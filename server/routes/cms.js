@@ -147,7 +147,7 @@ router.post('/banners', adminOnly, upload.single('gambar'), async (req, res) => 
     if (!nama || !req.file) {
       return res.status(400).json({ success: false, message: 'Nama dan gambar banner wajib diisi.' });
     }
-    const gambar_path = `/uploads/${req.file.filename}`;
+    const gambar_path = req.file.filename;
 
     const result = await pool.query(`
       INSERT INTO cms_banners (nama, gambar_path, link_url, created_by)

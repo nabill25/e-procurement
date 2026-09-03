@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useHorizontalScrollHint } from '../hooks/useScrollHint';
 import { Plus, Trash2, Database, MoveHorizontal } from 'lucide-react';
 import { formatNPWP } from '../utils/npwp';
-import { getAuthHeaders, API_BASE, SERVER_BASE, useApp } from '../context/AppContext';
+import { getAuthHeaders, API_BASE, SERVER_BASE, resolveFileUrl, useApp } from '../context/AppContext';
 import clsx from 'clsx';
 import { toast } from '../lib/toast';
 
@@ -770,7 +770,7 @@ function DocumentTemplateTable() {
                 <td className="text-sm font-medium text-dpbj-navy">{row.nama}</td>
                 <td className="text-xs text-muted capitalize">{row.target}</td>
                 <td className="text-xs">
-                  {row.file_path ? <a href={`${SERVER_BASE}${row.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">Unduh</a> : '-'}
+                  {row.file_path ? <a href={resolveFileUrl(row.file_path)} target="_blank" rel="noreferrer" className="text-blue-600 underline">Unduh</a> : '-'}
                 </td>
                 <td className="text-right">
                   <button onClick={() => handleDelete(row.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">

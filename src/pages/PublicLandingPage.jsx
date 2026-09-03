@@ -4,7 +4,7 @@ import Reveal from '../components/common/Reveal';
 import { TenderIcon, RegistrasiIcon } from '../components/common/ServiceIcons';
 import PublicNav from '../components/layout/PublicNav';
 import PublicFooter from '../components/layout/PublicFooter';
-import { API_BASE, SERVER_BASE } from '../context/AppContext';
+import { API_BASE, SERVER_BASE, resolveFileUrl } from '../context/AppContext';
 
 function BannerSection() {
   const [banners, setBanners] = useState([]);
@@ -22,7 +22,7 @@ function BannerSection() {
       <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 stagger-grid">
         {banners.map(b => {
           const img = (
-            <img src={`${SERVER_BASE}${b.gambar_path}`} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100 interactive-lift" />
+            <img src={resolveFileUrl(b.gambar_path)} alt={b.nama} className="w-full h-40 object-cover rounded-xl shadow-sm border border-gray-100 interactive-lift" />
           );
           return b.link_url ? (
             <a key={b.id} href={b.link_url} target="_blank" rel="noreferrer" className="stagger-item block">

@@ -452,7 +452,7 @@ router.post('/:id/photos', requireAuth, upload.single('file'), async (req, res) 
     const { created_by } = req.body;
     const result = await pool.query(`
       INSERT INTO katalog_photos (katalog_id, file_path, file_size, created_by) VALUES ($1, $2, $3, $4) RETURNING *
-    `, [req.params.id, `/uploads/${req.file.filename}`, req.file.size, created_by || null]);
+    `, [req.params.id, req.file.filename, req.file.size, created_by || null]);
     res.status(201).json({ success: true, message: 'Foto berhasil diunggah.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -475,7 +475,7 @@ router.post('/:id/attachments', requireAuth, upload.single('file'), async (req, 
     const { nama, created_by } = req.body;
     const result = await pool.query(`
       INSERT INTO katalog_attachments (katalog_id, nama, file_path, file_size, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING *
-    `, [req.params.id, nama || req.file.originalname, `/uploads/${req.file.filename}`, req.file.size, created_by || null]);
+    `, [req.params.id, nama || req.file.originalname, req.file.filename, req.file.size, created_by || null]);
     res.status(201).json({ success: true, message: 'Lampiran berhasil diunggah.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

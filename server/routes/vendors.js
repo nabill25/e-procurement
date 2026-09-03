@@ -724,7 +724,7 @@ router.post('/:id/documents', ownVendorDataOnly, upload.single('document'), asyn
       return res.status(400).json({ success: false, message: 'doc_type dan doc_number wajib diisi.' });
     }
 
-    const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const file_path = req.file ? req.file.filename : null;
     if (!file_path) {
       return res.status(400).json({ success: false, message: 'File dokumen wajib diunggah.' });
     }

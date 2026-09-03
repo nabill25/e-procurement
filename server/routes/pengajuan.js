@@ -95,9 +95,9 @@ router.post('/', upload.fields([{name:'kak', maxCount:1}, {name:'rab', maxCount:
 
     let kakPath = null, rabPath = null, notaPath = null;
     if (req.files) {
-      if (req.files.kak) kakPath = '/uploads/' + req.files.kak[0].filename;
-      if (req.files.rab) rabPath = '/uploads/' + req.files.rab[0].filename;
-      if (req.files.nota) notaPath = '/uploads/' + req.files.nota[0].filename;
+      if (req.files.kak) kakPath = req.files.kak[0].filename;
+      if (req.files.rab) rabPath = req.files.rab[0].filename;
+      if (req.files.nota) notaPath = req.files.nota[0].filename;
     }
 
     // Langsung set status ke diajukan (melewati draft)
@@ -287,7 +287,7 @@ router.post('/:id/files', upload.single('file'), async (req, res) => {
     const result = await pool.query(`
       INSERT INTO procurement_request_files (procurement_request_id, judul, file_path, file_type, file_size, created_by)
       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *
-    `, [req.params.id, judul || req.file.originalname, `/uploads/${req.file.filename}`, req.file.mimetype, req.file.size, created_by || null]);
+    `, [req.params.id, judul || req.file.originalname, req.file.filename, req.file.mimetype, req.file.size, created_by || null]);
     res.status(201).json({ success: true, message: 'File analisa berhasil diunggah.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -363,7 +363,7 @@ router.get('/:id/revisions', async (req, res) => {
 router.post('/:id/revisions', requireAdmin, upload.single('file'), async (req, res) => {
   try {
     const { catatan, created_by } = req.body;
-    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const filePath = req.file ? req.file.filename : null;
     const result = await pool.query(`
       INSERT INTO procurement_request_revisions (procurement_request_id, catatan, file_path, created_by)
       VALUES ($1, $2, $3, $4) RETURNING *

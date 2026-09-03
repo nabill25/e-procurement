@@ -147,7 +147,7 @@ router.post('/', upload.single('attachment'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nama, email, subyek, dan pesan wajib diisi.' });
     }
 
-    const attachment_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const attachment_path = req.file ? req.file.filename : null;
 
     const result = await pool.query(`
       INSERT INTO inbox_messages (category_id, subject, content, attachment_path, sender_name, sender_email, sender_phone, complain_type_id)

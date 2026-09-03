@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
 const { pool } = require('../db');
 const { requireAuth, requireRole } = require('../lib/authMiddleware');
 const { createUpload, handleUploadError } = require('../lib/upload');
@@ -9,7 +8,9 @@ const oracle = require('../lib/oracleIntegration');
 const requireAdmin = requireRole('admin');
 router.use(requireAuth, requireAdmin); // seluruh modul integrasi Oracle khusus Super Admin, sama seperti sistem lama
 
-const upload = createUpload('integration');
+// persist: false - file Excel RKA/PR di sini cuma dibaca sekali untuk diparsing isinya,
+// tidak perlu disimpan permanen ke Supabase Storage (beda dari upload dokumen di modul lain).
+const upload = createUpload('integration', { persist: false });
 
 async function writeLog({ jenis, arah, file_name, status, catatan, jumlah_baris, created_by }) {
   await pool.query(
@@ -71,7 +72,7 @@ router.get('/rka/remote-list', async (req, res) => {
 router.post('/rka/upload', upload.single('file'), handleUploadError, async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'File Excel diperlukan.' });
   try {
-    const rows = await oracle.parseRkaExcel(fs.readFileSync(req.file.path));
+    const rows = await oracle.parseRkaExcel(req.file.buffer);
     if (!rows.length) {
       await writeLog({ jenis: 'rka_import', arah: 'masuk', file_name: req.file.originalname, status: 'gagal', catatan: 'Tidak ada baris data yang terbaca dari file.', created_by: req.user.id });
       return res.status(400).json({ success: false, message: 'Tidak ada baris data yang terbaca dari file. Pastikan format kolom sesuai (RKA KEY, START DATE YEAR, SEGMENT1, dst).' });
@@ -113,7 +114,7 @@ router.get('/pr/remote-list', async (req, res) => {
 router.post('/pr/upload', upload.single('file'), handleUploadError, async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'File Excel diperlukan.' });
   try {
-    const rows = await oracle.parsePrExcel(fs.readFileSync(req.file.path));
+    const rows = await oracle.parsePrExcel(req.file.buffer);
     if (!rows.length) {
       await writeLog({ jenis: 'pr_import', arah: 'masuk', file_name: req.file.originalname, status: 'gagal', catatan: 'Tidak ada baris data yang terbaca (kolom REQUISITION_NUMBER wajib ada).', created_by: req.user.id });
       return res.status(400).json({ success: false, message: 'Tidak ada baris data yang terbaca. Pastikan kolom REQUISITION_NUMBER terisi.' });

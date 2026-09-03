@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE, SERVER_BASE, resolveFileUrl } from '../context/AppContext';
 import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle, MoveHorizontal } from 'lucide-react';
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
@@ -159,7 +159,7 @@ function DocumentsTab({ documents, vendorId, fetchQualifications }) {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <a href={`${SERVER_BASE}${d.file_path}`} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline text-xs">Lihat Dokumen</a>
+                    <a href={resolveFileUrl(d.file_path)} target="_blank" rel="noreferrer" className="text-blue-600 font-semibold hover:underline text-xs">Lihat Dokumen</a>
                   </td>
                 </tr>
               ))}

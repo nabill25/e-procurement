@@ -52,7 +52,7 @@ router.post('/document-templates', requireAdmin, upload.single('file'), async (r
       INSERT INTO document_templates (target, nama, keterangan, file_path, file_size, file_type, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
     `, [target || 'internal', nama, keterangan || null,
-        req.file ? `/uploads/${req.file.filename}` : null, req.file ? req.file.size : null, req.file ? req.file.mimetype : null,
+        req.file ? req.file.filename : null, req.file ? req.file.size : null, req.file ? req.file.mimetype : null,
         created_by || null]);
     res.status(201).json({ success: true, message: 'Template dokumen berhasil ditambahkan.', data: result.rows[0] });
   } catch (err) {

@@ -251,7 +251,7 @@ router.post('/:id/complete', requireOracleTeam, upload.single('bukti'), handleUp
       return res.status(400).json({ success: false, message: 'Bukti screenshot wajib diunggah untuk menandai selesai.' });
     }
 
-    const buktiPath = `/uploads/${req.file.filename}`;
+    const buktiPath = req.file.filename;
     await client.query('BEGIN');
     const result = await client.query(
       `UPDATE oracle_supplier_requests SET status = 'selesai', completed_at = CURRENT_TIMESTAMP, bukti_screenshot = $1 WHERE id = $2 RETURNING *`,

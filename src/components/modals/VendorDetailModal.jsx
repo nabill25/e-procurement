@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertCircle, FileText, Download, Ban, Printer, Trash2 } from 'lucide-react';
-import { useApp, API_BASE, getAuthHeaders, SERVER_BASE } from '../../context/AppContext';
+import { useApp, API_BASE, getAuthHeaders, SERVER_BASE, resolveFileUrl } from '../../context/AppContext';
 import FollowupPanel from '../vendor/FollowupPanel';
 import VendorChecklistPanel from '../vendor/VendorChecklistPanel';
 
@@ -125,7 +125,7 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
                       </div>
                     </div>
                     <a
-                      href={`${SERVER_BASE}${doc.file_path}`}
+                      href={resolveFileUrl(doc.file_path)}
                       target="_blank"
                       rel="noreferrer"
                       className="p-2 text-dpbj-navy hover:text-dpbj-gold transition-colors hover:bg-white rounded-lg border border-transparent hover:border-border"

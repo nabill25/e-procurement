@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
+import { getAuthHeaders, useApp, API_BASE, SERVER_BASE, resolveFileUrl } from '../../context/AppContext';
 import { Download, AlertCircle, CheckCircle2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from '../../lib/toast';
@@ -146,7 +146,7 @@ export default function ObjectionsTab({ tenderId, tenderStatus, participants, us
                   <p className="text-xs font-semibold text-gray-600 mb-1">Alasan Sanggah:</p>
                   <p className="text-sm text-dpbj-navy bg-gray-50 p-3 rounded-lg border border-gray-100">{obj.objection_text}</p>
                   {obj.attachment_path && (
-                    <a href={`${SERVER_BASE}${obj.attachment_path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline mt-2">
+                    <a href={resolveFileUrl(obj.attachment_path)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline mt-2">
                       <Download size={12}/> Unduh Lampiran Bukti
                     </a>
                   )}

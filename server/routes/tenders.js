@@ -382,7 +382,7 @@ router.post('/:id/bids', upload.single('document'), async (req, res) => {
       return res.status(403).json({ success: false, message: 'Anda cuma bisa mengirim penawaran atas nama akun vendor Anda sendiri.' });
     }
 
-    const document_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const document_path = req.file ? req.file.filename : null;
 
     // Cek status tender
     const tender = await pool.query('SELECT status, title FROM tenders WHERE id = $1', [tenderId]);
@@ -1032,7 +1032,7 @@ router.post('/:id/objections', upload.single('attachment'), async (req, res) => 
       return res.status(403).json({ success: false, message: 'Anda cuma bisa mengirim sanggahan atas nama akun vendor Anda sendiri.' });
     }
 
-    const attachmentPath = req.file ? `/uploads/${req.file.filename}` : null;
+    const attachmentPath = req.file ? req.file.filename : null;
 
     await pool.query(`
       INSERT INTO tender_objections (tender_id, vendor_id, objection_text, attachment_path)
@@ -1051,7 +1051,7 @@ router.post('/:id/objections/:objId/reply', upload.single('response_attachment')
     const { response_text } = req.body;
     if (!response_text) return res.status(400).json({ success: false, message: 'response_text wajib.' });
 
-    const responseAttachmentPath = req.file ? `/uploads/${req.file.filename}` : null;
+    const responseAttachmentPath = req.file ? req.file.filename : null;
 
     await pool.query(`
       UPDATE tender_objections 
@@ -1088,8 +1088,8 @@ router.post('/:id/contract', upload.fields([{ name: 'spk' }, { name: 'bast' }]),
       return res.status(400).json({ success: false, message: 'Data kontrak belum lengkap.' });
     }
 
-    const spkPath = req.files?.spk ? `/uploads/${req.files.spk[0].filename}` : null;
-    const bastPath = req.files?.bast ? `/uploads/${req.files.bast[0].filename}` : null;
+    const spkPath = req.files?.spk ? req.files.spk[0].filename : null;
+    const bastPath = req.files?.bast ? req.files.bast[0].filename : null;
 
     const existing = await pool.query(`SELECT id, spk_path, bast_path FROM contracts WHERE tender_id = $1`, [req.params.id]);
 
@@ -1161,7 +1161,7 @@ router.post('/:id/contract/payment-terms', async (req, res) => {
 router.patch('/:id/contract/payment-terms/:termId', upload.single('bapp'), async (req, res) => {
   try {
     const { status, payment_date, notes } = req.body;
-    const bapp_file_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const bapp_file_path = req.file ? req.file.filename : null;
 
     const result = await pool.query(`
       UPDATE contract_payment_terms
@@ -1287,7 +1287,7 @@ router.post('/:id/contract/deliverables', async (req, res) => {
 router.patch('/:id/contract/deliverables/:deliverableId', upload.single('document'), async (req, res) => {
   try {
     const { progress_percent, status, notes } = req.body;
-    const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+    const file_path = req.file ? req.file.filename : null;
     const received_date = status === 'selesai' ? new Date() : null;
 
     const result = await pool.query(`
@@ -1570,8 +1570,8 @@ router.post('/:id/contract/jaminan', upload.fields([{ name: 'file_jaminan' }, { 
     const contractId = await getContractId(req.params.id);
     if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
     const { nomor, tanggal_jaminan, tanggal_konfirmasi_kebank, tanggal_konfirmasi_oleh_bank, status_konfirmasi, created_by } = req.body;
-    const fileJaminan = req.files?.file_jaminan ? `/uploads/${req.files.file_jaminan[0].filename}` : null;
-    const fileKonfirmasi = req.files?.file_konfirmasi ? `/uploads/${req.files.file_konfirmasi[0].filename}` : null;
+    const fileJaminan = req.files?.file_jaminan ? req.files.file_jaminan[0].filename : null;
+    const fileKonfirmasi = req.files?.file_konfirmasi ? req.files.file_konfirmasi[0].filename : null;
     const result = await pool.query(`
       INSERT INTO contract_jaminan (contract_id, nomor, tanggal_jaminan, file_jaminan, tanggal_konfirmasi_kebank, tanggal_konfirmasi_oleh_bank, status_konfirmasi, file_konfirmasi, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
@@ -1612,7 +1612,7 @@ router.post('/:id/contract/jaminan-pemeliharaan', upload.single('file_jaminan'),
     const contractId = await getContractId(req.params.id);
     if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
     const { nomor, nilai, masa, tanggal_mulai, tanggal_akhir, created_by } = req.body;
-    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const filePath = req.file ? req.file.filename : null;
     const result = await pool.query(`
       INSERT INTO contract_jaminan_pemeliharaan (contract_id, nomor, nilai, masa, tanggal_mulai, tanggal_akhir, file_jaminan, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
@@ -1804,8 +1804,8 @@ router.post('/:id/contract/addendum', upload.fields([{ name: 'file_persetujuan' 
     const contractId = await getContractId(req.params.id);
     if (!contractId) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
     const b = req.body;
-    const filePersetujuan = req.files?.file_persetujuan ? `/uploads/${req.files.file_persetujuan[0].filename}` : null;
-    const fileAddendum = req.files?.file_addendum ? `/uploads/${req.files.file_addendum[0].filename}` : null;
+    const filePersetujuan = req.files?.file_persetujuan ? req.files.file_persetujuan[0].filename : null;
+    const fileAddendum = req.files?.file_addendum ? req.files.file_addendum[0].filename : null;
     const result = await pool.query(`
       INSERT INTO contract_addendum
         (contract_id, nomor, addendum_ke, jenis, tanggal, tanggal_kontrak_dari, tanggal_kontrak_sampai,
@@ -1944,7 +1944,7 @@ router.post('/:id/contract/documents', upload.single('file'), async (req, res) =
     const result = await pool.query(`
       INSERT INTO contract_documents (contract_id, nama, file_path, file_size, jenis, keterangan, created_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *
-    `, [contractId, nama || req.file.originalname, `/uploads/${req.file.filename}`, req.file.size, jenis || null, keterangan || null, created_by || null]);
+    `, [contractId, nama || req.file.originalname, req.file.filename, req.file.size, jenis || null, keterangan || null, created_by || null]);
     res.status(201).json({ success: true, message: 'Dokumen berhasil diunggah.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -1993,7 +1993,7 @@ router.post('/:id/contract/status-changes', upload.single('file'), async (req, r
     if (!STATUS_CHANGE_TYPES.includes(jenis)) {
       return res.status(400).json({ success: false, message: `jenis harus salah satu dari: ${STATUS_CHANGE_TYPES.join(', ')}` });
     }
-    const filePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const filePath = req.file ? req.file.filename : null;
     const result = await pool.query(`
       INSERT INTO contract_status_changes (contract_id, jenis, alasan, file_path, created_by)
       VALUES ($1, $2, $3, $4, $5) RETURNING *

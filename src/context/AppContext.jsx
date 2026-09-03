@@ -6,9 +6,23 @@ const AppContext = createContext(null);
 // backend yang sebenarnya (misal https://nama-app.up.railway.app/api). Kalau kosong, otomatis
 // pakai localhost:3001 supaya development lokal tetap jalan tanpa perlu setting apapun.
 export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
-// SERVER_BASE (tanpa akhiran /api) - dipakai untuk link/gambar file yang diunggah (disajikan
-// backend lewat /uploads/..., bukan lewat endpoint /api).
+// SERVER_BASE (tanpa akhiran /api) - dipakai sebagai fallback untuk file lama (lihat
+// resolveFileUrl di bawah), bukan lewat endpoint /api.
 export const SERVER_BASE = API_BASE.replace(/\/api\/?$/, '');
+
+// ── Helper: ubah nilai file_path/gambar_path/dst dari database jadi URL yang siap dipakai ──
+// Sejak file upload dipindah ke Supabase Storage, nilai baru yang tersimpan di database SELALU
+// berupa URL lengkap (https://...supabase.co/storage/...) - tinggal dipakai apa adanya. Fungsi
+// ini cuma dibutuhkan untuk baris data LAMA (dari sebelum migrasi) yang masih menyimpan path
+// relatif ala /uploads/xxx.pdf atau nama file polos tanpa awalan - itu tetap dicoba lewat
+// backend lokal (SERVER_BASE) sebagai jaring pengaman, walau di Railway kemungkinan filenya
+// sudah tidak ada lagi (baris data lama yang belum ikut dimigrasikan).
+export function resolveFileUrl(filePath) {
+  if (!filePath) return null;
+  if (/^https?:\/\//i.test(filePath)) return filePath; // sudah URL lengkap (Supabase Storage / eksternal lain)
+  const withSlash = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
+  return `${SERVER_BASE}${withSlash}`;
+}
 
 // ── Helper: buat headers dengan Authorization JWT (mengikuti alur eProc session) ──
 export function getAuthHeaders() {
