@@ -1703,3 +1703,56 @@ sekarang langsung dari hero slider ke section "Layanan Utama" tanpa strip itu.
 
 Sudah dites lewat browser sungguhan (desktop 1920/1440/1280px + mobile) dan 17 test regresi
 tetap lulus bersih.
+
+## TEMUAN PENTING: file yang diupload TIDAK PERSISTEN di Railway (2026-09-03)
+
+Pengguna kirim screenshot gambar banner yang tampil rusak (ikon gambar patah) di halaman utama
+publik versi online, dan nanya "itu sebenarnya untuk apa". Setelah ditelusuri, ini ternyata
+bukan sekadar 1 gambar rusak - ini **temuan arsitektur yang penting untuk diketahui ke depan**.
+
+**Apa gambar itu**: itu memang fitur asli, bagian dari modul "Banner" di Kelola Konten (admin
+bisa upload gambar buat carousel kecil di halaman utama, dijelaskan di bagian "Kelompok I:
+Konten Publik" dokumen ini). Bukan fitur baru/aneh, cuma isinya waktu itu masih placeholder
+(gambar PNG kecil buatan skrip `seed_demo_data.js`, bukan gambar banner sungguhan).
+
+**Kenapa rusak**: dicek langsung ke server (`curl` ke file-nya), hasilnya 404 - file-nya
+memang tidak ada di server Railway. Setelah ditelusuri lebih jauh, ini BUKAN soal 1 file
+kebetulan hilang, tapi soal **arsitektur penyimpanan file yang memang belum siap produksi**:
+
+1. Sistem ini menyimpan file upload (dokumen vendor, dokumen tender, gambar banner, dst) di
+   folder `server/uploads/` - disk LOKAL milik server yang sedang jalan, lewat `multer.diskStorage`
+   (`server/lib/upload.js`). Ini sudah begitu dari awal project, bukan sesuatu yang baru diubah.
+2. **Database (Supabase) memang dipakai bersama** antara komputer lokal dan server Railway
+   (sesuai keputusan awal project), TAPI **file uploadnya TIDAK ikut dipakai bersama** - tiap
+   `npm run server` yang saya jalankan LOKAL (termasuk semua proses `seed_demo_data.js` sepanjang
+   project ini) nulis file ke disk KOMPUTER LOKAL SAYA, bukan ke Railway. Jadi baris di database
+   yang bilang "ada file di /uploads/xxx.png" itu benar ADA datanya, tapi file fisiknya cuma
+   pernah ada di komputer lokal, tidak pernah benar-benar sampai ke Railway.
+3. **Lebih parah lagi**: dicek juga `railway volume list` - Railway ini **tidak punya persistent
+   volume sama sekali**. Artinya walau ADA yang upload file LANGSUNG lewat situs online (bukan
+   dari lokal), file itu tetap akan HILANG setiap kali Railway deploy ulang (redeploy manual yang
+   saya lakukan tadi, atau nanti kalau auto-deploy dari GitHub jalan normal tiap ada push kode
+   baru) - disk container Railway memang didesain "bersih lagi" tiap kali container baru dibuat.
+
+**Dampak nyata**: dicek juga 1 contoh dokumen vendor (bukan cuma banner) - hasilnya SAMA, 404
+juga di server online. Jadi ini bukan cuma soal 1 gambar banner, tapi berpotensi memengaruhi
+SEMUA fitur upload file di seluruh sistem kalau nanti benar-benar dipakai di production
+sungguhan (dokumen vendor, dokumen tender, dokumen kontrak, foto katalog, dst) - filenya akan
+selalu berisiko hilang di server online.
+
+**Yang sudah saya lakukan sekarang**: banner yang rusak itu sudah saya hapus langsung dari
+database production (isinya cuma gambar placeholder demo, bukan gambar sungguhan yang perlu
+dipertahankan) - jadi tampilan halaman utama sekarang bersih lagi, tidak ada lagi ikon gambar
+patah. Ini cuma bersihkan GEJALA yang kelihatan, BUKAN memperbaiki akar masalahnya.
+
+**Perbaikan sesungguhnya (BELUM dikerjakan, perlu keputusan pengguna dulu karena ukurannya
+cukup besar)**: solusi yang benar adalah pindah penyimpanan file dari disk lokal server ke
+tempat penyimpanan yang PERSISTEN dan BISA DIPAKAI BERSAMA (baik dari lokal maupun Railway) -
+opsi paling masuk akal adalah **Supabase Storage** (fitur penyimpanan file bawaan Supabase,
+project ini sudah pakai Supabase untuk database jadi kredensialnya sudah ada, tinggal aktifkan
+fitur storage-nya). Ini perlu mengubah SEMUA titik upload file di seluruh sistem (banyak
+sekali - dokumen vendor, dokumen tender, dokumen kontrak, foto & lampiran katalog, banner,
+template dokumen, dst, semuanya lewat `server/lib/upload.js` yang sekarang berbasis disk lokal)
+supaya menyimpan ke Supabase Storage alih-alih disk lokal, dan menyesuaikan cara file itu
+dibaca kembali (URL publik dari Supabase Storage, bukan lagi `/uploads/...`). Ini pekerjaan
+yang cukup besar, belum dikerjakan sampai pengguna memutuskan mau lanjut atau tidak.
