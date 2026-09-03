@@ -1834,3 +1834,48 @@ membiarkannya apa adanya - tidak bisa memunculkan file yang memang sudah hilang.
 dijalankan, SEMUA 26 baris yang ditemukan berhasil dimigrasi (nol kasus seperti ini di data
 saat ini), tapi kalau nanti ditemukan link yang masih rusak dari data yang jauh lebih lama,
 ini kemungkinan penyebabnya - bukan bug di kode migrasinya.
+
+## Bug nyata ditemukan: scrollbar vertikal tersembunyi memotong tab & tabel (selesai 2026-09-04)
+
+Setelah laporan sebelumnya soal tab bar "washed out" yang gagal direproduksi (dicek berkali-kali
+lewat Playwright, hasilnya selalu bersih), pengguna kirim screenshot BARU yang jauh lebih jelas
+konteksnya (bukan potongan sangat rapat seperti sebelumnya) - dari situ ketahuan penyebab pasti,
+bukan lagi dugaan.
+
+**Akar masalah**: baris tab (`.tab-scroll-fade`, dipakai di `DetailTenderModal.jsx`,
+`ContractTab.jsx`, `DataMaster.jsx`, `Integration.jsx`, `VendorProfile.jsx`) dan hampir semua
+tabel di 13 halaman sistem (`.table-scroll`) sama-sama cuma diberi `overflow-x: auto` (utility
+Tailwind) TANPA `overflow-y` eksplisit. Menurut spesifikasi CSS, kalau `overflow-x` diisi selain
+`visible` sementara `overflow-y` dibiarkan `visible`, browser OTOMATIS menghitung `overflow-y`
+jadi `auto` juga (bukan tetap `visible`) - ini bukan bug browser, memang begitu aturannya.
+Dicek langsung lewat `getComputedStyle()` di tab bar Detail Tender: tingginya 26px sementara
+kontainernya cuma 19px (beda 7px, kemungkinan dari cara render ikon/font yang beda tipis antar
+browser) - beda 7px yang nyaris tidak kelihatan mata ini cukup untuk memicu scrollbar VERTIKAL
+di baris tab itu.
+
+**Kenapa gagal ketahuan di percobaan sebelumnya**: scrollbar vertikal ini di kebanyakan kondisi
+tampil sebagai garis SANGAT TIPIS model "overlay" (nyaris tak kelihatan, termasuk di lingkungan
+testing Playwright yang dipakai sebelumnya), tapi di sebagian kombinasi Windows/browser tampil
+TEBAL dan memotong tulisan tab yang kebetulan ada di posisi situ (kena "Peserta & Penawaran"
+dan "Aanwijzing" di screenshot pengguna). Pengecekan sebelumnya (`getBoundingClientRect()` buat
+cari elemen yang saling tumpang tindih) tidak bisa menangkap ini karena scrollbar BUKAN elemen
+DOM yang bisa dicek dengan cara itu - dia digambar langsung oleh browser di luar pohon elemen.
+
+**Perbaikan**: kunci `overflow-y: hidden` langsung di definisi CSS `.tab-scroll-fade` dan
+`.table-scroll` di `src/index.css` (bukan di tiap file yang memakainya satu-satu) - kedua
+elemen ini memang tidak pernah didesain butuh scroll vertikal sendiri, jadi guard ini otomatis
+memperbaiki SEMUA pemakaiannya sekaligus (5 tab bar + 13 halaman tabel) tanpa risiko ada yang
+terlewat kalau ditambal satu-satu di tiap file.
+
+Sudah dites: `getComputedStyle()` dicek ulang setelah perbaikan, `overflowY` sekarang `hidden`
+di tab bar Detail Tender maupun tabel Manajemen Vendor, dan dicek visual lewat screenshot tidak
+ada tulisan/ikon yang ikut terpotong sebagai efek samping (7px yang tadinya memicu scroll
+sekarang cuma disembunyikan diam-diam, tidak kelihatan bedanya secara visual).
+
+**Pelajaran metodologi penting**: kalau pengguna melaporkan sesuatu "masih bug" di area yang
+sudah dicek dan sepertinya bersih, jangan berhenti di pengecekan DOM/CSS element saja
+(`getBoundingClientRect`, overlap antar elemen) - scrollbar native browser itu sendiri BUKAN
+elemen DOM biasa dan tidak akan pernah ketahuan lewat cara itu. Cara yang benar: cek langsung
+`getComputedStyle(el).overflowY` dan bandingkan `el.scrollHeight` vs `el.clientHeight` di
+elemen yang overflow-x-nya diaktifkan - itu baru mengungkap potensi scrollbar tersembunyi yang
+efek visualnya bisa beda-beda tergantung browser/OS yang dipakai.
