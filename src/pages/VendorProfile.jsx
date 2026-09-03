@@ -7,6 +7,7 @@ import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab 
 import BidangUsahaTab from '../components/profile/BidangUsahaTab';
 import RekeningKoranTab from '../components/profile/RekeningKoranTab';
 import FollowupPanel from '../components/vendor/FollowupPanel';
+import VendorChecklistPanel from '../components/vendor/VendorChecklistPanel';
 import { toast } from '../lib/toast';
 
 function IdentityTab({ vendor }) {
@@ -346,6 +347,7 @@ export default function VendorProfile() {
       {/* Muncul otomatis cuma kalau ada permintaan kelengkapan dokumen yang belum dijawab -
           lihat src/components/vendor/FollowupPanel.jsx */}
       <FollowupPanel vendorId={vendorData.id} mode="penyedia" />
+      <VendorChecklistPanel vendorId={user.id} mode="penyedia" />
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="flex border-b border-border overflow-x-auto" style={{ scrollbarWidth: "thin" }}>

@@ -338,6 +338,7 @@ Legenda: ✅ selesai/dekat selesai · 🟡 ada tapi belum lengkap · ⬜ belum a
 - ✅ Rincian Penawaran / BOQ (`tender_bid_items`) - item per baris pada penawaran vendor, opsional, otomatis menghitung ulang total penawaran
 
 **Koreksi penting dari daftar awal**: setelah dicek controllernya, `rekanan_sertifikat_jenis` (versi lama daftar ini), `rekanan_checklist`, `rekanan_pakta_integritas`, dan `rekanan_url_validasi` ternyata **TIDAK PERNAH ADA controllernya sama sekali** di sistem lama - itu cuma tebakan salah dari nama tabel yang mirip. Sebaliknya ditemukan 2 fitur nyata yang sebelumnya tidak masuk daftar: `sertifikat_json.php` (master jenis sertifikat) dan `vendor_retail_json.php` (vendor retail).
+**[RALAT 2026-09-03]**: baris di atas soal `rekanan_checklist` SALAH - controllernya memang bukan file bernama persis itu, tapi fungsi checklist-nya ADA dan AKTIF di `rekanan_json.php` (`updateChecklist()`/`updateChecklist2()`, dipanggil dari 18 halaman `daftar_rekanan_*.php`). Lihat bagian "Checklist Verifikasi Kelengkapan Berkas Vendor" di bawah untuk detail lengkap dan fitur yang sudah dibangun.
 
 - ❌ Oracle ERP integration (`rekanan_oracle`) - **tidak akan dibuat**, ini integrasi ke sistem finansial lama yang sudah tidak dipakai/di luar cakupan
 
@@ -1331,3 +1332,56 @@ Paket Pengadaan + modal detail tender lengkap semua tab, Manajemen Vendor, Dafta
 E-Purchasing, Integrasi Oracle + tab Setup Supplier, Manajemen User, Pengajuan, portal publik)
 - nol error console, nol request gagal, semua 3 bug di atas dicek ulang sesudah diperbaiki.
 17 test regresi tetap lulus bersih.
+
+## Checklist Verifikasi Kelengkapan Berkas Vendor (selesai 2026-09-03)
+
+Pengguna nanya kenapa daftar dokumen vendor kosong di Manajemen Vendor (ternyata memang cuma
+2 vendor demo yang sengaja tidak diisi dokumen sama sekali, langsung dibetulkan lewat API -
+lihat riwayat commit). Dari situ pengguna nanya lebih jauh: apakah memang tidak ada checklist
+kelengkapan berkas di sistem lama? Dicek langsung ke kode & data sistem lama, ternyata **memang
+ADA dan AKTIF dipakai** - koreksi atas catatan lama di dokumen ini (bagian "Kelompok B") yang
+salah bilang `rekanan_checklist` tidak pernah ada controllernya.
+
+**Yang ditemukan**: fungsi `updateChecklist()`/`updateChecklist2()` di `rekanan_json.php`,
+dipanggil dari **18 halaman aktif** (`daftar_rekanan_administrasi_*.php`,
+`daftar_rekanan_teknis_*.php`, `daftar_rekanan_pajak_*.php`, dst) - tiap halaman punya checkbox
+"Ya, Lengkap" + kolom catatan. Data aslinya (tabel `rekanan_checklist`, 1 baris lebar per vendor
+dengan 19 kolom boolean + 18 kolom catatan pasangannya) berisi catatan verifikator sungguhan
+dari Nov-Des 2025 (`"revisi nomor ijin nyya"`, `"Kurang sesuatu"`) - bukan kode mati.
+
+**Diputuskan bersama pengguna**: dibangun, tapi disederhanakan mengikuti cara sistem baru
+mengelompokkan data kualifikasi vendor (10 tab yang sudah ada di halaman Profil & Kualifikasi:
+Legalitas, Pengalaman, Pajak, Pengurus, Tenaga Ahli, Peralatan, Bank, Neraca, Bidang Usaha,
+Rekening Koran) - bukan menyalin 19 field kaku sistem lama yang sebagian sudah tidak match
+struktur baru (npwp/nib/akta/pkp/spt_tahunan/cv/ktp semua sudah jadi 1 tab "Legalitas" via
+upload dokumen bebas jenis, bukan field terpisah).
+
+**Migrasi** `migrations/037_checklist_verifikasi_vendor.sql`: tabel baru
+`vendor_qualification_checklist` (satu baris per bagian per vendor, bukan 1 baris lebar seperti
+sistem lama - `vendor_id` FK ke `users.id` konsisten dengan `vendor_documents`/qualifications,
+BUKAN `vendors.id` seperti `vendor_followups`). Kolom: `section`, `is_complete`, `catatan`,
+`checked_by`, `checked_at`, UNIQUE(vendor_id, section).
+
+**Backend** (`server/routes/vendors.js`): `GET /:id/checklist` (`ownVendorDataOnly` - staf mana
+pun boleh lihat vendor manapun, vendor cuma boleh lihat punya sendiri; hasil digabung dengan
+daftar 10 section tetap supaya section yang belum pernah di-checklist tetap muncul dengan status
+default belum lengkap, sama pola dengan `procurement_request_checklist`), `POST /:id/checklist`
+(`requireVendorApproval` - admin/approval_vms saja, upsert satu section sekaligus lewat
+ON CONFLICT (vendor_id, section)).
+
+**Frontend**: komponen baru `src/components/vendor/VendorChecklistPanel.jsx` (pola sama seperti
+`FollowupPanel.jsx` - prop `mode`): `mode="verifikator"` di `VendorDetailModal.jsx` (pakai
+`vendor.user_id`, catatan penting field ini BEDA dari `FollowupPanel` yang pakai `vendor.id`) -
+tiap bagian checkbox + catatan + tombol Simpan sendiri-sendiri (10 baris independen, mengikuti
+persis pola sistem lama yang juga per-field). `mode="penyedia"` di `VendorProfile.jsx` (pakai
+`user.id`) - baca saja, cuma tampil kalau memang sudah ada minimal 1 bagian yang pernah
+di-review (supaya tidak menampilkan panel kosong tak berguna untuk vendor yang belum pernah
+diverifikasi sama sekali), dengan badge ringkasan "X/10 Lengkap".
+
+Sudah dites lewat curl (GET awal 10 baris default, POST checklist section valid, POST section
+tidak dikenal ditolak, vendor boleh GET punya sendiri tapi ditolak POST, vendor ditolak GET
+punya vendor lain) dan lewat browser sungguhan (centang + isi catatan + simpan di modal
+Verifikasi Vendor, toast konfirmasi muncul, badge "oleh Administrator Pusat" + tanggal tampil,
+sisi vendor menampilkan badge ringkasan dan catatan dengan benar). 17 test regresi tetap lulus
+bersih. Data uji (3 section PT Mitra Konstruksi Nusantara: Legalitas/Neraca/Tenaga Ahli)
+sengaja DIBIARKAN sebagai contoh isi fitur, konsisten dengan data demo lain di project ini.

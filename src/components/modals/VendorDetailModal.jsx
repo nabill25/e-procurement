@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertCircle, FileText, Download, Ban, Printer, Trash2 } from 'lucide-react';
 import { useApp, API_BASE, getAuthHeaders, SERVER_BASE } from '../../context/AppContext';
 import FollowupPanel from '../vendor/FollowupPanel';
+import VendorChecklistPanel from '../vendor/VendorChecklistPanel';
 
 export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, onReject, onSuspend, onBlock, onDelete }) {
   const { user } = useApp();
@@ -138,6 +139,9 @@ export default function VendorDetailModal({ isOpen, vendor, onClose, onVerify, o
             </div>
 
           </div>
+
+          {/* Checklist Verifikasi Kelengkapan Berkas - lihat src/components/vendor/VendorChecklistPanel.jsx */}
+          <VendorChecklistPanel vendorId={vendor.user_id} mode="verifikator" />
 
           {/* Tindak Lanjut Kelengkapan Dokumen - lihat src/components/vendor/FollowupPanel.jsx */}
           <FollowupPanel vendorId={vendor.id} mode="verifikator" />

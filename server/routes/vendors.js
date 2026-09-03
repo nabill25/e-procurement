@@ -428,6 +428,70 @@ router.get('/:id/qualifications', ownVendorDataOnly, async (req, res) => {
   }
 });
 
+// ── CHECKLIST VERIFIKASI KELENGKAPAN BERKAS (per bagian) ──
+// Padanan REKANAN_CHECKLIST di eProc lama (dikonfirmasi aktif dipakai lewat rekanan_json.php
+// fungsi updateChecklist()/updateChecklist2(), dipanggil dari 18 halaman verifikasi berbeda).
+// Di sistem baru disederhanakan mengikuti 10 tab yang sudah ada di halaman Profil &
+// Kualifikasi Vendor - satu baris per bagian per vendor, di-checklist "Ya, Lengkap" + catatan
+// oleh verifikator (admin/approval_vms), bisa dilihat vendor yang bersangkutan di profilnya
+// sendiri supaya tahu bagian mana yang masih perlu diperbaiki.
+const VENDOR_CHECKLIST_SECTIONS = [
+  { key: 'legalitas',      label: 'Legalitas (Akta, NIB, NPWP, dst)' },
+  { key: 'pengalaman',     label: 'Pengalaman Pekerjaan' },
+  { key: 'pajak',          label: 'Pajak' },
+  { key: 'pengurus',       label: 'Pengurus Perusahaan' },
+  { key: 'tenaga_ahli',    label: 'Tenaga Ahli' },
+  { key: 'peralatan',      label: 'Peralatan' },
+  { key: 'bank',           label: 'Data Rekening Bank' },
+  { key: 'neraca',         label: 'Neraca Keuangan' },
+  { key: 'bidang_usaha',   label: 'Bidang Usaha' },
+  { key: 'rekening_koran', label: 'Rekening Koran' },
+];
+
+router.get('/:id/checklist', ownVendorDataOnly, async (req, res) => {
+  try {
+    const existing = await pool.query(`
+      SELECT c.*, u.full_name AS checked_by_name
+      FROM vendor_qualification_checklist c
+      LEFT JOIN users u ON c.checked_by = u.id
+      WHERE c.vendor_id = $1
+    `, [req.params.id]);
+    const merged = VENDOR_CHECKLIST_SECTIONS.map(s => {
+      const found = existing.rows.find(r => r.section === s.key);
+      return {
+        section: s.key, label: s.label,
+        is_complete: found?.is_complete || false,
+        catatan: found?.catatan || null,
+        checked_by_name: found?.checked_by_name || null,
+        checked_at: found?.checked_at || null,
+      };
+    });
+    res.json({ success: true, data: merged });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/checklist', requireVendorApproval, async (req, res) => {
+  try {
+    const { section, is_complete, catatan } = req.body;
+    if (!VENDOR_CHECKLIST_SECTIONS.some(s => s.key === section)) {
+      return res.status(400).json({ success: false, message: 'Bagian checklist tidak dikenal.' });
+    }
+    const result = await pool.query(`
+      INSERT INTO vendor_qualification_checklist (vendor_id, section, is_complete, catatan, checked_by, checked_at)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      ON CONFLICT (vendor_id, section) DO UPDATE SET
+        is_complete = EXCLUDED.is_complete, catatan = EXCLUDED.catatan,
+        checked_by = EXCLUDED.checked_by, checked_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [req.params.id, section, !!is_complete, catatan || null, req.user.id]);
+    res.json({ success: true, message: 'Checklist berhasil disimpan.', data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ── TINDAK LANJUT KELENGKAPAN DOKUMEN PENYEDIA ──
 // Padanan fitur "Pencatatan Tindak Lanjut Kelengkapan Dokumen Penyedia" yang dirancang untuk
 // sistem lama (draft di folder root project 2026-09-01_pencatatan-tindak-lanjut-verifikasi-
