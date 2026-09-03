@@ -380,6 +380,24 @@ async function seedVendors(ctx) {
     v.token = await loginAs(v.username);
   }
 
+  // Penjaga idempotensi (ditambahkan 2026-09-03 setelah ketahuan run ulang menggandakan
+  // dokumen/pengalaman vendor - registerVendorIfMissing di atas sudah aman untuk dipanggil
+  // berkali-kali, tapi bagian "lengkapi kualifikasi" di bawah ini semuanya INSERT polos tanpa
+  // ON CONFLICT, jadi kalau dibiarkan jalan lagi pada vendor yang sudah pernah dilengkapi,
+  // dokumennya akan dobel terus tiap kali skrip ini dijalankan ulang).
+  const sudahDilengkapi = await pool.query('SELECT id FROM vendor_documents WHERE vendor_id = $1 LIMIT 1', [mkUserId]);
+  if (sudahDilengkapi.rows.length) {
+    for (const key of Object.keys(ctx.vendors)) {
+      const v = ctx.vendors[key];
+      const r = await pool.query('SELECT id FROM vendors WHERE user_id = $1', [v.userId]);
+      v.vendorId = r.rows[0].id;
+      v.token = await loginAs(v.username);
+    }
+    const vc = await pool.query(`SELECT v.id AS vendor_id, v.user_id FROM vendors v JOIN users u ON u.id=v.user_id WHERE u.username='vendor@gmail.com' OR u.email='vendor@gmail.com' LIMIT 1`);
+    if (vc.rows.length) ctx.vendors.vendorContoh = { userId: vc.rows[0].user_id, vendorId: vc.rows[0].vendor_id, name: 'PT Vendor Contoh', token: await loginAs('vendor@gmail.com', 'UIVendor2026!') };
+    return;
+  }
+
   // ── Lengkapi kualifikasi PT Mitra Konstruksi Nusantara (paling lengkap, dia pemenang) ──
   const mk = ctx.vendors.mitraKonstruksi;
   await put(`/vendors/${mk.userId}/profile`, {
@@ -585,7 +603,7 @@ async function seedPengajuan(ctx) {
 // FASE 7: Tender B (bidding pertengahan jalan), C (baru diumumkan), D (dibatalkan)
 // ═══════════════════════════════════════════════════════════════════════════
 async function findDraftTenderByTitle(title) {
-  const r = await pool.query('SELECT id, tender_number FROM tenders WHERE title = $1 ORDER BY created_at DESC LIMIT 1', [title]);
+  const r = await pool.query('SELECT id, tender_number, status FROM tenders WHERE title = $1 ORDER BY created_at DESC LIMIT 1', [title]);
   return r.rows[0];
 }
 
@@ -594,7 +612,13 @@ async function seedOtherTenders(ctx) {
 
   // ── Tender B: dari pengajuan Peralatan Lab, sudah di tahap penawaran ──
   const tB = await findDraftTenderByTitle('Pengadaan Peralatan Laboratorium Kimia');
-  if (tB) {
+  // Penjaga idempotensi (ditambahkan 2026-09-03) - blok ini masih 'draft' begitu pertama kali
+  // ditemukan lewat pengajuan yang baru di-ACC; kalau statusnya sudah berubah (bukan 'draft'
+  // lagi), berarti blok di bawah ini sudah pernah jalan sebelumnya - lewati supaya chat
+  // aanwijzing dkk (INSERT polos, bukan upsert) tidak dobel tiap run ulang.
+  if (tB && tB.status && tB.status !== 'draft') {
+    ctx.tenders.peralatanLab = { id: tB.id, number: tB.tender_number };
+  } else if (tB) {
     ctx.tenders.peralatanLab = { id: tB.id, number: tB.tender_number };
     await api('PATCH', `/tenders/${tB.id}/stage`, { token: ctx.pokjaToken, body: { status: 'pengumuman', user_id: ctx.pokjaId } });
     await api('PATCH', `/tenders/${tB.id}/stage`, { token: ctx.pokjaToken, body: { status: 'pendaftaran', user_id: ctx.pokjaId } });
@@ -654,6 +678,18 @@ async function seedHeroTender(ctx) {
   if (!t) throw new Error('Tender hero belum ada (pengajuan belum ter-ACC?)');
   const id = t.id;
   ctx.tenders.hero = { id, number: t.tender_number };
+
+  // Penjaga idempotensi (ditambahkan 2026-09-03 setelah run ulang penuh sempat menggandakan
+  // SEMUA anak data hero tender ini ~2x lipat - eval-criteria, payment-terms, dst tidak
+  // punya ON CONFLICT karena memang selalu dimaksudkan sebagai insert baru tiap dipanggil
+  // manusia sungguhan). Fungsi ini SENGAJA tidak didesain aman untuk dipanggil berkali-kali
+  // pada tender yang sama - kalau kontraknya sudah ada, anggap sudah pernah selesai dibangun
+  // dan lewati semuanya, bukan ulang dari awal.
+  const existingContract = await pool.query('SELECT id FROM contracts WHERE tender_id = $1', [id]);
+  if (existingContract.rows.length) {
+    console.log('\n   (hero tender sudah lengkap sebelumnya, dilewati supaya tidak dobel)');
+    return;
+  }
   const stg = (status) => api('PATCH', `/tenders/${id}/stage`, { token: ctx.pokjaToken, body: { status, user_id: ctx.pokjaId } });
 
   const mk = ctx.vendors.mitraKonstruksi; // pemenang
@@ -964,6 +1000,11 @@ async function seedKatalog(ctx) {
   const mk = ctx.vendors.mitraKonstruksi;
   if (!vc) return;
 
+  // Penjaga idempotensi (ditambahkan 2026-09-03) - POST /katalog selalu bikin produk baru,
+  // tidak ada cek nama duplikat di endpoint-nya, jadi run ulang bikin produk dobel.
+  const sudahAda = await pool.query(`SELECT id, item_name FROM katalog_items WHERE item_name = 'Laptop Office ProBook 14"' LIMIT 1`);
+  if (sudahAda.rows.length) return;
+
   const katElektronik = ctx.katCategories.find(c => c.nama.includes('Elektronik'));
   const katAtk = ctx.katCategories.find(c => c.nama.includes('Tulis'));
 
@@ -1044,6 +1085,11 @@ async function seedBlacklist(ctx) {
 // FASE 12: Pusat Pesan (Inbox) - kontak biasa + komplain terstruktur + balasan
 // ═══════════════════════════════════════════════════════════════════════════
 async function seedInbox(ctx) {
+  // Penjaga idempotensi (ditambahkan 2026-09-03) - POST /inbox publik, tidak ada cek duplikat
+  // sama sekali di endpoint-nya (memang tidak seharusnya ada, pesan sungguhan boleh mirip).
+  const sudahAda = await pool.query(`SELECT id FROM inbox_messages WHERE subject = 'Pertanyaan Jadwal Tender' AND sender_name = 'Ahmad Fauzan' LIMIT 1`);
+  if (sudahAda.rows.length) return;
+
   const cats = await get('/inbox/categories');
   const catId = cats.data[0]?.id;
   const m1 = await postForm('/inbox', form({
@@ -1118,6 +1164,11 @@ async function seedOracleSupplier(ctx) {
   const dispatcher = ctx.staff.dispatcher_oracle, pelaksana = ctx.staff.pelaksana_oracle;
   if (!pengaju || !verif || !dispatcher || !pelaksana) return;
 
+  // Penjaga idempotensi (ditambahkan 2026-09-03) - POST / selalu bikin tiket baru dengan kode
+  // otomatis, tidak ada cek duplikat nama supplier (memang tidak seharusnya ada untuk data asli).
+  const sudahAda = await pool.query(`SELECT id FROM oracle_supplier_requests WHERE nama_supplier = 'CV Fajar Elektronik' LIMIT 1`);
+  if (sudahAda.rows.length) return;
+
   const baseData = (nama, ou) => ({
     operating_unit: ou, nama_supplier: nama, alamat_kantor: 'Jl. Contoh Raya No. 1', no_telp: '021-1234567',
     nama_kontak: 'Kontak Person', jabatan: 'Manajer', no_pkp: 'PKP-' + Math.floor(Math.random() * 9999),
@@ -1158,6 +1209,13 @@ async function seedOracleSupplier(ctx) {
 async function seedVendorFollowup(ctx) {
   const bj = ctx.vendors.berkahJaya; // ditangguhkan, cocok untuk followup terbuka
   if (!bj) return;
+
+  // Penjaga idempotensi (ditambahkan 2026-09-03) - endpoint /followup/request & /confirm &
+  // /complete semuanya selalu INSERT baris riwayat baru (memang begitu desainnya untuk data
+  // sungguhan, riwayat tidak boleh ketimpa), jadi run ulang bikin siklus riwayatnya dobel-dobel.
+  const sudahAda = await pool.query('SELECT id FROM vendor_followups WHERE vendor_id = $1 LIMIT 1', [bj.vendorId]);
+  if (sudahAda.rows.length) return;
+
   await post(`/vendors/${bj.vendorId}/followup/request`, { catatan: 'Mohon lengkapi salinan NPWP terbaru dan Akta Perubahan Terakhir perusahaan Anda.' }, ctx.adminToken);
 
   const gs = ctx.vendors.globalSukses;
@@ -1176,6 +1234,89 @@ async function seedApiKey(ctx) {
   const existing = await get('/users/api-keys', ctx.adminToken);
   if (existing.data?.length) return;
   await post('/users/api-keys', { client_name: 'Integrasi Portal SIRUP (Contoh)', created_by: ctx.adminId }, ctx.adminToken).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FASE 18: Data tambahan khusus dashboard - grafik efisiensi (Dashboard Pimpinan) dan
+// tren pengajuan bulanan butuh variasi (beberapa unit kerja, beberapa bulan) yang tidak
+// terpenuhi cukup dari fase-fase sebelumnya sendirian (cuma 1 tender hero yang jadi kontrak,
+// dan semua pengajuan dibuat "hari ini" jadi tren bulanannya cuma 1 titik).
+// ═══════════════════════════════════════════════════════════════════════════
+async function seedDashboardExtras(ctx) {
+  // HPS tender hero tidak pernah keisi (dibuat otomatis dari pengajuan, jalur itu cuma isi
+  // pagu_anggaran) - tanpa HPS, kontraknya tidak pernah ikut terhitung di grafik efisiensi
+  // (query-nya mensyaratkan hps IS NOT NULL).
+  await pool.query(`UPDATE tenders SET hps = 2600000000 WHERE tender_number = $1 AND hps IS NULL`, [ctx.tenders?.hero?.number || 'TENDER/2026/001']);
+
+  const mkId = ctx.vendors?.mitraKonstruksi?.userId;
+  const saId = ctx.vendors?.sinarAbadi?.userId;
+  if (!mkId || !saId) return;
+
+  const buatKontrakCepat = async ({ judul, unit_kerja, category, pagu, hps, nilaiKontrak, vendorUserId, tanggalKontrak }) => {
+    let pr = await findPengajuanByTitle(judul);
+    if (!pr) {
+      const created = await post('/pengajuan', {
+        title: judul, unit_kerja, category, estimated_value: pagu,
+        budget_source: 'BOPTN', description: `Pengadaan ${category.toLowerCase()} untuk ${unit_kerja}.`,
+      }, ctx.ppkToken);
+      const row = await pool.query('SELECT id FROM procurement_requests WHERE request_number = $1', [created.request_number]);
+      pr = { id: row.rows[0].id, number: created.request_number };
+      await post(`/pengajuan/${pr.id}/review`, { admin_notes: 'Lengkap.', is_docs_complete: true, user_id: ctx.adminId }, ctx.adminToken);
+      await post(`/pengajuan/${pr.id}/approve`, { user_id: ctx.adminId }, ctx.adminToken);
+    }
+    const t = await pool.query('SELECT id, hps FROM tenders WHERE procurement_request_id = $1', [pr.id]);
+    const tenderId = t.rows[0]?.id;
+    if (!tenderId) return;
+    if (!t.rows[0].hps) await pool.query('UPDATE tenders SET hps = $1 WHERE id = $2', [hps, tenderId]);
+
+    const existingContract = await pool.query('SELECT id FROM contracts WHERE tender_id = $1', [tenderId]);
+    if (existingContract.rows.length) return;
+
+    const contractNumber = `SPK/${judul.slice(0, 3).toUpperCase()}/${Date.now()}`;
+    await pool.query(`
+      INSERT INTO contracts (tender_id, vendor_id, contract_number, contract_date, contract_value, status, stage)
+      VALUES ($1, $2, $3, $4, $5, 'selesai', 'selesai')
+    `, [tenderId, vendorUserId, contractNumber, tanggalKontrak, nilaiKontrak]);
+    await pool.query(`UPDATE tenders SET status = 'selesai' WHERE id = $1`, [tenderId]);
+  };
+
+  await buatKontrakCepat({
+    judul: 'Pengadaan Sistem Presensi Elektronik Fakultas Ekonomi dan Bisnis',
+    unit_kerja: 'Fakultas Ekonomi dan Bisnis', category: 'Barang', pagu: 520000000,
+    hps: 500000000, nilaiKontrak: 460000000, vendorUserId: saId, tanggalKontrak: '2026-08-10',
+  });
+  await buatKontrakCepat({
+    judul: 'Pengadaan Renovasi Ruang Rawat Inap Fakultas Kedokteran',
+    unit_kerja: 'Fakultas Kedokteran', category: 'Konstruksi', pagu: 850000000,
+    hps: 800000000, nilaiKontrak: 850000000, vendorUserId: mkId, tanggalKontrak: '2026-07-22',
+  });
+  await buatKontrakCepat({
+    judul: 'Pengadaan Peralatan Laboratorium Fisika Fakultas Teknik',
+    unit_kerja: 'Fakultas Teknik', category: 'Barang', pagu: 610000000,
+    hps: 590000000, nilaiKontrak: 545000000, vendorUserId: saId, tanggalKontrak: '2026-06-15',
+  });
+
+  // Mundurkan tanggal beberapa pengajuan supaya grafik "Tren Pengajuan" (6 bulan terakhir)
+  // menunjukkan sebaran sungguhan, bukan cuma 1 titik di bulan ini.
+  const jadwalMundur = [
+    ['Pengadaan Peralatan Laboratorium Kimia', '2026-04-12'],
+    ['Pengadaan Katering Acara Wisuda Fakultas', '2026-05-20'],
+    ['Pengadaan Jasa Konsultan Studi Kelayakan Gedung Serbaguna', '2026-06-18'],
+    ['Pengadaan Alat Tulis Kantor Direktorat', '2026-07-25'],
+    ['Pengadaan Sistem Informasi Akademik Tambahan', '2026-08-05'],
+    ['Pengadaan Sistem Presensi Elektronik Fakultas Ekonomi dan Bisnis', '2026-08-01'],
+    ['Pengadaan Renovasi Ruang Rawat Inap Fakultas Kedokteran', '2026-07-01'],
+    ['Pengadaan Peralatan Laboratorium Fisika Fakultas Teknik', '2026-06-01'],
+  ];
+  for (const [judul, tanggal] of jadwalMundur) {
+    await pool.query('UPDATE procurement_requests SET created_at = $1 WHERE title = $2 AND created_at > $1', [tanggal, judul]);
+  }
+
+  // Kelas kualifikasi vendor (SIKaP) - field murni deskriptif, tidak ada satupun alur di
+  // sistem lama maupun baru yang pernah menuliskannya, jadi diisi langsung supaya kolom
+  // "Kelas Kualifikasi" di daftar vendor & leaderboard dashboard tidak kosong.
+  await pool.query(`UPDATE vendors SET qualification_class = 'Besar' WHERE user_id = $1 AND qualification_class IS NULL`, [mkId]);
+  await pool.query(`UPDATE vendors SET qualification_class = 'Menengah' WHERE user_id = $1 AND qualification_class IS NULL`, [saId]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1203,6 +1344,7 @@ async function main() {
   await phase('15. Setup Supplier Oracle', seedOracleSupplier, ctx);
   await phase('16. Tindak Lanjut Vendor', seedVendorFollowup, ctx);
   await phase('17. API Key demo', seedApiKey, ctx);
+  await phase('18. Data tambahan dashboard (efisiensi, tren)', seedDashboardExtras, ctx);
 
   console.log('\n═══════════════════════════════════════════════════════════');
   console.log(' SELESAI');
@@ -1227,4 +1369,4 @@ if (require.main === module) {
 module.exports = { pool, api, get, post, patch, put, del, postForm, patchForm, form, docBlob, imgBlob, loginAs, phase,
   cleanupStray, loginAdmin, seedMasterData, seedStaffAccounts, seedVendors, seedPengajuan, seedOtherTenders, seedHeroTender,
   seedKatalog, seedPurchasing, seedBlacklist, seedInbox, seedCms, seedOracleIntegration, seedOracleSupplier,
-  seedVendorFollowup, seedApiKey, findDraftTenderByTitle, main };
+  seedVendorFollowup, seedApiKey, seedDashboardExtras, findDraftTenderByTitle, findPengajuanByTitle, main };

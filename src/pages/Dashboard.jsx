@@ -160,7 +160,7 @@ function PokjaView({ dashboardStats, analytics, refreshTrigger }) {
         </div>
         <div className="glass-card p-5 flex items-center gap-4 animate-slide-up" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600"><CheckCircle2 size={24} /></div>
-          <div><p className="text-xs font-semibold text-muted mb-1">Tender Selesai</p><p className="text-2xl font-bold text-dpbj-navy tabular-nums">{dashboardStats?.completed_contracts || 0}</p></div>
+          <div><p className="text-xs font-semibold text-muted mb-1">Tender Selesai</p><p className="text-2xl font-bold text-dpbj-navy tabular-nums">{dashboardStats?.completed_tenders || 0}</p></div>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -180,23 +180,27 @@ function PokjaView({ dashboardStats, analytics, refreshTrigger }) {
 }
 
 function VendorView({ dashboardStats }) {
+  const statusLabel = { terverifikasi: 'terverifikasi', pending: 'menunggu verifikasi', ditangguhkan: 'ditangguhkan', diblokir: 'diblokir' };
+  const vendorStatus = dashboardStats?.vendor_status;
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="glass-card p-5 flex flex-col justify-center animate-slide-up" style={{ animationFillMode: 'backwards' }}>
           <div className="flex items-center gap-3 mb-2">
-            <CheckCircle2 size={20} className="text-emerald-500" />
+            <CheckCircle2 size={20} className={vendorStatus === 'terverifikasi' ? 'text-emerald-500' : 'text-amber-500'} />
             <p className="text-sm font-bold text-dpbj-navy">Status Verifikasi</p>
           </div>
-          <p className="text-xs text-muted">Akun Anda telah terverifikasi dan memenuhi syarat mengikuti lelang.</p>
+          <p className="text-xs text-muted">
+            {vendorStatus === 'terverifikasi'
+              ? 'Akun Anda telah terverifikasi dan memenuhi syarat mengikuti lelang.'
+              : vendorStatus
+                ? `Status akun Anda saat ini: ${statusLabel[vendorStatus] || vendorStatus}. Beberapa fitur mungkin masih terbatas.`
+                : 'Memuat status akun...'}
+          </p>
         </div>
         <div className="glass-card p-5 flex items-center gap-4 animate-slide-up" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600"><Handshake size={24} /></div>
-          <div><p className="text-xs font-semibold text-muted mb-1">Tender Diikuti</p><p className="text-2xl font-bold text-dpbj-navy">0</p></div>
-        </div>
-        <div className="glass-card p-5 flex items-center gap-4 animate-slide-up" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600"><AlertTriangle size={24} /></div>
-          <div><p className="text-xs font-semibold text-muted mb-1">Undangan Langsung</p><p className="text-2xl font-bold text-dpbj-navy">0</p></div>
+          <div><p className="text-xs font-semibold text-muted mb-1">Tender Diikuti</p><p className="text-2xl font-bold text-dpbj-navy tabular-nums">{dashboardStats?.vendor_tenders_joined || 0}</p></div>
         </div>
       </div>
 

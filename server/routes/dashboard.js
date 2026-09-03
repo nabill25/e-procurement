@@ -11,23 +11,41 @@ const { requireRole } = require('../lib/authMiddleware');
 const requireLeadership = requireRole('admin', 'ppk', 'manager_pengadaan');
 
 // ── GET /api/dashboard ──
+// Catatan (ditemukan 2026-09-03): v_dashboard_stats cuma punya 5 kolom, tapi PokjaView di
+// frontend (Dashboard.jsx) butuh 2 field lagi yang TIDAK PERNAH ada di view ini
+// (total_tenders, dan field "Tender Selesai" yang sebelumnya salah dipetakan ke
+// completed_contracts - itu sebenarnya field "Kontrak Selesai (BAST)" untuk AdminPPKView,
+// beda makna). Ditambahkan di sini (bukan ubah struktur view) supaya tidak perlu migrasi baru.
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM v_dashboard_stats');
-    const rows = result.rows;
-    if (!rows.length) {
-      return res.json({
-        success: true,
-        data: {
-          active_tenders: 0,
-          verified_vendors: 0,
-          completed_contracts: 0,
-          total_budget_this_year: 0,
-          pending_reviews: 0,
-        }
-      });
+    const base = result.rows[0] || {
+      active_tenders: 0, verified_vendors: 0, completed_contracts: 0,
+      total_budget_this_year: 0, pending_reviews: 0,
+    };
+
+    const extra = await pool.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM tenders WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)) AS total_tenders,
+        (SELECT COUNT(*)::int FROM tenders WHERE status = 'selesai') AS completed_tenders
+    `);
+    const data = { ...base, ...extra.rows[0] };
+
+    // Vendor yang login: tambahkan angka partisipasinya sendiri + status verifikasi (dipakai
+    // VendorView di Dashboard.jsx - sebelumnya kartu jumlah tender hardcoded angka 0, dan teks
+    // status verifikasi selalu bilang "terverifikasi" apapun status sungguhannya, tidak pernah
+    // baca data asli. user dari useApp()/JWT tidak menyimpan status vendor, jadi diambil di sini).
+    if (req.user?.role === 'vendor') {
+      const joined = await pool.query(
+        `SELECT COUNT(*)::int AS jumlah FROM tender_participants WHERE vendor_id = $1`,
+        [req.user.id]
+      );
+      data.vendor_tenders_joined = joined.rows[0].jumlah;
+      const statusRow = await pool.query('SELECT status FROM vendors WHERE user_id = $1', [req.user.id]);
+      data.vendor_status = statusRow.rows[0]?.status || null;
     }
-    res.json({ success: true, data: rows[0] });
+
+    res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -65,12 +83,17 @@ router.get('/analytics', async (req, res) => {
         ORDER BY count DESC
         LIMIT 6
       `),
-      // Vendor dengan skor kinerja tertinggi (untuk leaderboard kecil)
+      // Vendor dengan skor kinerja tertinggi (untuk leaderboard kecil). Catatan (ditemukan
+      // 2026-09-03): sebelumnya baca vendors.performance_score, kolom yang TIDAK PERNAH
+      // ditulis di manapun di seluruh aplikasi (selalu 0.00) - rating asli tersimpan di
+      // users.rating_avg/rating_count (diisi lewat POST /api/vendors/:id/rating, ditampilkan
+      // juga di halaman Manajemen Vendor). Diperbaiki supaya baca sumber yang sungguhan.
       pool.query(`
-        SELECT company_name, performance_score, qualification_class
-        FROM vendors
-        WHERE status = 'terverifikasi' AND performance_score IS NOT NULL
-        ORDER BY performance_score DESC
+        SELECT v.company_name, u.rating_avg AS performance_score, v.qualification_class
+        FROM vendors v
+        JOIN users u ON u.id = v.user_id
+        WHERE v.status = 'terverifikasi' AND u.rating_count > 0
+        ORDER BY u.rating_avg DESC
         LIMIT 5
       `),
     ]);

@@ -1385,3 +1385,78 @@ Verifikasi Vendor, toast konfirmasi muncul, badge "oleh Administrator Pusat" + t
 sisi vendor menampilkan badge ringkasan dan catatan dengan benar). 17 test regresi tetap lulus
 bersih. Data uji (3 section PT Mitra Konstruksi Nusantara: Legalitas/Neraca/Tenaga Ahli)
 sengaja DIBIARKAN sebagai contoh isi fitur, konsisten dengan data demo lain di project ini.
+
+## Isi Data Dashboard + 4 bug nyata ditemukan & diperbaiki (selesai 2026-09-03)
+
+Pengguna minta tampilan Dashboard (semua varian: Admin/PPK, Pokja & role staf lain, Vendor,
+dan Dashboard Pimpinan) diisi supaya tidak kosong. Dicek satu-satu, ternyata sebagian widget
+memang BUKAN cuma kurang data - beberapa terhubung ke kolom yang tidak pernah ditulis
+manapun, atau field yang salah nama:
+
+1. **`completed_contracts` di dashboard SELALU 0 apapun isi datanya** - `PATCH
+   /:id/contract/stage` cuma menulis kolom `stage`, tidak pernah ikut menulis kolom `status`
+   (yang dibaca `v_dashboard_stats` sebagai "Kontrak Selesai / Telah BAST"). Akibatnya kontrak
+   manapun yang sudah tuntas workflow-nya (`stage='selesai'`) tetap ber-`status='aktif'`
+   selamanya. Diperbaiki: endpoint itu sekarang ikut menyamakan `status` jadi `'selesai'`
+   begitu `stage` mencapai `'selesai'` (dan balik `'aktif'` kalau tahapnya dimundurkan lagi,
+   status lain seperti `'draft'` sengaja tidak disentuh).
+2. **`PokjaView` (dashboard staf non-Admin/PPK) baca 2 field yang tidak pernah dikembalikan
+   `GET /api/dashboard` sama sekali** - `total_tenders` (kartu "Total Tender Tahun Ini" selalu
+   0) dan salah pakai `completed_contracts` untuk kartu "Tender Selesai" (padahal field itu
+   soal BAST kontrak, beda makna). Ditambahkan `total_tenders` dan `completed_tenders`
+   (hitungan asli `tenders.status='selesai'`) di endpoint yang sama.
+3. **Leaderboard "Vendor Kinerja Terbaik" baca `vendors.performance_score`, kolom yang TIDAK
+   PERNAH ditulis di manapun di seluruh aplikasi** (selalu 0.00) - rating asli tersimpan di
+   `users.rating_avg`/`rating_count` (diisi lewat fitur rating yang sudah ada, ditampilkan di
+   halaman Manajemen Vendor). Query `dashboard/analytics` diperbaiki baca sumber yang benar.
+4. **`VendorView` (dashboard vendor) punya 2 kartu palsu**: "Tender Diikuti" hardcoded angka
+   `0` di JSX (bukan baca state/props sama sekali), dan "Undangan Langsung" juga hardcoded `0`
+   TANPA ada satupun fitur "undangan langsung" yang pernah dibangun di sistem baru (dicek,
+   tidak ada konsep ini di manapun) - jadi bukan kurang data, tapi memang tidak pernah ada
+   fiturnya. "Tender Diikuti" diperbaiki jadi hitungan asli (`tender_participants` milik
+   vendor yang login, ditambahkan ke `GET /api/dashboard` khusus kalau `req.user.role ===
+   'vendor'`, sekalian tambah `vendor_status` asli - teks "Akun Anda terverifikasi" sebelumnya
+   SELALU tampil apapun status vendor sungguhannya). "Undangan Langsung" dihapus (bukan
+   didiamkan kosong - fitur yang memang tidak ada tidak boleh berpura-pura ada).
+
+**Data tambahan** (fase baru `seedDashboardExtras` di `seed_demo_data.js`, permanen, bagian
+dari `npm run seed:demo`): HPS tender hero diisi (sebelumnya kosong, bikin kontraknya tidak
+pernah ikut terhitung di grafik efisiensi yang mensyaratkan HPS terisi), 3 kontrak selesai
+tambahan di 3 unit kerja berbeda dengan campuran efisien (+) dan defisit (-) supaya grafik
+"Efisiensi per Unit Kerja" di Dashboard Pimpinan benar-benar terlihat sebagai grafik (bukan 1
+baris doang), beberapa pengajuan dimundurkan tanggalnya ke bulan berbeda supaya "Tren
+Pengajuan" jadi grafik garis sungguhan (bukan 1 titik), dan `qualification_class` diisi untuk
+2 vendor demo (field murni deskriptif, tidak ada satupun alur di sistem lama maupun baru yang
+pernah menuliskannya).
+
+**Insiden penting saat mengerjakan ini - pelajaran keras soal idempotensi**: untuk memverifikasi
+fase baru di atas, `node server/seed_demo_data.js` dijalankan ulang secara PENUH pada database
+yang sudah terisi dari sebelumnya. Ternyata banyak fase yang KELIHATANNYA aman dipanggil
+berkali-kali TERNYATA TIDAK - `seedHeroTender` (paling parah, hampir semua isi tender hero
+sampai DOBEL 2x lipat: kriteria evaluasi, termin pembayaran, dokumen, dst), plus bagian
+"lengkapi kualifikasi" di `seedVendors`, `seedKatalog`, `seedOracleSupplier`,
+`seedVendorFollowup`, `seedInbox`, dan bagian pendaftaran+chat Tender B di `seedOtherTenders` -
+semuanya cuma dilindungi idempotensi di LEVEL PENCIPTAAN AWAL (nama vendor/judul pengajuan
+sudah ada = jangan buat baru), tapi TIDAK di level "detail/riwayat" yang selalu INSERT polos
+tanpa `ON CONFLICT` (memang sengaja begitu untuk data sungguhan - riwayat tidak boleh ketimpa).
+**Semua fase itu sekarang sudah diberi penjaga idempotensi eksplisit** (skip total kalau
+tandanya sudah ada, bukan cuma skip penciptaan awal) - `seed_demo_data.js` sekarang AMAN
+dijalankan ulang berkali-kali tanpa menggandakan apapun. Duplikat yang terlanjur ada
+dibersihkan (skrip sekali-pakai, sudah dihapus): `oracle_supplier_requests` (+logs),
+`katalog_items` (+foto/lampiran/riwayat harga, referensi `katalog_cart_items` &
+`purchasing_order_items` dipindah ke baris yang dipertahankan dulu sebelum hapus),
+`purchasing_orders`, `blacklist`, `vendor_followups`, `vendor_documents`,
+`vendor_experiences`, `inbox_messages` (+balasannya). Tender hero sendiri (paling parah)
+dibongkar total lalu dibangun ulang dari nol satu kali lewat `seedHeroTender()` yang sudah
+diberi penjaga.
+
+**Pelajaran untuk seluruh isi `seed_demo_data.js` ke depan**: jangan pernah anggap suatu fase
+"pasti aman dipanggil ulang" hanya karena bagian PALING AWALNYA (nama/judul) sudah dicek - cek
+juga SEMUA langkah INSERT polos di dalamnya. Kalau ragu, tambahkan penjaga di paling atas
+fungsi (skip total kalau satu tanda kuat sudah ada), pola yang sama seperti dipakai
+`seedHeroTender`/`seedKatalog`/`seedOracleSupplier` sekarang.
+
+Sudah dites lewat curl (semua endpoint yang diubah) dan browser sungguhan (screenshot 4 varian
+dashboard: Admin/PPK, Pokja, Vendor, Dashboard Pimpinan - nol error console di semuanya, data
+tampil benar termasuk grafik efisiensi diverging hijau/merah dan tren bulanan). 17 test regresi
+tetap lulus bersih setelah seluruh pekerjaan ini.

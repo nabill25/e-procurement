@@ -1426,7 +1426,20 @@ router.patch('/:id/contract/stage', async (req, res) => {
     if (!['persiapan', 'pengendalian', 'penyelesaian', 'selesai'].includes(stage)) {
       return res.status(400).json({ success: false, message: 'stage tidak valid.' });
     }
-    const result = await pool.query(`UPDATE contracts SET stage = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`, [stage, contractId]);
+    // Ikut samakan contracts.status begitu tahap mencapai 'selesai' (ditemukan 2026-09-03:
+    // sebelumnya kolom stage dan status berjalan sendiri-sendiri - stage bisa 'selesai' tapi
+    // status tetap 'aktif' selamanya karena tidak ada kode manapun yang pernah menuliskan
+    // status='selesai'. Akibatnya kartu "Kontrak Selesai" di dashboard SELALU 0 walau kontrak
+    // sungguhan sudah tuntas). Kalau tahap mundur lagi dari 'selesai' ke tahap sebelumnya,
+    // status ikut balik 'aktif' - tapi status lain (mis. 'draft') sengaja tidak disentuh.
+    const result = await pool.query(`
+      UPDATE contracts SET stage = $1::varchar, status = CASE
+        WHEN $1::varchar = 'selesai' THEN 'selesai'
+        WHEN status = 'selesai' THEN 'aktif'
+        ELSE status
+      END, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 RETURNING *
+    `, [stage, contractId]);
     res.json({ success: true, message: 'Tahap kontrak berhasil diperbarui.', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
