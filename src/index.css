@@ -129,6 +129,11 @@
      tanpa trik ini gradient akan selalu tampil walau tidak ada overflow sungguhan. */
   .table-scroll {
     @apply overflow-x-auto rounded-xl border border-border;
+    /* Lihat catatan panjang di .tab-scroll-fade di bawah soal kenapa ini wajib dikunci
+       eksplisit - overflow-x-auto tanpa overflow-y eksplisit bisa memicu scrollbar
+       vertikal tersembunyi/tebal (tergantung browser) walau isinya cuma beda tinggi
+       beberapa piksel saja. Tabel di sini tidak pernah butuh scroll vertikal sendiri. */
+    overflow-y: hidden;
     scrollbar-width: thin;
     scrollbar-color: theme('colors.dpbj.gold') theme('colors.surface');
     background:
@@ -161,6 +166,18 @@
     background-repeat: no-repeat;
     background-size: 32px 100%;
     background-attachment: local;
+    /* Ditemukan 2026-09-04: elemen ini selalu dipasangkan dengan overflow-x-auto (utility
+       Tailwind) di kelas tempat pemanggilnya, TANPA overflow-y eksplisit. Menurut spesifikasi
+       CSS, kalau overflow-x diisi selain "visible" sementara overflow-y dibiarkan "visible",
+       browser otomatis mengubah overflow-y jadi "auto" juga (bukan tetap "visible"). Baris
+       tab ini kadang tingginya beda tipis (7px) dari tinggi kontainernya (beda rendering
+       ikon/font antar browser), jadi overflow-y yang "auto" itu memicu scrollbar VERTIKAL
+       tersembunyi tepat di baris tab - di kebanyakan browser nyaris tak kelihatan (scrollbar
+       tipis model overlay), tapi di sebagian kombinasi Windows/browser jadi tebal dan
+       memotong tulisan tab paling kanan. Baris tab ini memang tidak pernah butuh scroll
+       vertikal sama sekali, jadi dikunci eksplisit supaya tidak pernah muncul scrollbar itu
+       lagi di browser manapun. */
+    overflow-y: hidden;
   }
 
   /* ── Modal Overlay ── */
