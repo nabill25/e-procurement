@@ -117,8 +117,8 @@ export default function Sidebar() {
 
   // BUG FIX: sebelumnya scroll body/halaman utama tidak pernah dikunci saat drawer mobile
   // ini terbuka, jadi scroll di layar utama dan scroll di dalam drawer "berebutan" (drawer
-  // jadi susah/tidak bisa discroll sendiri). Pola ini sudah dipakai di 3 modal lain
-  // (LoginModal, VendorPolicyModal, RescheduleHistoryModal), sekarang disamakan di sini.
+  // jadi susah/tidak bisa discroll sendiri). Pola ini sudah dipakai di modal lain
+  // (LoginModal, VendorPolicyModal), sekarang disamakan di sini.
   useEffect(() => {
     if (isSidebarOpen) {
       document.body.style.overflow = 'hidden';

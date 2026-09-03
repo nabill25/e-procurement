@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../context/AppContext';
-import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle, MoveHorizontal } from 'lucide-react';
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
 import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
@@ -350,7 +350,13 @@ export default function VendorProfile() {
       <VendorChecklistPanel vendorId={user.id} mode="penyedia" />
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="flex border-b border-border overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
+        {/* Ditemukan 2026-09-03: 11 tab jauh lebih lebar dari layar mobile, sebelumnya
+            overflow-x-auto polos tanpa fade ATAU hint sama sekali - paling parah dari semua
+            tab bar lain yang sudah dicek di sesi ini. */}
+        <p className="table-scroll-hint px-4 pt-3 !mb-0">
+          <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+        </p>
+        <div className="flex border-b border-border overflow-x-auto tab-scroll-fade" style={{ scrollbarWidth: "thin" }}>
           <button
             onClick={() => setActiveTab('identitas')}
             className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'identitas' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}

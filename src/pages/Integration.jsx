@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff, Landmark } from 'lucide-react';
+import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff, Landmark, MoveHorizontal } from 'lucide-react';
 import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
 import { toast } from '../lib/toast';
 import SetupSupplierPanel from '../components/integration/SetupSupplierPanel';
@@ -202,6 +202,9 @@ export default function Integration() {
       </div>
 
       <div className="section-card !p-0 overflow-hidden">
+        <p className="table-scroll-hint px-4 pt-3 !mb-0">
+          <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+        </p>
         <div className="tab-scroll-fade flex overflow-x-auto border-b border-border">
           {TABS.map(t => (
             <button

@@ -1335,6 +1335,12 @@ export default function DataMaster() {
           </div>
         </div>
 
+        {/* Ditemukan 2026-09-03: 27 kategori jauh lebih lebar dari layar mobile manapun,
+            fade-nya sendiri (tab-scroll-fade) sudah ada tapi terlalu halus buat kelihatan -
+            ditambahkan hint yang sama dipakai di semua tabel/tab lain di sistem ini. */}
+        <p className="table-scroll-hint !mb-2">
+          <MoveHorizontal size={13} /> Geser untuk lihat kategori lainnya
+        </p>
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1 tab-scroll-fade">
           {CATEGORIES.map(cat => (
             <button

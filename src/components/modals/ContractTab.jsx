@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE } from '../../context/AppContext';
-import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
+import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode, MoveHorizontal } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import {
   SppbjSpkSection, SpmkSection, SppjbSection, JaminanSection, SlaSection, MaterialSection,
@@ -175,7 +175,15 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       </div>
 
       {contract && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border">
+        <>
+        {/* Ditemukan 2026-09-03 lewat laporan pengguna (screenshot langsung): sub-tab kontrak
+            ini ada 10 buah, terpotong tanpa tanda apapun di layar sempit - pola bug yang sama
+            seperti tab utama modal Detail Tender yang sudah diperbaiki, ternyata belum
+            menyeluruh. Ditambahkan hint yang sama (table-scroll-hint, cuma tampil di mobile). */}
+        <p className="table-scroll-hint !mb-1">
+          <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+        </p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border tab-scroll-fade">
           {WORKFLOW_SUBTABS.map(t => (
             <button
               key={t.id}
@@ -186,6 +194,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
             </button>
           ))}
         </div>
+        </>
       )}
 
       {workflowTab === 'utama' && canManageContract && (

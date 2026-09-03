@@ -1598,3 +1598,70 @@ Integrasi Oracle) ternyata memang sudah berfungsi dari awal, bukan dekoratif.
 
 Sudah dites lewat browser sungguhan (Playwright, viewport mobile iPhone 13 dan desktop) untuk
 semua perbaikan di atas, dan 17 test regresi tetap lulus bersih setelah seluruh perubahan.
+
+## Deploy sungguhan ke Railway + Vercel, dan sisa bug tab bar (2026-09-03, sesi lanjutan)
+
+Pengguna minta deploy dilakukan sungguhan. Ternyata ada CLI resmi untuk keduanya yang bisa
+dipakai dari sini (bukan cuma dashboard web): `vercel` (sudah terpasang) dan `@railway/cli`
+(dijalankan lewat `npx --yes @railway/cli`, tidak perlu instalasi terpisah). Login Vercel
+sudah aktif dari sesi sebelumnya. Login Railway pakai `railway login --browserless` (perlu
+1 kali konfirmasi dari pengguna lewat link yang muncul, karena OAuth memang butuh manusia).
+
+**Temuan sungguhan**: Vercel ternyata SUDAH otomatis re-deploy sendiri dari push terakhir
+(dibuktikan dengan mengecek isi bundle JS yang live, bukan cuma percaya tampilan `vercel ls`
+yang sempat kelihatan aneh/basi - itu cuma quirk tampilan CLI, bukan indikasi deploy gagal).
+Railway BENAR bermasalah: `repo` di `railway status` kelihatan benar tersambung, tapi webhook
+GitHub-nya ternyata memang putus (riwayat deploy semuanya menampilkan pesan commit yang sama
+persis walau sudah 35+ commit lebih baru). Diperbaiki dengan `railway link` (linked non-
+interaktif pakai `--project --service --environment`), lalu **`railway service source connect
+--repo nabill25/e-procurement --branch main --service e-procurement`** (menyambungkan ulang
+webhook GitHub dari nol), lalu **`railway redeploy --from-source -y`** (menarik & deploy commit
+TERBARU dari GitHub, bukan cuma redeploy build lama). Build sukses, dibuktikan endpoint yang
+tadinya error di server online sekarang benar, dan seluruh situs online (Vercel + Railway
+bersama-sama) dicek lewat browser sungguhan - nol error, semua perbaikan sesi sebelumnya
+langsung tampil di internet.
+
+**Setelah deploy selesai, pengguna kirim screenshot lagi**: sub-tab "Kontrak & BAST" (10 sub-
+tab: Utama, SPPBJ & SPK, SPMK, dst) di dalam `ContractTab.jsx` ternyata kena bug SAMA PERSIS
+seperti tab utama yang sudah diperbaiki sesi sebelumnya, tapi belum ikut kesentuh waktu itu.
+Ini jadi pelajaran: perbaikan sebelumnya cuma menambal SATU titik yang di-screenshot, tidak
+disapu ke SELURUH sistem walau polanya jelas berulang. Kali ini disapu tuntas - digrep semua
+`overflow-x-auto` di seluruh `src/`, ketemu **6 titik total** (bukan cuma 1): `DetailTenderModal.jsx`
+(sudah diperbaiki sesi lalu), **`ContractTab.jsx`** (10 sub-tab kontrak, ini yang di-screenshot
+kali ini), **`DataMaster.jsx`** (27 kategori), **`Integration.jsx`** (5 tab), **`VendorProfile.jsx`**
+(11 tab, sebelumnya bahkan tidak punya fade SAMA SEKALI, paling parah), dan
+**`RescheduleHistoryModal.jsx`** (bukan tab, tabel biasa - lihat temuan terpisah di bawah).
+Semua 5 titik tab yang kurang hint sudah ditambahkan `table-scroll-hint` + `tab-scroll-fade`
+konsisten dengan pola yang sudah baku di seluruh sistem, dites satu-satu lewat browser mobile
+sungguhan, semuanya kelihatan hint-nya dan nol error console.
+
+**Temuan besar tak terduga saat menyapu poin di atas**: `RescheduleHistoryModal.jsx` dicek
+karena muncul di hasil grep, ternyata dipakai oleh `TenderDetailView.jsx` (halaman detail
+tender di PORTAL PUBLIK, dibuka pengunjung mana saja lewat menu Tender → klik satu paket) dan
+isinya **100% data contoh yang di-hardcode**, bukan cuma modalnya - satu paket TENDER APAPUN
+yang dibuka menampilkan judul, lokasi, jenis, jadwal tahapan, dan riwayat reschedule yang SAMA
+PERSIS ("Pengadaan AC Kamar Asrama Gd. E1, E2 dan F1..."), sama sekali tidak menyesuaikan
+dengan tender sungguhan yang sedang dilihat. Plus tombol "Pengumuman Pemenang" yang ternyata
+tidak punya `onClick` sama sekali (mengarah ke kolom `tenders.winner_announcement` yang
+dicek juga - kolom itu memang ada di skema tapi **tidak pernah ditulis di manapun** di seluruh
+backend, selalu kosong, jadi bukan sesuatu yang bisa ditampilkan kalaupun tombolnya dibenarkan).
+
+**Kenapa tidak langsung disambungkan ke data API sungguhan seperti biasanya**: dicek dulu,
+ternyata endpoint jadwal tahapan (`/stages`) dan riwayat reschedule (`/stages/:key/reschedule-
+history`) sengaja diproteksi login (bagian dari pengerasan keamanan sesi 2026-08-27) - PORTAL
+PUBLIK tidak bisa memanggilnya tanpa token. Membuka endpoint itu jadi publik adalah keputusan
+keamanan tersendiri yang tidak diambil sepihak di sesi ini. Jadi diperbaiki dengan cara yang
+lebih aman: `TenderDetailView.jsx` ditulis ulang, field yang datanya SUNGGUHAN tersedia dari
+endpoint publik `GET /api/tenders/:id` (Tahun Anggaran, Lokasi, Jenis, Metode, **Pagu Anggaran**
+dan **Batas Akhir Pengumpulan Penawaran** yang baru ditambahkan - sebelumnya publik malah tidak
+lihat anggaran maupun deadline sama sekali, padahal itu data publik yang penting buat calon
+peserta tender) ditampilkan apa adanya, sedangkan field yang tidak ada sumber publiknya
+(jadwal per tahap, riwayat reschedule, bidang usaha, metode evaluasi, kualifikasi usaha)
+DIHAPUS daripada terus dikarang - konsisten dengan prinsip "fitur yang tidak ada tidak boleh
+berpura-pura ada" yang sudah dipakai berkali-kali di project ini. Tombol "Pengumuman Pemenang"
+juga dihapus (kolom sumbernya memang tidak pernah terisi). File `RescheduleHistoryModal.jsx`
+sendiri jadi yatim piatu (tidak dipakai di manapun lagi) sehingga dihapus.
+
+Sudah dites lewat browser sungguhan: klik tender sungguhan dari portal publik menampilkan data
+ASLI paket itu (bukan lagi "AC Kamar Asrama" untuk semua paket), nol error console, dan 17 test
+regresi tetap lulus bersih.
