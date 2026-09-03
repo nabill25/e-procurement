@@ -62,7 +62,22 @@ export default function AuditLog() {
             <h2 className="text-base font-bold text-dpbj-navy">Log Aktivitas Sistem</h2>
             <p className="text-xs text-muted">Riwayat aktivitas untuk keperluan audit SPI</p>
           </div>
-          <button className="btn-ghost text-xs">
+          <button
+            onClick={() => {
+              import('../utils/export').then(({ exportToCSV }) => {
+                exportToCSV(logs, 'Log_Audit', {
+                  created_at: 'Waktu',
+                  user_name: 'Pengguna',
+                  action: 'Aksi',
+                  entity_type: 'Entitas',
+                  description: 'Deskripsi',
+                  ip_address: 'IP Address',
+                  is_success: 'Berhasil',
+                });
+              });
+            }}
+            className="btn-ghost text-xs"
+          >
             <Download size={13} />
             Export Log
           </button>

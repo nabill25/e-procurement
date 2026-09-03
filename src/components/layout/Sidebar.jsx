@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck,
   Settings, LogOut, ChevronRight, Sparkles, AlertTriangle, Globe, Database, Lock, Inbox, Newspaper, Repeat, Users2, History, KeyRound, X, RefreshCw, LayoutGrid
@@ -8,6 +8,20 @@ import { navItems } from '../../data/mockData';
 import clsx from 'clsx';
 
 const iconMap = { LayoutDashboard, FileText, Briefcase, Building2, ShieldCheck, AlertTriangle, Sparkles, Database, Lock, Inbox, Newspaper, Users2, History, KeyRound, RefreshCw, LayoutGrid };
+
+// Dikelompokkan per kategori (ditemukan 2026-09-03 lewat tes langsung di layar mobile: daftar
+// menu Admin ada 19 item, dulunya satu daftar rata tanpa pembagian sama sekali - berasa
+// "mumet"/padat, dan di layar mobile separuh lebih menu (termasuk tombol "Keluar") malah
+// tersembunyi di bawah area scroll TANPA ada tanda apapun kalau daftar itu bisa digeser).
+// Grup kosong (tidak ada satupun id-nya lolos allowedMenus role yang login) otomatis tidak
+// dirender - jadi role dengan sedikit menu (mis. vendor) tetap tampil ringkas seperti biasa.
+const NAV_GROUPS = [
+  { title: 'Menu Utama', ids: ['dashboard', 'pengajuan', 'tender', 'katalog', 'purchasing'] },
+  { title: 'Vendor & Kepatuhan', ids: ['vendor', 'blacklist', 'vendor_profile', 'audit'] },
+  { title: 'Komunikasi & Konten', ids: ['inbox', 'content_management'] },
+  { title: 'Integrasi & Laporan', ids: ['integration_oracle', 'executive_dashboard'] },
+  { title: 'Administrasi Sistem', ids: ['master_data', 'menu_access', 'user_management', 'login_logs', 'api_keys', 'document_expiry'] },
+];
 
 // Aturan menu bawaan (dipakai kalau data hak akses menu dari server belum bisa diambil,
 // misalnya saat database sedang tidak bisa dihubungi). Ini jaga-jaga supaya navigasi
@@ -67,6 +81,39 @@ export default function Sidebar() {
     setActivePage(id);
     setIsSidebarOpen(false);
   };
+
+  // ── Indikator "masih bisa digeser ke bawah" untuk daftar menu ──
+  // Ditemukan lewat tes langsung di layar mobile: daftar menu Admin (19 item) melebihi
+  // tinggi layar, dan sebelumnya TIDAK ADA tanda visual apapun kalau area itu bisa digeser -
+  // menu-menu terakhir (termasuk "Keluar" di bagian Sistem) jadi seperti tidak ada padahal
+  // cuma tersembunyi di bawah. navRef dipakai untuk cek posisi scroll setiap kali daftar
+  // menu berubah (ganti role dengan hak akses beda) atau ukuran layar berubah.
+  const navRef = useRef(null);
+  const [showBottomFade, setShowBottomFade] = useState(false);
+
+  const checkScrollFade = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const remaining = el.scrollHeight - el.clientHeight - el.scrollTop;
+    setShowBottomFade(remaining > 4);
+  }, []);
+
+  useEffect(() => {
+    checkScrollFade();
+    const el = navRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScrollFade, { passive: true });
+    window.addEventListener('resize', checkScrollFade);
+    // Daftar menu bisa berubah tinggi setelah hak akses menu selesai diambil dari server
+    // (lihat useEffect fetch di bawah) - ResizeObserver menangkap perubahan itu juga.
+    const ro = new ResizeObserver(checkScrollFade);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', checkScrollFade);
+      window.removeEventListener('resize', checkScrollFade);
+      ro.disconnect();
+    };
+  }, [checkScrollFade, allowedMenus]);
 
   // BUG FIX: sebelumnya scroll body/halaman utama tidak pernah dikunci saat drawer mobile
   // ini terbuka, jadi scroll di layar utama dan scroll di dalam drawer "berebutan" (drawer
@@ -132,54 +179,75 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overscroll-contain">
-          <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest animate-fade-in">Menu Utama</p>
-          {navItems
-            .filter(item => allowedMenus.includes(item.id))
-            .map(({ id, label, icon }, index) => {
-              const Icon = iconMap[icon];
-              const isActive = activePage === id;
+        {/* Navigation - dibungkus wrapper "relative" supaya indikator fade di bawah bisa
+            menempel tetap di tepi bawah area yang bisa digeser (nav), lepas dari isinya
+            ikut tergeser atau tidak. */}
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <nav ref={navRef} className="flex-1 px-3 py-4 space-y-4 overflow-y-auto overscroll-contain">
+            {NAV_GROUPS.map(group => {
+              const items = navItems.filter(item => group.ids.includes(item.id) && allowedMenus.includes(item.id));
+              if (items.length === 0) return null;
               return (
-                <button
-                  key={id}
-                  id={`nav-${id}`}
-                  onClick={() => navigateAndClose(id)}
-                  className={clsx(`sidebar-item w-full text-left animate-slide-in-right stagger-${index + 1}`, { active: isActive })}
-                >
-                  {Icon && <Icon size={17} className={clsx('shrink-0', isActive ? 'text-dpbj-navy-dark' : 'text-slate-400')} />}
-                  <span className="truncate">{label}</span>
-                  {isActive && <ChevronRight size={14} className="ml-auto opacity-60 shrink-0" />}
-                </button>
+                <div key={group.title} className="stagger-list space-y-0.5">
+                  <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{group.title}</p>
+                  {items.map(({ id, label, icon }) => {
+                    const Icon = iconMap[icon];
+                    const isActive = activePage === id;
+                    return (
+                      <button
+                        key={id}
+                        id={`nav-${id}`}
+                        onClick={() => navigateAndClose(id)}
+                        className={clsx('sidebar-item w-full text-left stagger-item', { active: isActive })}
+                      >
+                        {Icon && <Icon size={17} className={clsx('shrink-0', isActive ? 'text-dpbj-navy-dark' : 'text-slate-400')} />}
+                        <span className="truncate">{label}</span>
+                        {isActive && <ChevronRight size={14} className="ml-auto opacity-60 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
               );
-          })}
+            })}
 
-          <div className="mt-5 pt-5 border-t border-white/10 animate-fade-in-up stagger-5">
-            <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sistem</p>
-            {user?.role === 'admin' && (
-              <button className="sidebar-item w-full text-left text-dpbj-gold/80 hover:text-dpbj-gold" onClick={() => navigateAndClose('public_home')}>
-                <Globe size={17} />
-                <span>Portal Publik</span>
+            <div className="pt-4 border-t border-white/10 stagger-list space-y-0.5">
+              <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sistem</p>
+              {user?.role === 'admin' && (
+                <button className="sidebar-item w-full text-left text-dpbj-gold/80 hover:text-dpbj-gold stagger-item" onClick={() => navigateAndClose('public_home')}>
+                  <Globe size={17} />
+                  <span>Portal Publik</span>
+                </button>
+              )}
+              {availableRoles.length > 1 && (
+                <button className="sidebar-item w-full text-left stagger-item" onClick={() => { setShowRoleSwitcher(true); setIsSidebarOpen(false); }}>
+                  <Repeat size={17} className="text-slate-400" />
+                  <span>Ganti Role</span>
+                </button>
+              )}
+              <button className="sidebar-item w-full text-left stagger-item" onClick={() => { openSettingsModal(); setIsSidebarOpen(false); }}>
+                <Settings size={17} className="text-slate-400" />
+                <span>Pengaturan</span>
               </button>
-            )}
-            {availableRoles.length > 1 && (
-              <button className="sidebar-item w-full text-left" onClick={() => { setShowRoleSwitcher(true); setIsSidebarOpen(false); }}>
-                <Repeat size={17} className="text-slate-400" />
-                <span>Ganti Role</span>
+              <button className="sidebar-item w-full text-left text-red-400 hover:text-red-300 stagger-item" onClick={() => {
+                if (confirm('Apakah Anda yakin ingin keluar?')) logout();
+              }}>
+                <LogOut size={17} />
+                <span>Keluar</span>
               </button>
+            </div>
+          </nav>
+
+          {/* Indikator "masih ada menu di bawah" - cuma tampil kalau memang masih bisa
+              digeser (lihat checkScrollFade), dan otomatis hilang begitu sudah mentok bawah. */}
+          <div
+            className={clsx(
+              'pointer-events-none absolute bottom-0 left-0 right-0 h-10 transition-opacity duration-200',
+              showBottomFade ? 'opacity-100' : 'opacity-0'
             )}
-            <button className="sidebar-item w-full text-left" onClick={() => { openSettingsModal(); setIsSidebarOpen(false); }}>
-              <Settings size={17} className="text-slate-400" />
-              <span>Pengaturan</span>
-            </button>
-            <button className="sidebar-item w-full text-left text-red-400 hover:text-red-300" onClick={() => {
-              if (confirm('Apakah Anda yakin ingin keluar?')) logout();
-            }}>
-              <LogOut size={17} />
-              <span>Keluar</span>
-            </button>
-          </div>
-        </nav>
+            style={{ background: 'linear-gradient(to bottom, rgba(8,20,42,0), rgba(8,20,42,0.95))' }}
+            aria-hidden="true"
+          />
+        </div>
 
         {/* User profile at bottom */}
         <div className="px-3 py-4 border-t border-white/10">

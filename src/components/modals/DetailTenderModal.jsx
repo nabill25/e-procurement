@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
+import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck, MoveHorizontal } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex, tenderStatusConfig } from '../../data/procurementPhases';
@@ -752,6 +752,16 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
             Kontrak & BAST-nya sendiri; tab-tab lain di sini tetap read-only untuk mereka karena
             gate-nya masing-masing tidak diubah) */}
         {['pokja', 'admin', 'ppk', 'vendor', 'pengelola_kontrak', 'kasubdit_kontrak'].includes(user.role) && (
+          <>
+          {/* Ditemukan 2026-09-03 lewat tes mobile: tab bar ini bisa punya sampai 9 tab
+              (tergantung tahap tender + role), jauh lebih lebar dari layar mobile manapun.
+              Fade CSS-nya sendiri (tab-scroll-fade) sudah ada tapi terlalu halus buat kelihatan
+              (putih ke putih), jadi kelihatan seperti daftar tab "mumet"/terpotong tanpa tanda
+              apapun. Ditambahkan hint yang sama persis seperti dipakai di semua tabel lain di
+              sistem ini (table-scroll-hint, cuma tampil di layar mobile) supaya konsisten. */}
+          <p className="table-scroll-hint px-6 pt-2 !mb-0 bg-white">
+            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
+          </p>
           <div className="flex px-6 pt-3 border-b border-border bg-white gap-6 overflow-x-auto tab-scroll-fade">
             <button onClick={() => setActiveTab('detail')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'detail' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <FileText size={16} /> Detail Tender
@@ -794,6 +804,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
               </button>
             )}
           </div>
+          </>
         )}
 
         <div className="flex-1 overflow-y-auto p-6 bg-white flex flex-col lg:flex-row gap-8">

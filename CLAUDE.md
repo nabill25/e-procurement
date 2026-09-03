@@ -1460,3 +1460,141 @@ Sudah dites lewat curl (semua endpoint yang diubah) dan browser sungguhan (scree
 dashboard: Admin/PPK, Pokja, Vendor, Dashboard Pimpinan - nol error console di semuanya, data
 tampil benar termasuk grafik efisiensi diverging hijau/merah dan tren bulanan). 17 test regresi
 tetap lulus bersih setelah seluruh pekerjaan ini.
+
+## Susulan: bug ke-5 di Dashboard ditemukan setelah pengguna kirim screenshot (2026-09-03)
+
+Setelah laporan "isi data dashboard" di atas, pengguna kirim screenshot dashboard Admin dan
+bilang beberapa bagian masih kosong. Dicek langsung lewat browser sungguhan (bukan percaya
+screenshot begitu saja) - ternyata SEBAGIAN BESAR yang di screenshot itu (grafik status paket,
+tren pengajuan, kategori paket, vendor kinerja terbaik) sudah benar terisi kalau halaman
+di-refresh baru, jadi screenshot pengguna itu tampilan LAMA/belum di-refresh sejak perbaikan
+sesi sebelumnya. Tapi tetap dicek satu-satu ke live browser untuk mastikan (bukan diasumsikan),
+dan dari situ ketemu **1 bug asli yang sebelumnya lolos**: kartu "Realisasi Anggaran TA 2025"
+(di bagian atas dashboard Admin/PPK) SELALU menampilkan "Terserap: Rp 0" / "0% terserap" apapun
+isi datanya.
+
+**Penyebab**: `MetricCards.jsx` membaca field `stats.total_budget_used` untuk hitung "sudah
+terpakai berapa dari total anggaran", tapi field ini TIDAK PERNAH dikembalikan oleh backend
+sama sekali (beda dari `total_budget_this_year` yang memang ada) - persis pola bug yang sama
+seperti yang sudah ditemukan sebelumnya di `PokjaView` (field yang dibaca frontend tidak pernah
+ada di response backend). Diperbaiki dengan menambahkan kolom baru `total_budget_used` ke VIEW
+`v_dashboard_stats` (`migrations/038_realisasi_anggaran_dashboard.sql`) - dihitung dari
+SUM(contracts.contract_value) untuk kontrak berstatus aktif/selesai yang tendernya dibuat tahun
+berjalan (representasi "anggaran yang sudah benar-benar jadi kontrak", beda dari
+`total_budget_this_year` yang cuma "anggaran yang dianggarkan/pagu"). **Catatan teknis**: kolom
+baru di `CREATE OR REPLACE VIEW` HARUS ditaruh di posisi PALING AKHIR daftar SELECT, Postgres
+menolak kalau disisipkan di tengah (dianggap "mengganti nama" kolom-kolom sesudahnya).
+
+Sudah dites: curl endpoint `/api/dashboard` (field baru muncul benar, 4.375M dari 8.255M =
+53%), browser sungguhan (progress bar dan teks di kartu Realisasi Anggaran sekarang terisi
+benar), backend di-restart bersih supaya proses yang jalan sama dengan kode di file, dan 3
+varian dashboard lain (Pokja, Vendor, Dashboard Pimpinan) di-screenshot ulang untuk pastikan
+tidak ada regresi dari restart ini. 17 test regresi tetap lulus bersih.
+
+**Pelajaran**: laporan "sudah dites, semua beres" dari sesi sebelumnya tetap bisa melewatkan
+1 widget kalau proses verifikasinya tidak benar-benar mengecek SETIAP kartu/angka satu per
+satu secara sengaja (bukan cuma "screenshot lalu sekilas dilihat OK"). Konsisten dengan
+pelajaran audit independen sebelumnya: klaim selesai tetap wajib diverifikasi ulang kalau ada
+keraguan, jangan langsung percaya catatan lama di dokumen ini.
+
+## Sistem sudah di-deploy sungguhan: Vercel (frontend) + Railway (backend) (2026-09-03)
+
+Ketahuan lewat pengguna mengirim screenshot dashboard Railway dan Vercel: sistem baru **sudah
+di-deploy ke internet sungguhan**, bukan cuma dijalankan lokal lagi. Frontend di Vercel
+(`e-procurement-sand.vercel.app`, auto-deploy dari GitHub tiap push ke `main`, terhubung lewat
+`VITE_API_BASE` di Environment Variables Vercel yang menunjuk ke URL Railway). Backend di
+Railway (`e-procurement-production-9800.up.railway.app`, `railway.json` di root project sudah
+ada dari sebelumnya: `cd server && npm install` / `cd server && npm start`).
+
+**Temuan penting**: backend Railway **TIDAK auto-redeploy tiap push** seperti Vercel. Dicek
+lewat curl langsung ke endpoint publik `/api/tenders/public-stats` yang harusnya sukses (sudah
+dipastikan sukses di localhost dengan kode yang SAMA) - di Railway malah balas error
+`"invalid input syntax for type uuid: \"public-stats\""`, tanda pasti bahwa rute yang deploy di
+Railway itu versi LAMA (route `/public-stats` belum ditaruh sebelum `/:id`, bug urutan rute
+yang sudah diperbaiki 35 commit lalu di riwayat git - lihat commit `958a0272` "Siapkan aplikasi
+untuk deploy" dibandingkan HEAD `479ecb15` saat temuan ini). Riwayat deployment di dashboard
+Railway juga mengonfirmasi: SEMUA entri (termasuk yang "4 menit lalu") menampilkan pesan commit
+yang SAMA PERSIS ("Siapkan aplikasi untuk deploy..."), padahal riwayat git asli sudah 35 commit
+lebih baru dari itu - Vercel sebaliknya benar menampilkan commit TERBARU (`479ecb1`).
+
+**Yang TIDAK bisa saya lakukan sendiri**: tidak ada CLI Railway (`railway`) maupun token/API
+key Railway yang tersedia di komputer ini (`vercel` CLI ada tapi juga tidak dalam sesi login),
+jadi saya tidak bisa memicu redeploy Railway langsung dari sini. **Ini perlu dilakukan manual
+oleh pengguna** dari dashboard Railway: buka service "e-procurement" → tab Deployments → cek
+Settings apakah "Auto Deploy" sungguh aktif dan tersambung ke branch `main` repo yang benar,
+lalu klik redeploy/trigger deploy baru secara manual supaya backend Railway benar-benar
+menjalankan commit terbaru. Setelah itu, SEMUA perbaikan dari sesi-sesi sebelumnya (termasuk
+perbaikan Dashboard, keamanan, dst) baru akan aktif di production sungguhan - sebelumnya
+Railway kemungkinan besar masih menjalankan kode dari ~35 commit lalu.
+
+**Konsekuensi soal .env di Railway**: dicek juga apakah bug lama "dotenv tidak baca path yang
+benar" (`0bf6892e`, diperbaiki 2026-09-01) berisiko muncul lagi di Railway - TERNYATA TIDAK,
+karena platform seperti Railway inject environment variables langsung ke `process.env` lewat
+tab Variables mereka (bukan lewat file `.env` yang memang sengaja tidak pernah dikomit ke git),
+jadi bug resolusi path dotenv yang spesifik ke development lokal itu tidak relevan di sana -
+asal semua variabel (terutama `JWT_SECRET`, `SUPABASE_DB_URL`) memang sudah diisi manual di tab
+Variables Railway (belum dicek isinya dari sini, cuma dari sisi kode dipastikan tidak akan
+salah baca kalaupun sudah diisi).
+
+## Perbaikan scroll/mobile UX + export yang mati (2026-09-03)
+
+Pengguna kirim 3 screenshot (Railway, Vercel, modal Detail Tender dengan tab terpotong) dan
+minta: (1) benerin kenapa dashboard kosong di deploy sungguhan (lihat bagian di atas), (2)
+perbaiki bug-bug scroll di seluruh sistem, (3) perbaiki menu yang "mumet"/tidak ramah UI/UX di
+mobile, (4) perbaiki fitur export/cetak yang belum aktif/error di seluruh sistem.
+
+**Bug scroll sidebar mobile (ditemukan langsung lewat tes browser mobile viewport)**: daftar
+menu Admin (19 item, satu daftar rata tanpa pembagian) di layar mobile terpotong di item ke-10
+("Hak Akses Menu") lalu LANGSUNG lompat ke footer profil user - TANPA ada tanda visual apapun
+kalau daftar itu sebenarnya masih bisa digeser. Akibatnya 9 menu lagi (termasuk tombol "Keluar"
+alias Logout!) seperti tidak ada padahal cuma tersembunyi di bawah area scroll yang sempit.
+Diperbaiki 2 hal sekaligus di `Sidebar.jsx`:
+1. **Menu dikelompokkan** jadi 5 kategori (`NAV_GROUPS`: Menu Utama, Vendor & Kepatuhan,
+   Komunikasi & Konten, Integrasi & Laporan, Administrasi Sistem) + kelompok "Sistem" yang
+   sudah ada - grup kosong (tidak ada menu yang lolos hak akses role itu) otomatis tidak
+   dirender. Ini juga langsung menjawab keluhan "menu mumet/tidak ramah UI/UX" karena daftar
+   rata 19 item sekarang jadi terstruktur dengan label section yang jelas.
+2. **Indikator scroll otomatis** (`checkScrollFade` + `ResizeObserver`): gradient fade tipis
+   muncul di tepi bawah daftar menu HANYA kalau memang masih ada yang bisa digeser, otomatis
+   hilang begitu sudah mentok bawah - dicek nyata lewat Playwright (opacity 1 di atas, opacity
+   0 setelah scroll ke bawah, tombol "Keluar" jadi kelihatan/bisa diklik).
+
+**Bug scroll tab modal Detail Tender (persis yang di-screenshot pengguna)**: tab bar modal ini
+bisa sampai 9 tab tergantung tahap tender, jauh lebih lebar dari layar mobile manapun. CSS fade
+yang sudah ada (`tab-scroll-fade`) ternyata terlalu halus (putih ke putih) buat kelihatan jadi
+efeknya terasa seperti daftar tab terpotong tanpa tanda apapun. Diperbaiki dengan menambahkan
+hint teks yang SAMA PERSIS seperti yang sudah dipakai konsisten di hampir semua tabel lain di
+sistem ini (`table-scroll-hint`, ikon `MoveHorizontal` + teks "Geser untuk lihat tab lainnya",
+cuma tampil di layar mobile) - sebelumnya modal ini adalah SATU-SATUNYA tempat yang punya
+masalah scroll horizontal tapi tidak pakai hint yang sudah jadi standar di tempat lain.
+
+**Bug baris tabel tidak bisa diklik langsung (ditemukan sekalian saat audit ini)**: `TenderTable.jsx`
+sebelumnya klik baris cuma menyalakan highlight kuning TANPA TUJUAN APAPUN (state `activeRow`
+tidak dipakai di manapun lagi) - aksi "Lihat Detail" sungguhan cuma ada di tombol Eye di kolom
+"Aksi" paling kanan, yang di layar mobile tersembunyi di luar layar (harus geser tabel dulu).
+`Pengajuan.jsx` punya masalah identik (baris tidak clickable sama sekali, cuma tombol Eye).
+Diperbaiki keduanya: klik baris manapun sekarang langsung buka modal detail (menyamakan pola
+dengan `Vendor.jsx` yang dari awal SUDAH benar), tombol aksi lain di dalam baris (Submit/ACC/
+Tolak di Pengajuan) dikasih `e.stopPropagation()` supaya tidak ke-trigger dobel dengan klik
+baris. Dicek juga halaman list lain (Katalog, Blacklist, AuditLog, Purchasing) - semuanya sudah
+benar/tidak butuh perbaikan serupa (Katalog & Purchasing pakai kartu dengan tombol Detail penuh
+lebar, Blacklist & AuditLog tidak punya modal detail sama sekali jadi tidak relevan).
+
+**Audit export/cetak seluruh sistem**: SEMUA 18 halaman cetak dokumen (`/cetak/<jenis>/...`)
+disapu satu-satu lewat URL langsung dengan data tender contoh (`TENDER/2026/001`) yang sudah
+lengkap alurnya - **17 dari 18 render bersih tanpa error**, 1 "gagal" di percobaan pertama
+ternyata cuma salah pakai ID di skrip tes saya sendiri (SKT butuh `vendors.id`, saya sempat
+pakai `users.id`) - dicek ulang tombol pemicu asli di `VendorDetailModal.jsx` sudah benar dari
+awal pakai `vendor.id`, jadi bukan bug aplikasi. Semua tombol "Cetak"/"Unduh" yang memicu
+halaman-halaman ini (di `ContractWorkflowSections.jsx`, `DokumenPaketTab.jsx`,
+`DetailTenderModal.jsx`, `DetailPengajuanModal.jsx`, `EvaluationDetailModal.jsx`,
+`NegotiationTab.jsx`, `VendorDetailModal.jsx`) dicek satu-satu, semuanya benar terhubung.
+
+**1 bug nyata ditemukan dan diperbaiki**: tombol "Export Log" di halaman Audit & Dokumen
+(`AuditLog.jsx`) ternyata **100% dekoratif** (`<button>` tanpa `onClick` sama sekali) sejak
+awal - diperbaiki pakai utilitas `exportToCSV` yang sama dengan yang sudah dipakai halaman
+Paket Pengadaan (`src/utils/export.js`). Tombol Export lain yang sudah dicek (Paket Pengadaan,
+Integrasi Oracle) ternyata memang sudah berfungsi dari awal, bukan dekoratif.
+
+Sudah dites lewat browser sungguhan (Playwright, viewport mobile iPhone 13 dan desktop) untuk
+semua perbaikan di atas, dan 17 test regresi tetap lulus bersih setelah seluruh perubahan.

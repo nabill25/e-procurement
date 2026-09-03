@@ -44,7 +44,6 @@ export default function TenderTable({ compact = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading]   = useState(true);
-  const [activeRow, setActiveRow]   = useState(null);
   const perPage = compact ? 5 : 7;
 
   const fetchTenders = useCallback(async () => {
@@ -160,10 +159,15 @@ export default function TenderTable({ compact = false }) {
                 </td>
               </tr>
             ) : tenders.map(tender => (
+              // BUG FIX (ditemukan 2026-09-03 lewat tes mobile): baris ini sebelumnya cuma
+              // menyalakan highlight kuning tanpa tujuan (activeRow), padahal aksi
+              // "Lihat Detail" sungguhan ada di tombol Eye di kolom paling kanan - di layar
+              // mobile kolom itu tersembunyi di luar layar (harus geser tabel dulu). Sekarang
+              // klik baris manapun langsung buka detail, sama seperti pola di Vendor.jsx.
               <tr
                 key={tender.id}
-                className={clsx('stagger-item', { 'bg-dpbj-gold-faint/30': activeRow === tender.id })}
-                onClick={() => setActiveRow(id => id === tender.id ? null : tender.id)}
+                className="stagger-item cursor-pointer hover:bg-surface"
+                onClick={() => setSelectedTender(tender)}
               >
                 <td>
                   <span className="font-mono text-xs text-dpbj-slate font-semibold">{tender.tender_number}</span>

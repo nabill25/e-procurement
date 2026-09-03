@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query('SELECT * FROM v_dashboard_stats');
     const base = result.rows[0] || {
       active_tenders: 0, verified_vendors: 0, completed_contracts: 0,
-      total_budget_this_year: 0, pending_reviews: 0,
+      total_budget_this_year: 0, pending_reviews: 0, total_budget_used: 0,
     };
 
     const extra = await pool.query(`

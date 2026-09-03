@@ -218,7 +218,16 @@ export default function Pengajuan() {
               ) : filteredRequests.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-muted text-sm">Tidak ada pengajuan yang cocok dengan pencarian "{search}".</td></tr>
               ) : filteredRequests.map(req => (
-                <tr key={req.id} className={`stagger-item ${req.is_from_sap ? "bg-emerald-50/30" : ""}`}>
+                // BUG FIX (ditemukan 2026-09-03 lewat tes mobile): sebelumnya "Lihat Detail"
+                // cuma bisa dipicu dari tombol Eye di kolom paling kanan, yang di layar mobile
+                // tersembunyi di luar layar (harus geser tabel dulu ke kanan). Sekarang klik
+                // baris manapun langsung buka detail (tombol aksi lain di dalam baris dikasih
+                // stopPropagation supaya tidak ikut ke-trigger dobel).
+                <tr
+                  key={req.id}
+                  className={`stagger-item cursor-pointer hover:bg-surface ${req.is_from_sap ? "bg-emerald-50/30" : ""}`}
+                  onClick={() => setSelectedPengajuan(req)}
+                >
                   <td>
                     <span className="font-mono text-xs font-semibold text-dpbj-slate">{req.request_number}</span>
                     {req.is_from_sap && (
@@ -249,7 +258,7 @@ export default function Pengajuan() {
                       {/* Submit: hanya untuk status draft (mengikuti eProc posting=1) */}
                       {req.status === 'draft' && (
                         <button
-                          onClick={() => handleSubmit(req.id, req.title)}
+                          onClick={(e) => { e.stopPropagation(); handleSubmit(req.id, req.title); }}
                           disabled={actionLoading === req.id}
                           className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-50"
                           title="Submit untuk Review"
@@ -261,7 +270,7 @@ export default function Pengajuan() {
                       {/* ACC: hanya admin, untuk status draft atau proses_review (mengikuti eProc approval=1) */}
                       {canApprove && (req.status === 'draft' || req.status === 'proses_review') && (
                         <button
-                          onClick={() => handleApprove(req.id, req.title)}
+                          onClick={(e) => { e.stopPropagation(); handleApprove(req.id, req.title); }}
                           disabled={actionLoading === req.id}
                           className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
                           title="ACC (Setujui menjadi Tender)"
@@ -273,7 +282,7 @@ export default function Pengajuan() {
                       {/* Tolak: hanya admin, untuk status proses_review */}
                       {canReject && req.status === 'proses_review' && (
                         <button
-                          onClick={() => handleReject(req.id, req.title)}
+                          onClick={(e) => { e.stopPropagation(); handleReject(req.id, req.title); }}
                           disabled={actionLoading === req.id}
                           className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                           title="Tolak Pengajuan"
@@ -282,9 +291,12 @@ export default function Pengajuan() {
                         </button>
                       )}
 
-                      {/* Lihat Detail */}
+                      {/* Lihat Detail - tombol ini sekarang cuma pelengkap affordance (baris
+                          sudah bisa diklik langsung), stopPropagation dijaga supaya tidak
+                          memicu onClick baris dua kali (tidak masalah kalaupun terjadi, tapi
+                          lebih rapi begini). */}
                       <button
-                        onClick={() => setSelectedPengajuan(req)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedPengajuan(req); }}
                         className="p-1.5 rounded-lg hover:bg-dpbj-gold-faint hover:text-dpbj-gold-dark transition-colors"
                         title="Lihat Detail"
                       >
