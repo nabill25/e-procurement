@@ -15,9 +15,9 @@
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
     /* Firefox tidak mengenal ::-webkit-scrollbar di bawah - ini padanannya supaya scrollbar
-       tetap tipis+bertema emas di Firefox juga, bukan cuma di browser berbasis Chromium. */
+       tetap bertema serupa di Firefox juga, bukan cuma di browser berbasis Chromium. */
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,212,0,0.5) transparent;
+    scrollbar-color: rgba(107,114,128,0.6) transparent;
   }
 
   body {
@@ -31,12 +31,18 @@
      nyaris tidak kelihatan beda dari garis polos bawaan browser yang tidak di-style -
      jadi kelihatan seperti "sesuatu yang salah/bug" alih-alih terkesan sengaja didesain,
      terutama di panel modal yang isinya panjang (misal tab Dokumen & Klarifikasi di Detail
-     Tender). Diganti jadi warna emas transparan supaya jelas kelihatan itu memang scrollbar
-     yang disengaja/bertema, konsisten dengan warna emas yang sudah dipakai di .table-scroll. */
+     Tender). Percobaan pertama diganti warna emas penuh - TERNYATA di sebagian
+     browser/pengaturan Windows tertentu, scrollbar native-nya dirender jauh lebih TEBAL
+     (model klasik dengan tombol panah, bukan model tipis/overlay modern) daripada yang
+     kelihatan waktu dites di sini, jadi warna emas terang itu malah jadi balok kuning
+     mencolok, bukan makin rapi. Diganti jadi abu-abu netral (warna yang sama dengan token
+     "muted" yang sudah dipakai di seluruh sistem untuk teks sekunder) - cukup terlihat
+     supaya tidak lagi kelihatan seperti bug, tapi tetap tenang/tidak mencolok walau
+     dirender tebal oleh browser manapun. */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-dpbj-gold/50 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-dpbj-gold; }
+  ::-webkit-scrollbar-thumb { @apply bg-muted/50 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted/80; }
 }
 
 @layer components {
