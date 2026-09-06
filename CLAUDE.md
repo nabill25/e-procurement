@@ -1905,3 +1905,18 @@ satu tab ini.
 Sudah dites: `getComputedStyle(document.documentElement).scrollbarColor` sekarang menghasilkan
 rgba emas 50%, dan CSS `::-webkit-scrollbar-thumb` terkonfirmasi terkompilasi dengan warna yang
 sama lewat pengecekan langsung ke bundle CSS yang disajikan Vite. Sudah dicommit dan dipush.
+
+**Koreksi cepat setelah itu**: pengguna kirim screenshot lagi, warna emas tadi ternyata jadi
+BALOK KUNING BESAR yang sangat mencolok menutupi hampir seluruh baris tab dan panel kanan.
+Penyebabnya: di browser/pengaturan Windows pengguna, scrollbar native-nya dirender model
+KLASIK yang jauh lebih TEBAL (kelihatan dari tombol panah di ujungnya) daripada model
+tipis/overlay modern yang kelihatan waktu dites di lingkungan pengembangan ini - jadi
+`scrollbar-width: thin` dan `width:6px` tidak benar-benar diikuti oleh browser itu untuk
+scrollbar ini, cuma warnanya saja yang keikut berubah. Warna emas terang jadi sangat mencolok
+pada ukuran setebal itu. **Pelajaran**: kalau kondisi visual bergantung pada seberapa tebal
+browser tertentu merender sesuatu (yang tidak selalu bisa dites ulang persis di lingkungan
+pengembangan), lebih aman pilih warna netral/redup yang tetap wajar dilihat di ukuran
+berapapun, daripada warna aksen terang yang cuma "aman" kalau asumsi ketebalannya benar.
+Diganti ke abu-abu netral (warna yang sama dengan token `muted`, dipakai luas untuk teks
+sekunder di seluruh sistem) - commit `ac349ff5`, sudah dites ulang computed style dan
+bundle CSS-nya benar berubah.
