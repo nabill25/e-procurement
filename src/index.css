@@ -18,6 +18,12 @@
        tetap bertema serupa di Firefox juga, bukan cuma di browser berbasis Chromium. */
     scrollbar-width: thin;
     scrollbar-color: rgba(107,114,128,0.6) transparent;
+    /* Percobaan tambahan 2026-09-04: kalau browsernya Edge versi lama (EdgeHTML, sebelum
+       pindah ke Chromium) atau ada sisa pengaturan IE, properti di atas tidak dikenali sama
+       sekali dan scrollbar jatuh ke model klasik ber-tombol-panah. Ini padanan lama untuk
+       kasus itu - aman ditambahkan, browser modern yang tidak kenal properti ini akan
+       mengabaikannya begitu saja tanpa efek samping apapun. */
+    -ms-overflow-style: -ms-autohiding-scrollbar;
   }
 
   body {
