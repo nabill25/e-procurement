@@ -1879,3 +1879,29 @@ elemen DOM biasa dan tidak akan pernah ketahuan lewat cara itu. Cara yang benar:
 `getComputedStyle(el).overflowY` dan bandingkan `el.scrollHeight` vs `el.clientHeight` di
 elemen yang overflow-x-nya diaktifkan - itu baru mengungkap potensi scrollbar tersembunyi yang
 efek visualnya bisa beda-beda tergantung browser/OS yang dipakai.
+
+### Susulan: scrollbar isi panel (yang memang perlu, bukan bug) tetap dianggap "kelihatan bug"
+
+Setelah perbaikan di atas, pengguna kirim screenshot lagi dari tab yang sama - kali ini SEMUA
+nama tab tampil utuh (bukti perbaikan di atas berhasil), tapi ada scrollbar vertikal lain
+kelihatan tepat di bawah baris tab, dikira bug lagi. Dicek lewat `getBoundingClientRect()` dan
+`scrollHeight`/`clientHeight`: itu scrollbar SUNGGUHAN dan MEMANG PERLU milik panel isi tab
+(tingginya 2386px, sedangkan jendela yang kelihatan cuma 684px) - bukan bug, karena isinya
+memang panjang dan perlu digulir. Kebetulan posisinya pas menempel di bawah baris tab (tanpa
+jarak), jadi kelihatan seperti satu garis menyambung yang "memotong" tab di atasnya, padahal
+tab-nya sendiri sudah aman (`overflow-y: hidden` dari perbaikan di atas tetap aktif).
+
+**Diperbaiki dengan mengganti warna scrollbar bawaan** (bukan menghilangkan scrollbar-nya, itu
+memang dibutuhkan): sebelumnya warnanya abu-abu sangat pucat (`bg-border`, `#E5E9F0`) yang
+nyaris tidak beda dari garis kosong tak sengaja, jadi kesannya "ada yang salah" walau
+fungsinya normal. Diganti jadi warna emas transparan (`rgba(255,212,0,0.5)`, sama dengan warna
+emas yang sudah dipakai `.table-scroll`) supaya jelas kelihatan itu memang elemen yang sengaja
+didesain, bukan kesalahan. Diterapkan global di `src/index.css` (aturan `::-webkit-scrollbar-
+thumb` untuk Chrome/Edge/Safari + `scrollbar-width`/`scrollbar-color` di `html` untuk Firefox,
+yang sebelumnya cuma di-set khusus untuk `.table-scroll` saja) - jadi berlaku ke SEMUA
+scrollbar vertikal di seluruh sistem (isi modal, sidebar, halaman panjang, dst), bukan cuma di
+satu tab ini.
+
+Sudah dites: `getComputedStyle(document.documentElement).scrollbarColor` sekarang menghasilkan
+rgba emas 50%, dan CSS `::-webkit-scrollbar-thumb` terkonfirmasi terkompilasi dengan warna yang
+sama lewat pengecekan langsung ke bundle CSS yang disajikan Vite. Sudah dicommit dan dipush.
