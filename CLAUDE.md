@@ -1920,3 +1920,36 @@ berapapun, daripada warna aksen terang yang cuma "aman" kalau asumsi ketebalanny
 Diganti ke abu-abu netral (warna yang sama dengan token `muted`, dipakai luas untuk teks
 sekunder di seluruh sistem) - commit `ac349ff5`, sudah dites ulang computed style dan
 bundle CSS-nya benar berubah.
+
+**Lanjutan**: warna abu-abu masih belum cukup - pengguna kirim screenshot lagi menunjukkan
+scrollbar-nya masih tampil model KLASIK ber-tombol-panah (bukan model tipis/overlay modern),
+tanda `scrollbar-width: thin` tidak diikuti oleh browser/pengaturan Windows yang dipakai.
+Ditambahkan `-ms-overflow-style: -ms-autohiding-scrollbar` (commit `98e0d9a3`) untuk jaga-jaga
+kalau browsernya Edge lama/EdgeHTML - aman ditambahkan, browser modern mengabaikannya. Sudah
+diminta juga nama+versi browser ke pengguna untuk diagnosis lebih presisi, tapi belum dijawab.
+
+**Ditemukan bug lanjutan lewat laporan pengguna, sebelum sempat dapat jawaban browser**:
+pengguna melaporkan menu "Dokumen & Klarifikasi" dan "Kontrak & BAST" jadi kelihatan
+tertutup/ketimpa tampilan dan posisinya berubah-ubah saat pindah tab. Dicek dengan klik semua
+tab satu-satu dan ukur `getBoundingClientRect()` modal - ternyata MODAL sendiri stabil (ukuran
+dan posisi identik di semua tab), jadi bukan modal yang resize. Diduga kuat masih akibat
+scrollbar model klasik tebal yang sama dari temuan di atas - kalau muncul tepat di baris menu
+tab (apalagi "Kontrak & BAST" yang punya 2 baris tab bersusun: tab utama + sub-tab workflow
+kontrak, keduanya sama-sama pakai kelas `.tab-scroll-fade`), scrollbar setebal itu berisiko
+bertabrakan/menutupi baris menu di sekitarnya - sesuatu yang tidak kelihatan di lingkungan
+pengembangan ini karena scrollbar-nya tipis/nyaris tak terlihat.
+
+**Keputusan**: daripada terus menebak warna/ukuran yang cocok untuk browser yang tidak
+diketahui persis, track scrollbar horizontal baris menu tab (`.tab-scroll-fade`) DIHILANGKAN
+TOTAL (`scrollbar-width: none` + `::-webkit-scrollbar{display:none}`, commit `63df9993`) -
+baris tab sudah punya 2 penanda lain kalau bisa digeser (teks "Geser untuk lihat tab lainnya"
++ efek fade), jadi track scrollbar-nya sendiri tidak perlu tampil. Scroll TETAP berfungsi
+normal lewat mouse/trackpad/sentuhan, cuma garis visualnya yang hilang. Ini menghapus total
+risiko tabrakan di browser manapun tanpa perlu tahu persis browser yang dipakai pengguna -
+scrollbar vertikal isi konten TIDAK ikut disembunyikan (tetap dibiarkan terlihat dengan warna
+abu-abu netral di atas), cuma scrollbar baris menu tab yang dihilangkan.
+
+Sudah dites: `scrollbarWidth` computed jadi `none`, scroll tetap fungsional (`scrollLeft` bisa
+diubah), dicek visual tab "Kontrak & BAST" (2 baris tab bersusun) bersih tanpa scrollbar
+terlihat. **Belum bisa diverifikasi di browser asli pengguna** (masih menunggu konfirmasi
+mereka setelah deploy).
