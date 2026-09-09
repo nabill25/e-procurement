@@ -2190,3 +2190,56 @@ terkirim** (giliran verifikasi berikutnya seharusnya mengulang uji pemicu email 
 memastikan responsnya sekarang "Email pemberitahuan terkirim ke penyedia", bukan cuma percaya
 perbaikannya pasti berhasil tanpa dicoba ulang - ini persis pelajaran yang sudah dicatat
 berkali-kali di dokumen ini, jangan laporkan selesai tanpa verifikasi ulang sungguhan).
+
+## Susulan: dua kesalahan berturut-turut ditemukan sendiri lewat verifikasi ulang, akhirnya benar-benar tuntas (2026-09-09)
+
+Persis seperti "catatan jujur" di atas mengingatkan, verifikasi ulang memang menemukan masalah -
+dua masalah terpisah, malah:
+
+**Kesalahan 1 - lupa flag `--from-source` waktu redeploy**: 3 perbaikan sebelumnya (Rekapitulasi
+Evaluasi Penawaran, fix DNS IPv4, fix trust proxy) dilaporkan "sudah dideploy" berdasarkan
+`railway redeploy --service e-procurement -y` yang dilaporkan CLI sebagai "SUCCESS". Ternyata
+KELIRU - command itu cuma me-restart ulang container/image LAMA yang sudah ada, TIDAK menarik
+kode terbaru dari GitHub (beda dari `railway redeploy --from-source -y` yang benar-benar rebuild
+dari commit terbaru, yang sudah pernah dipakai dan tercatat di sesi 2026-09-03 sebelumnya, tapi
+lupa dipakai lagi sesi ini). Ketahuan lewat pengecekan langsung: endpoint baru
+`/api/print/tenders/:id/evaluasi-penawaran-rekapitulasi` masih membalas 404 di production
+walau sudah 3x "berhasil" redeploy, dan log server masih menunjukkan error `trust proxy` yang
+seharusnya sudah hilang. Diperbaiki dengan redeploy ulang pakai `--from-source`, dikonfirmasi
+lewat endpoint yang sama sekarang 200 dan error trust proxy sungguhan hilang dari log.
+**Pelajaran untuk seterusnya**: `railway redeploy` TANPA `--from-source` TIDAK CUKUP untuk
+menerapkan perubahan kode baru - selalu pakai `--from-source` kalau memang niatnya menarik
+commit terbaru, jangan asumsikan status "SUCCESS" dari CLI berarti kode barunya benar-benar
+jalan tanpa dicek langsung ke endpoint/perilaku sungguhan.
+
+**Kesalahan 2 - perbaikan DNS pertama (`dns.setDefaultResultOrder`) ternyata tidak menyentuh
+akar masalahnya**: setelah dipastikan kode baru BENAR-BENAR jalan (endpoint 200, log trust proxy
+bersih), uji kirim email masih gagal PERSIS SAMA (`ENETUNREACH` ke alamat IPv6 Gmail, cuma beda
+digit alamatnya). Ditelusuri langsung ke source code nodemailer yang terpasang
+(`server/node_modules/nodemailer/lib/shared/index.js`): ternyata nodemailer melakukan resolusi
+DNS-nya SENDIRI secara manual lewat `dns.resolve4()` + `dns.resolve6()` digabung jadi satu -
+BUKAN lewat `dns.lookup()` bawaan Node.js. Ini artinya KEDUA perbaikan sebelumnya (`family: 4`
+di `createTransport()`, dan `dns.setDefaultResultOrder('ipv4first')` di `server/index.js`)
+**sama-sama tidak pernah berpengaruh ke nodemailer sama sekali** - keduanya cuma memengaruhi
+`dns.lookup()`, sedangkan nodemailer tidak pernah memanggil fungsi itu.
+
+**Perbaikan yang akhirnya benar-benar manjur** (`server/lib/mailer.js` ditulis ulang): resolve
+alamat IPv4 SENDIRI (pakai `dns.promises.resolve4()`, di luar nodemailer) sebelum connect, lalu
+transporter dibuat langsung mengarah ke ALAMAT IP itu (bukan nama host lagi), dengan
+`tls.servername` diisi nama host asli (`smtp.gmail.com`) supaya verifikasi sertifikat TLS tetap
+benar (SNI eksplisit, wajib kalau connect ke alamat IP polos). Transporter dibuat baru tiap kali
+kirim (bukan sekali di awal modul) supaya alamat IP-nya selalu segar, tidak di-cache permanen.
+
+**Sudah diverifikasi TUNTAS, bukan cuma dikira selesai**: setelah redeploy `--from-source` yang
+membawa perbaikan mailer.js ini, uji kirim email sungguhan ke production diulang lagi (percobaan
+ke-4) dan responsnya akhirnya **"Email pemberitahuan terkirim ke penyedia"** - berhasil. Data uji
+(baris `vendor_followups` dengan catatan mengandung "TES OTOMATIS") sudah dihapus dari database
+production. Fitur email SMTP di production sekarang benar-benar berfungsi, bukan cuma
+"kredensial sudah ada tapi belum tentu jalan" seperti status sebelumnya.
+
+**Pelajaran metodologi paling penting dari seluruh insiden ini**: satu error message yang sama
+persis muncul 2x berturut-turut (`ENETUNREACH` ke IPv6) padahal SUDAH dipasang perbaikan adalah
+tanda kuat bahwa perbaikan itu TIDAK BEKERJA SAMA SEKALI (bukan "belum cukup manjur") - saat itu
+terjadi, langkah yang benar adalah membaca source code library yang sebenarnya dipakai (bukan
+menebak-nebak opsi konfigurasi lain), untuk tahu PERSIS jalur kode mana yang dilalui, alih-alih
+mencoba tambal-sulam opsi lain tanpa tahu apakah opsi itu benar-benar relevan.
