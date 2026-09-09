@@ -151,10 +151,10 @@
      tanpa trik ini gradient akan selalu tampil walau tidak ada overflow sungguhan. */
   .table-scroll {
     @apply overflow-x-auto rounded-xl border border-border;
-    /* Lihat catatan panjang di .tab-scroll-fade di bawah soal kenapa ini wajib dikunci
-       eksplisit - overflow-x-auto tanpa overflow-y eksplisit bisa memicu scrollbar
-       vertikal tersembunyi/tebal (tergantung browser) walau isinya cuma beda tinggi
-       beberapa piksel saja. Tabel di sini tidak pernah butuh scroll vertikal sendiri. */
+    /* Lihat catatan panjang di .scroll-tabs-viewport di bawah soal kenapa ini wajib
+       dikunci eksplisit - overflow-x-auto tanpa overflow-y eksplisit bisa memicu
+       scrollbar vertikal tersembunyi/tebal (tergantung browser) walau isinya cuma beda
+       tinggi beberapa piksel saja. Tabel di sini tidak pernah butuh scroll vertikal sendiri. */
     overflow-y: hidden;
     scrollbar-width: thin;
     scrollbar-color: theme('colors.dpbj.gold') theme('colors.surface');
@@ -179,40 +179,29 @@
     @apply sm:hidden flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark mb-2;
   }
 
-  /* ── Fade tepi kanan untuk strip tab yang bisa digeser mendatar (mobile) ──
-     Versi lebih ringan dari .table-scroll (tanpa border/rounded/scrollbar tebal) - dipakai
-     di baris tab modal/halaman yang isinya banyak, supaya jelas kalau tab lain masih ada
-     di luar layar. Sama seperti .table-scroll, fade cuma tampil kalau memang overflow. */
-  .tab-scroll-fade {
-    background: linear-gradient(to right, rgba(255,255,255,0), white 90%) 100% 0;
-    background-repeat: no-repeat;
-    background-size: 32px 100%;
-    background-attachment: local;
-    /* Ditemukan 2026-09-04: elemen ini selalu dipasangkan dengan overflow-x-auto (utility
-       Tailwind) di kelas tempat pemanggilnya, TANPA overflow-y eksplisit. Menurut spesifikasi
-       CSS, kalau overflow-x diisi selain "visible" sementara overflow-y dibiarkan "visible",
-       browser otomatis mengubah overflow-y jadi "auto" juga (bukan tetap "visible"). Baris
-       tab ini kadang tingginya beda tipis (7px) dari tinggi kontainernya (beda rendering
-       ikon/font antar browser), jadi overflow-y yang "auto" itu memicu scrollbar VERTIKAL
-       tersembunyi tepat di baris tab - di kebanyakan browser nyaris tak kelihatan (scrollbar
-       tipis model overlay), tapi di sebagian kombinasi Windows/browser jadi tebal dan
-       memotong tulisan tab paling kanan. Baris tab ini memang tidak pernah butuh scroll
-       vertikal sama sekali, jadi dikunci eksplisit supaya tidak pernah muncul scrollbar itu
-       lagi di browser manapun. */
+  /* ── Viewport baris tab yang bisa digeser mendatar, dipakai komponen React
+     ScrollableTabRow (src/components/ui/ScrollableTabRow.jsx) ──
+     Riwayat panjang (lihat CLAUDE.md, 2026-09-09): sebelumnya baris tab murni
+     mengandalkan scrollbar bawaan browser (overflow-x-auto), dicoba dipercantik
+     lewat CSS berkali-kali (warna, ketebalan, akhirnya disembunyikan total) karena
+     rendering-nya ternyata beda-beda tiap browser/OS dan tidak bisa dipastikan
+     akurat dari lingkungan pengembangan ini. Waktu track-nya disembunyikan total,
+     efek sampingnya pengguna mouse biasa kehilangan satu-satunya cara menggeser
+     (drag scrollbar) - menu yang overflow jadi tidak terjangkau.
+     Solusinya sekarang: berhenti bergantung ke scrollbar browser SAMA SEKALI.
+     Class ini cuma bertugas mengunci mekanika (kunci overflow-y, sembunyikan
+     track scrollbar bawaan permanen di semua browser) - cara geser sungguhan
+     (tombol panah + roda mouse + drag/swipe) disediakan komponen React-nya, bukan
+     lagi lewat scrollbar native. */
+  .scroll-tabs-viewport {
+    /* overflow-x selain "visible" otomatis membuat browser mengubah overflow-y
+       jadi "auto" juga kalau tidak dikunci eksplisit (kadang memicu scrollbar
+       vertikal tersembunyi dari beda tinggi render font/ikon beberapa piksel). */
     overflow-y: hidden;
-    /* Ditemukan 2026-09-04: di sebagian browser/Windows, scrollbar HORIZONTAL baris tab ini
-       (untuk geser lihat tab lain) dirender model klasik yang tebal dengan tombol panah -
-       kalau baris tab ini ada di dalam modal yang isinya juga scroll (misal tab "Dokumen &
-       Klarifikasi" atau sub-tab "Kontrak & BAST" yang isinya panjang), scrollbar tebal itu
-       bisa bertabrakan/menutupi baris menu atau konten di sekitarnya. Baris tab sudah punya
-       petunjuk "Geser untuk lihat tab lainnya" (teks) dan efek fade (gradient) sebagai
-       penanda bisa digeser - jadi track scrollbar-nya sendiri tidak perlu tampil sama
-       sekali, tetap bisa digeser normal pakai jari/mouse/trackpad. Menghilangkan track-nya
-       menghapus total risiko tabrakan/tertutup ini di browser manapun, apapun gaya
-       scrollbar bawaannya. */
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .tab-scroll-fade::-webkit-scrollbar { display: none; }
+  .scroll-tabs-viewport::-webkit-scrollbar { display: none; }
 
   /* ── Modal Overlay ── */
   .modal-overlay {

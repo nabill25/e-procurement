@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck, MoveHorizontal } from 'lucide-react';
+import { X, Calendar, CalendarClock, CheckCircle2, CircleDot, Users, FileText, Upload, Award, DollarSign, Download, Save, MessageCircle, AlertCircle, HandCoins, ClipboardCheck } from 'lucide-react';
 import { formatRupiah, StatusBadge } from '../ui/shared';
 import { methodConfig } from '../../data/mockData';
 import { procurementPhases, getTenderPhaseIndex, tenderStatusConfig } from '../../data/procurementPhases';
@@ -14,7 +14,7 @@ import PanitiaTab from './PanitiaTab';
 import DokumenPaketTab from './DokumenPaketTab';
 import GeneralChatModal from './GeneralChatModal';
 import { toast } from '../../lib/toast';
-import { useHorizontalScrollHint } from '../../hooks/useScrollHint';
+import ScrollableTabRow from '../ui/ScrollableTabRow';
 
 const STAGE_LABELS = {
   pengumuman: 'Pengumuman Pascakualifikasi',
@@ -666,13 +666,6 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [showBidForm, setShowBidForm] = useState(false);
-  const tabBarRef = useRef(null);
-  // Ditemukan 2026-09-03 (laporan pengguna, screenshot desktop): tab bar ini bisa sampai 9 tab
-  // tergantung tahap tender + role, dan itu bisa kepotong bahkan di layar DESKTOP lebar biasa,
-  // bukan cuma HP. Petunjuk "geser" sebelumnya pakai class CSS yang cuma tampil di layar sempit
-  // (sm:hidden) - salah asumsi, jadi diganti deteksi overflow sungguhan lewat hook ini supaya
-  // muncul kapanpun benar-benar dibutuhkan di lebar layar manapun.
-  const showTabHint = useHorizontalScrollHint(tabBarRef, [data?.id, user?.role]);
 
   useEffect(() => {
     if (!isOpen || !data) return;
@@ -760,18 +753,13 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
             Kontrak & BAST-nya sendiri; tab-tab lain di sini tetap read-only untuk mereka karena
             gate-nya masing-masing tidak diubah) */}
         {['pokja', 'admin', 'ppk', 'vendor', 'pengelola_kontrak', 'kasubdit_kontrak'].includes(user.role) && (
-          <>
-          {/* Ditemukan 2026-09-03: tab bar ini bisa punya sampai 9 tab (tergantung tahap
-              tender + role), dan bisa kepotong bahkan di layar DESKTOP lebar biasa, bukan cuma
-              HP - hint di bawah ini muncul berdasarkan deteksi overflow SUNGGUHAN
-              (useHorizontalScrollHint), bukan cuma di layar sempit, supaya tidak pernah
-              kepotong diam-diam tanpa tanda apapun di lebar layar manapun. */}
-          {showTabHint && (
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark px-6 pt-2 bg-white">
-              <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-            </p>
-          )}
-          <div ref={tabBarRef} className="flex px-6 pt-3 border-b border-border bg-white gap-6 overflow-x-auto tab-scroll-fade">
+          /* Perubahan besar 2026-09-09: tab bar ini bisa punya sampai 9 tab (tergantung
+             tahap tender + role) dan sebelumnya mengandalkan scrollbar bawaan browser untuk
+             digeser - rendering scrollbar itu ternyata beda-beda tiap browser/OS dan
+             berkali-kali gagal cocok dengan yang dialami pengguna sungguhan. Diganti total
+             pakai ScrollableTabRow: tombol panah + roda mouse + drag, tidak bergantung
+             scrollbar native sama sekali. */
+          <ScrollableTabRow className="flex px-6 pt-3 border-b border-border bg-white gap-6">
             <button onClick={() => setActiveTab('detail')} className={clsx("pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap", activeTab === 'detail' ? "border-dpbj-gold text-dpbj-navy" : "border-transparent text-muted hover:text-dpbj-navy")}>
               <FileText size={16} /> Detail Tender
             </button>
@@ -812,8 +800,7 @@ export default function DetailTenderModal({ isOpen, onClose, data }) {
                 <ClipboardCheck size={16} /> Rekam Jejak
               </button>
             )}
-          </div>
-          </>
+          </ScrollableTabRow>
         )}
 
         <div className="flex-1 overflow-y-auto p-6 bg-white flex flex-col lg:flex-row gap-8">

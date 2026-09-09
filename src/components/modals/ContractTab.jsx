@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { useHorizontalScrollHint } from '../../hooks/useScrollHint';
+import { useState, useEffect } from 'react';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE, resolveFileUrl } from '../../context/AppContext';
-import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode, MoveHorizontal } from 'lucide-react';
+import { Download, Award, ShieldCheck, Star, CheckCircle2, QrCode } from 'lucide-react';
 import { PaymentTermsSection, PenaltiesSection, DeliverablesSection } from './ContractDetailSections';
 import {
   SppbjSpkSection, SpmkSection, SppjbSection, JaminanSection, SlaSection, MaterialSection,
   AddendumSection, NotesRemindersDocsSection, StatusChangeSection, PicStageSection,
   PenilaianKinerjaSection,
 } from './ContractWorkflowSections';
+import ScrollableTabRow from '../ui/ScrollableTabRow';
 import { formatRupiah } from '../ui/shared';
 import { format } from 'date-fns';
 import clsx from 'clsx';
@@ -39,8 +39,6 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
   const [loading, setLoading] = useState(true);
   const [existingRating, setExistingRating] = useState(null);
   const [workflowTab, setWorkflowTab] = useState('utama');
-  const subTabBarRef = useRef(null);
-  const showSubTabHint = useHorizontalScrollHint(subTabBarRef, [contract?.id]);
 
   const [form, setForm] = useState({
     contract_number: '',
@@ -178,16 +176,10 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
       </div>
 
       {contract && (
-        <>
-        {/* Ditemukan 2026-09-03 (laporan pengguna, 2x): sub-tab kontrak ada 10 buah, bisa
-            kepotong bahkan di layar desktop lebar, bukan cuma HP - hint pakai deteksi overflow
-            sungguhan (useHorizontalScrollHint), bukan sekadar disembunyikan di layar lebar. */}
-        {showSubTabHint && (
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark mb-1">
-            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-          </p>
-        )}
-        <div ref={subTabBarRef} className="flex gap-1.5 overflow-x-auto pb-1 border-b border-border tab-scroll-fade">
+        /* Perubahan besar 2026-09-09: sub-tab kontrak ada 10 buah, sebelumnya mengandalkan
+           scrollbar bawaan browser untuk digeser - diganti ScrollableTabRow (tombol panah +
+           roda mouse + drag), tidak bergantung scrollbar native sama sekali. */
+        <ScrollableTabRow className="flex gap-1.5 pb-1 border-b border-border">
           {WORKFLOW_SUBTABS.map(t => (
             <button
               key={t.id}
@@ -197,8 +189,7 @@ export default function ContractTab({ tenderId, tenderStatus, participants, user
               {t.label}
             </button>
           ))}
-        </div>
-        </>
+        </ScrollableTabRow>
       )}
 
       {workflowTab === 'utama' && canManageContract && (

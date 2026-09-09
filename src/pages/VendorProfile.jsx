@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getAuthHeaders, useApp, API_BASE, SERVER_BASE, resolveFileUrl } from '../context/AppContext';
-import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle, MoveHorizontal } from 'lucide-react';
+import { FileText, Briefcase, Plus, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatRupiah } from '../components/ui/shared';
 import clsx from 'clsx';
 import { PajakTab, TenagaAhliTab, PeralatanTab, PengurusTab, BankTab, NeracaTab } from '../components/profile/SikapTabs';
@@ -8,8 +8,8 @@ import BidangUsahaTab from '../components/profile/BidangUsahaTab';
 import RekeningKoranTab from '../components/profile/RekeningKoranTab';
 import FollowupPanel from '../components/vendor/FollowupPanel';
 import VendorChecklistPanel from '../components/vendor/VendorChecklistPanel';
-import { useHorizontalScrollHint } from '../hooks/useScrollHint';
 import { toast } from '../lib/toast';
+import ScrollableTabRow from '../components/ui/ScrollableTabRow';
 
 function IdentityTab({ vendor }) {
   if (!vendor) return null;
@@ -287,8 +287,6 @@ function ExperiencesTab({ experiences, vendorId, fetchQualifications }) {
 export default function VendorProfile() {
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState('identitas');
-  const tabBarRef = useRef(null);
-  const showTabHint = useHorizontalScrollHint(tabBarRef);
   const [vendorData, setVendorData] = useState(null);
   const [qualifications, setQualifications] = useState({ documents: [], experiences: [] });
   const [isLoading, setIsLoading] = useState(true);
@@ -353,14 +351,10 @@ export default function VendorProfile() {
       <VendorChecklistPanel vendorId={user.id} mode="penyedia" />
 
       <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden">
-        {/* Ditemukan 2026-09-03: 11 tab, bisa kepotong bahkan di layar desktop lebar -
-            hint pakai deteksi overflow sungguhan, bukan disembunyikan di layar lebar. */}
-        {showTabHint && (
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark px-4 pt-3">
-            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-          </p>
-        )}
-        <div ref={tabBarRef} className="flex border-b border-border overflow-x-auto tab-scroll-fade" style={{ scrollbarWidth: "thin" }}>
+        {/* Perubahan besar 2026-09-09: 11 tab, sebelumnya mengandalkan scrollbar bawaan
+            browser untuk digeser - diganti ScrollableTabRow (tombol panah + roda mouse +
+            drag), tidak bergantung scrollbar native sama sekali. */}
+        <ScrollableTabRow className="flex border-b border-border">
           <button
             onClick={() => setActiveTab('identitas')}
             className={clsx("flex-shrink-0 py-4 text-sm font-bold transition-colors whitespace-nowrap px-4", activeTab === 'identitas' ? "border-b-2 border-dpbj-gold text-dpbj-navy bg-surface" : "text-muted hover:text-dpbj-navy")}
@@ -427,7 +421,7 @@ export default function VendorProfile() {
             >
               Rekening Koran
             </button>
-          </div>
+        </ScrollableTabRow>
 
         <div className="p-6">
           {activeTab === 'identitas' && <IdentityTab vendor={vendorData} />}

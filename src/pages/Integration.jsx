@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useHorizontalScrollHint } from '../hooks/useScrollHint';
-import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff, Landmark, MoveHorizontal } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Upload, Download, FileSpreadsheet, ClipboardList, History, AlertCircle, CheckCircle2, XCircle, Loader2, CloudOff, Landmark } from 'lucide-react';
 import { API_BASE, getAuthHeaders, useApp } from '../context/AppContext';
 import { toast } from '../lib/toast';
+import ScrollableTabRow from '../components/ui/ScrollableTabRow';
 import SetupSupplierPanel from '../components/integration/SetupSupplierPanel';
 
 function formatTanggal(iso) {
@@ -127,8 +127,6 @@ export default function Integration() {
   const isOracleTicketRole = ORACLE_TICKET_ROLES.includes(user?.role);
   const TABS = isOracleTicketRole ? [SETUP_SUPPLIER_TAB] : [...SYNC_TABS, SETUP_SUPPLIER_TAB];
   const [activeTab, setActiveTab] = useState(isOracleTicketRole ? 'setup_supplier' : 'rka');
-  const tabBarRef = useRef(null);
-  const showTabHint = useHorizontalScrollHint(tabBarRef, [TABS.length]);
   const [status, setStatus] = useState({ sftp_configured: false });
   const [rka, setRka] = useState([]);
   const [pr, setPr] = useState([]);
@@ -205,12 +203,10 @@ export default function Integration() {
       </div>
 
       <div className="section-card !p-0 overflow-hidden">
-        {showTabHint && (
-          <p className="flex items-center gap-1.5 text-[11px] font-medium text-dpbj-gold-dark px-4 pt-3">
-            <MoveHorizontal size={13} /> Geser untuk lihat tab lainnya
-          </p>
-        )}
-        <div ref={tabBarRef} className="tab-scroll-fade flex overflow-x-auto border-b border-border">
+        {/* Perubahan besar 2026-09-09: sebelumnya baris tab ini mengandalkan scrollbar
+            bawaan browser untuk digeser - diganti ScrollableTabRow (tombol panah + roda
+            mouse + drag), tidak bergantung scrollbar native sama sekali. */}
+        <ScrollableTabRow className="flex border-b border-border">
           {TABS.map(t => (
             <button
               key={t.key}
@@ -220,7 +216,7 @@ export default function Integration() {
               <t.icon size={13} /> {t.label}
             </button>
           ))}
-        </div>
+        </ScrollableTabRow>
 
         <div className="p-4">
           {isLoading ? (

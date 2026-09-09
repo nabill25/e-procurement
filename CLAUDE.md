@@ -1953,3 +1953,91 @@ Sudah dites: `scrollbarWidth` computed jadi `none`, scroll tetap fungsional (`sc
 diubah), dicek visual tab "Kontrak & BAST" (2 baris tab bersusun) bersih tanpa scrollbar
 terlihat. **Belum bisa diverifikasi di browser asli pengguna** (masih menunggu konfirmasi
 mereka setelah deploy).
+
+**Susulan - pengguna konfirmasi lewat Edge sungguhan (video layar) dan minta perubahan besar**:
+setelah diminta screenshot browser, nama filenya sendiri (Windows otomatis menyisipkan judul
+tab aktif ke nama file screen-recording) ketahuan tanpa perlu buka videonya: **Microsoft Edge**.
+Dicoba tes ulang pakai Edge SUNGGUHAN yang terpasang di komputer ini lewat Playwright
+(`channel: 'msedge'`, bukan Chromium bawaan Playwright yang dipakai testing selama ini) -
+hasilnya bersih (`scrollbarWidth: 'none'`), jadi versi Edge Chromium modern yang dites di sini
+TIDAK mereproduksi masalahnya - Edge pengguna kemungkinan pakai pengaturan aksesibilitas
+Windows ("scrollbar selalu tampil" / tema kontras tinggi) yang tidak aktif di komputer ini.
+
+Pengguna lapor: tab teks sudah tidak lagi terpotong (perbaikan sebelumnya berhasil), TAPI
+sekarang baris tab tidak bisa digeser ke kanan sama sekali. Ini bug NYATA yang saya timbulkan
+sendiri: `scrollbar-width:none` menghapus SATU-SATUNYA cara pengguna mouse desktop (tanpa
+trackpad/layar sentuh) menggeser baris tab, yaitu drag scrollbar - roda mouse vertikal biasa
+TIDAK otomatis menggeser horizontal tanpa kode tambahan. Pengguna minta perubahan besar,
+bukan tambal warna/ukuran lagi.
+
+**Keputusan final: berhenti bergantung ke scrollbar bawaan browser SAMA SEKALI**, gantinya
+dibangun komponen React sendiri `src/components/ui/ScrollableTabRow.jsx` yang menyediakan 3
+jalur geser yang semuanya aktif bersamaan dan dirender sendiri (jadi tampilannya konsisten di
+semua browser/OS, tidak lagi bergantung rendering scrollbar native yang terbukti berkali-kali
+tidak bisa dipastikan dari lingkungan pengembangan ini):
+1. **Tombol panah kiri/kanan** (lingkaran kecil dengan gradient fade di belakangnya) - cuma
+   muncul kalau memang masih ada yang bisa digeser ke arah itu (dicek lewat
+   `scrollLeft`/`scrollWidth`/`clientWidth`, diperbarui otomatis lewat `ResizeObserver` +
+   listener `scroll`). Klik menggeser 65% lebar kontainer dengan animasi halus.
+2. **Roda mouse vertikal diterjemahkan jadi geser horizontal** - dipasang manual lewat
+   `addEventListener('wheel', ..., {passive:false})` (BUKAN prop `onWheel` React, yang
+   otomatis passive dan diam-diam menolak `preventDefault()`), cuma aktif kalau baris itu
+   memang overflow DAN roda yang digerakkan dominan vertikal (`deltaY`) - kalau dominan
+   horizontal (`deltaX`, trackpad swipe asli) dibiarkan lewat native tanpa dicampuri.
+3. **Drag/swipe langsung** tetap jalan seperti biasa lewat `overflow-x-auto` bawaan, tidak
+   diubah.
+
+Track scrollbar native tetap disembunyikan permanen (`scrollbar-width:none` +
+`::-webkit-scrollbar{display:none}`, sekarang di class baru `.scroll-tabs-viewport`
+menggantikan `.tab-scroll-fade` yang dihapus) karena sudah tidak relevan lagi - geser
+sepenuhnya ditangani komponen ini, bukan lagi scrollbar bawaan browser.
+
+Dipasang di kelima tempat yang sebelumnya pakai `.tab-scroll-fade` + `useHorizontalScrollHint`
+(hook itu sekarang dihapus total, `src/hooks/useScrollHint.js`, sudah tidak dipakai di manapun
+lagi): tab utama Detail Tender (`DetailTenderModal.jsx`, 9 tab), sub-tab workflow Kontrak &
+BAST (`ContractTab.jsx`, 10 sub-tab - INI yang sebelumnya dilaporkan "ketutup/ketimpa"), 27
+kategori Data Master (`DataMaster.jsx`), 5 tab Integrasi Oracle (`Integration.jsx`), 11 tab
+Profil & Kualifikasi Vendor (`VendorProfile.jsx` - sekalian dibuang inline style
+`scrollbarWidth:"thin"` yang tertinggal di situ, sisa dari salah satu iterasi sebelumnya, jadi
+tidak konsisten dengan 4 tempat lain). Teks petunjuk "Geser untuk lihat tab lainnya" yang
+sebelumnya dipakai di semua tempat ini juga dihapus - sudah tidak perlu, tombol panah sendiri
+sudah jadi penanda yang jelas dan bisa langsung diklik (lebih baik dari sekadar teks).
+
+Sudah dites menyeluruh lewat Playwright (browser Chromium bawaan, viewport desktop 1440px)
+langsung ke lingkungan development lokal:
+- Detail Tender (9 tab, overflow 1383px vs kontainer 1152px): tombol kanan tampil di awal,
+  tombol kiri baru muncul setelah discroll (bukan dari awal - benar), klik tombol kanan
+  memindahkan scroll dari 0 ke 231 (nilai maksimal, karena satu klik cukup lebar untuk
+  menampilkan sisa tab), wheel horizontal murni (`deltaX`) diteruskan native apa adanya, wheel
+  vertikal murni (`deltaY`, simulasi mouse biasa) berhasil DITERJEMAHKAN jadi geser horizontal
+  sampai mentok maksimal - korelasi 3 jalur geser semuanya terbukti bekerja.
+- **Kontrak & BAST (skenario yang dilaporkan bermasalah)**: dikonfirmasi ADA 2 baris
+  `.scroll-tabs-viewport` sekaligus (tab utama + sub-tab), dicek `getBoundingClientRect()`
+  keduanya - baris tab utama berakhir di y=179, sub-tab mulai di y=301, TIDAK tumpang tindih
+  sama sekali (beda 122px, ada banner info pemenang di antaranya). Sub-tab juga punya tombol
+  panah sendiri yang independen dan berfungsi normal.
+- Data Master (27 kategori): tombol kanan/kiri muncul bergantian sesuai posisi scroll, diklik
+  2x berturut-turut berhasil menggeser sampai ke kategori "Wilayah" di ujung.
+- Integrasi Oracle (5 tab): tidak overflow di 1440px (5 tab muat penuh) - tombol otomatis
+  tidak muncul, ini perilaku yang benar (tidak ada yang perlu digeser).
+- Profil & Kualifikasi Vendor (11 tab): tidak overflow di 1440px juga (halaman penuh, lebih
+  lebar dari modal), tombol otomatis tidak muncul - juga benar, dan nol error console.
+
+Nol error console dan nol PAGEERROR di semua skenario di atas. Screenshot dicek visual satu-
+satu, tombol panah tampil rapi (lingkaran kecil putih dengan border tipis dan fade gradient di
+belakangnya), tidak norak/mengganggu, dan konsisten dengan gaya tombol lain di aplikasi.
+
+**Kenapa ini lebih baik dari sekadar mempercantik scrollbar terus-menerus**: tombol panah,
+event listener wheel manual, dan drag/swipe adalah elemen yang SEPENUHNYA dirender/dikontrol
+oleh kode aplikasi sendiri (bukan elemen bawaan browser), jadi tampilan dan perilakunya
+DIJAMIN identik di semua kombinasi browser/OS - tidak ada lagi ketergantungan pada bagaimana
+suatu browser tertentu memilih merender scrollbar (tipis/overlay vs klasik/tombol panah),
+yang sudah terbukti berkali-kali menjadi celah yang tidak bisa ditutup lewat CSS scrollbar
+apapun karena tidak bisa dites ulang persis kombinasi browser/OS pengguna dari lingkungan
+pengembangan ini. Efek sampingan yang menguntungkan: pengguna keyboard sekarang juga punya
+cara baru menggeser baris tab (Tab ke tombol panah, tekan Enter/Space) yang sebelumnya sama
+sekali tidak ada (drag scrollbar native juga tidak accessible dari keyboard).
+
+**Belum diverifikasi di browser asli pengguna** (sama seperti sebelumnya, mekanisme ini tidak
+lagi bergantung rendering scrollbar sehingga risikonya jauh lebih kecil, tapi konfirmasi
+langsung dari pengguna tetap jadi bukti akhir yang paling meyakinkan).
