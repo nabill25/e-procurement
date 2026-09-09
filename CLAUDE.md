@@ -2041,3 +2041,35 @@ sekali tidak ada (drag scrollbar native juga tidak accessible dari keyboard).
 **Belum diverifikasi di browser asli pengguna** (sama seperti sebelumnya, mekanisme ini tidak
 lagi bergantung rendering scrollbar sehingga risikonya jauh lebih kecil, tapi konfirmasi
 langsung dari pengguna tetap jadi bukti akhir yang paling meyakinkan).
+
+**Update**: sudah dipush ke GitHub, Vercel otomatis deploy (bundle CSS/JS baru dikonfirmasi
+tayang: `.scroll-tabs-viewport` ada, `.tab-scroll-fade` sudah tidak ada sama sekali, kode
+`useHorizontalScrollHint` juga sudah hilang total dari bundle produksi). Perubahan ini murni
+frontend, tidak menyentuh `server/` sama sekali, jadi tidak perlu redeploy Railway. Dicek juga
+langsung ke situs yang sudah online (bukan cuma lokal): tombol panah tampil dan berfungsi,
+tab "Kontrak & BAST" dikonfirmasi 2 baris tab-nya (tab utama tender + sub-tab workflow
+kontrak) tidak tumpang tindih, nol error console.
+
+## Bug kecil: angka total di tengah donat "Sebaran Status Paket Tender" tidak center (2026-09-09)
+
+Pengguna kirim screenshot: angka total (misal "8") di tengah grafik donat halaman Dashboard
+tampil agak ke bawah, bukan pas di tengah lingkaran.
+
+**Penyebab** (`src/components/dashboard/DashboardCharts.jsx`, komponen `TenderStatusDonut`):
+teks overlay angka+label ("Total Paket") pakai `absolute inset-0` supaya menempel di tengah
+lingkaran donat, tapi `inset-0` itu jadi anak dari `<div className="relative">` yang SAMA
+dengan yang membungkus legenda warna di bawah chart. Akibatnya `inset-0` merentang sepanjang
+tinggi chart (220px) DITAMBAH tinggi legenda di bawahnya, jadi titik tengah vertikalnya ikut
+turun sebanyak kira-kira setengah tinggi legenda, bukan pas di tengah lingkaran 220px itu
+sendiri.
+
+**Perbaikan**: chart (`ResponsiveContainer`) dan overlay teks dibungkus dalam `<div>` baru yang
+tingginya dikunci eksplisit 220px (sama persis dengan tinggi `ResponsiveContainer`), legenda
+dipindah jadi elemen bersaudara DI LUAR div itu, bukan lagi ikut di dalam area `inset-0`.
+
+Sudah dites: diukur langsung lewat `getBoundingClientRect()` browser sungguhan, titik tengah
+vertikal SVG donat dan titik tengah overlay teks sekarang PERSIS sama (selisih 0 piksel,
+sebelumnya pasti bergeser ke bawah sebesar setengah tinggi legenda). Komponen ini dipakai di 2
+tempat (dashboard Admin/PPK dan dashboard Pokja/staf lain), keduanya otomatis ikut benar karena
+satu komponen yang sama. Dicek juga tidak ada donat/pie chart lain di seluruh aplikasi yang
+pakai pola serupa (cuma satu-satunya).

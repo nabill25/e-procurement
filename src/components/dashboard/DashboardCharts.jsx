@@ -34,31 +34,41 @@ export function TenderStatusDonut({ data }) {
   }
 
   return (
-    <div className="relative">
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            innerRadius={62}
-            outerRadius={88}
-            paddingAngle={3}
-            animationDuration={800}
-            animationBegin={100}
-          >
-            {chartData.map((entry, i) => (
-              <Cell key={entry.name} fill={STATUS_COLORS[i % STATUS_COLORS.length]} stroke="rgba(255,255,255,0.6)" strokeWidth={2} />
-            ))}
-          </Pie>
-          <Tooltip content={<GlassTooltip />} />
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-3xl font-extrabold text-dpbj-navy">{total}</span>
-        <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">Total Paket</span>
+    <div>
+      {/* Ditemukan 2026-09-09 (laporan pengguna, screenshot): angka total di tengah donat
+          tampil agak ke bawah, bukan pas di tengah lingkaran. Penyebabnya overlay teks
+          "absolute inset-0" dulu jadi anak dari div terluar yang juga membungkus legenda
+          warna di bawah chart - inset-0 jadi merentang sepanjang tinggi chart+legenda
+          digabung, bukan cuma tinggi chart (220px) sendiri, jadi titik tengahnya ikut turun
+          sebanyak setengah tinggi legenda. Diperbaiki dengan membungkus chart+overlay dalam
+          div tersendiri yang tingginya dikunci pas 220px (sama dengan ResponsiveContainer),
+          legenda dipindah jadi elemen bersaudara di luar div itu, bukan lagi di dalamnya. */}
+      <div className="relative" style={{ height: 220 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={62}
+              outerRadius={88}
+              paddingAngle={3}
+              animationDuration={800}
+              animationBegin={100}
+            >
+              {chartData.map((entry, i) => (
+                <Cell key={entry.name} fill={STATUS_COLORS[i % STATUS_COLORS.length]} stroke="rgba(255,255,255,0.6)" strokeWidth={2} />
+              ))}
+            </Pie>
+            <Tooltip content={<GlassTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-3xl font-extrabold text-dpbj-navy">{total}</span>
+          <span className="text-[10px] font-semibold text-muted uppercase tracking-wide">Total Paket</span>
+        </div>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1.5 justify-center mt-3">
         {chartData.map((d, i) => (
