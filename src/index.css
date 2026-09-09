@@ -200,7 +200,19 @@
        vertikal sama sekali, jadi dikunci eksplisit supaya tidak pernah muncul scrollbar itu
        lagi di browser manapun. */
     overflow-y: hidden;
+    /* Ditemukan 2026-09-04: di sebagian browser/Windows, scrollbar HORIZONTAL baris tab ini
+       (untuk geser lihat tab lain) dirender model klasik yang tebal dengan tombol panah -
+       kalau baris tab ini ada di dalam modal yang isinya juga scroll (misal tab "Dokumen &
+       Klarifikasi" atau sub-tab "Kontrak & BAST" yang isinya panjang), scrollbar tebal itu
+       bisa bertabrakan/menutupi baris menu atau konten di sekitarnya. Baris tab sudah punya
+       petunjuk "Geser untuk lihat tab lainnya" (teks) dan efek fade (gradient) sebagai
+       penanda bisa digeser - jadi track scrollbar-nya sendiri tidak perlu tampil sama
+       sekali, tetap bisa digeser normal pakai jari/mouse/trackpad. Menghilangkan track-nya
+       menghapus total risiko tabrakan/tertutup ini di browser manapun, apapun gaya
+       scrollbar bawaannya. */
+    scrollbar-width: none;
   }
+  .tab-scroll-fade::-webkit-scrollbar { display: none; }
 
   /* ── Modal Overlay ── */
   .modal-overlay {
