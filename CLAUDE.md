@@ -2073,3 +2073,66 @@ sebelumnya pasti bergeser ke bawah sebesar setengah tinggi legenda). Komponen in
 tempat (dashboard Admin/PPK dan dashboard Pokja/staf lain), keduanya otomatis ikut benar karena
 satu komponen yang sama. Dicek juga tidak ada donat/pie chart lain di seluruh aplikasi yang
 pakai pola serupa (cuma satu-satunya).
+
+## Cetak Dokumen: Rekapitulasi Evaluasi Penawaran (harga) + celah keamanan ditutup (2026-09-09)
+
+Pengguna minta rekomendasi pengembangan ditindaklanjuti satu-satu. Dimulai dari melengkapi sisa
+"Cetak Dokumen" yang paling bernilai. Ditelusuri ulang isi lengkap `eproc/application/views/
+report/` (107 file), dikelompokkan menurut nama dasarnya (banyak yang cuma beda format
+PDF/Excel/Word dari dokumen yang sama, dan beberapa terkonfirmasi file backup/mati lewat akhiran
+nama seperti `-salah`, `copy`, atau tanda hubung menggantung - pola yang sama seperti temuan-
+temuan sebelumnya). Dari situ dipilih 1 dokumen dengan nilai tertinggi dan datanya sudah
+tersedia tanpa perlu ubah skema: **Rekapitulasi Evaluasi Penawaran** (`evaluasi_penawaran_
+rekapitulasi_excel.php`), beda dari "Rekapitulasi Evaluasi Kualifikasi" yang sudah ada duluan
+(itu rekap nilai KUALIFIKASI teknis per kriteria, ini rekap status LULUS/GUGUR evaluasi
+PENAWARAN/HARGA).
+
+**Logika yang ditiru dari sistem lama**: status lulus/gugur dicek BERJENJANG - Administrasi
+dulu, baru Teknis (otomatis gugur kalau Administrasi gugur), baru Harga (otomatis gugur kalau
+Administrasi ATAU Teknis gugur) - jadi begitu satu tahap gugur, tahap sesudahnya tidak perlu
+dicek lagi. Kesimpulan akhir: GUGUR (kalau ada tahap yang gugur), atau LULUS (dengan tanda
+"Di atas HPS" kalau harga penawaran melebihi HPS, meniru perilaku sistem lama persis yang tetap
+meluluskan tapi memberi peringatan, bukan otomatis menggugurkan). Dipetakan ke data yang sudah
+ada (`tender_eval_criteria`/`tender_eval_scores` kategori administrasi/teknis/harga yang sudah
+dibangun sejak Kelompok J, tanpa migrasi baru) - kategori dianggap "memenuhi syarat" kalau
+SEMUA kriteria kategori itu untuk vendor tsb sudah dinilai `meets_requirement=true` (dan minimal
+ada 1 yang sudah dinilai, supaya kategori yang belum sempat dinilai tidak salah dianggap lulus).
+
+Endpoint baru: `GET /api/print/tenders/:id/evaluasi-penawaran-rekapitulasi`. Halaman baru
+`src/pages/print/PrintRekapitulasiPenawaran.jsx` (jenis URL `rekapitulasi-penawaran`), tombol
+"Cetak Rekapitulasi Penawaran" baru di tab "Peserta & Penawaran" (`DetailTenderModal.jsx`,
+komponen `PokjaEvaluationTable`), khusus tampil untuk role pokja/admin/ppk.
+
+**Celah keamanan ditemukan dan ditutup sekalian** (bukan cuma di endpoint baru ini): 3 endpoint
+rekap evaluasi di `server/routes/print.js` (2 yang sudah lama ada - `evaluasi-kualifikasi/
+:category` dan `evaluasi-rekapitulasi` - plus endpoint baru ini) ternyata cuma dijaga
+`requireAuth` (wajib login) TANPA `requireRole`. Artinya vendor peserta tender yang login bisa
+saja melihat skor kualifikasi, status lulus/gugur, dan harga penawaran SEMUA vendor lain kalau
+tahu/menebak pola URL-nya langsung, walau tombol "Cetak" di tampilan aplikasi memang cuma
+muncul untuk pokja/admin/ppk (proteksi tampilan doang, bukan proteksi data sungguhan). Ditambah
+`requireRole('pokja','admin','ppk')` ke ketiganya, konsisten dengan pola defense-in-depth yang
+sudah dipakai luas sejak pengerasan keamanan 2026-08-27.
+
+Sudah dites: lewat curl (admin dapat data benar dengan perhitungan manual dicek - 2.54M/2.6M
+HPS = 97.69% lulus, 2.59M/2.6M = 99.62% lulus; akun vendor ditolak 403 di ketiga endpoint) dan
+lewat browser sungguhan Playwright (tombol tampil di tab Peserta & Penawaran, halaman cetak
+terbuka dan datanya benar, nol error console). Backend di-restart bersih setelah perubahan.
+Sudah dipush, Vercel auto-deploy (frontend), tidak perlu redeploy Railway untuk perubahan
+backend murni tambah-route (perlu commit dulu baru redeploy Railway secara terpisah).
+
+**Sisa kategori cetak dokumen yang masih belum dibuat** (dicek ulang dari 107 file laporan,
+dikelompokkan menurut dokumen dasarnya, bukan varian format): Koreksi Aritmatika Penawaran
+(butuh keputusan desain - struktur BOQ sistem baru per-vendor bebas, tidak seperti sistem lama
+yang wajib pakai template item bersama, jadi versi "bandingkan semua vendor sejajar" tidak bisa
+ditiru presis, perlu didesain versi per-vendor), Aanwijzing Kualifikasi (forum terpisah untuk
+pra-kualifikasi), Rekapitulasi Pekerjaan (laporan agregat TAHUNAN lintas paket, bukan per-
+tender/kontrak - beda bentuk dari dokumen yang sudah ada, lebih cocok jadi halaman "Laporan"
+tersendiri), 4 dokumen Katalog (produk, chat/nego, SKT, surat pesanan - alur keranjang-nego-nya
+sendiri juga belum ada UI lengkap di frontend), 3 laporan VMS (daftar penyedia/terverifikasi -
+laporan LISTING banyak vendor sekaligus, beda dari SKT per-vendor yang sudah ada), Pakta
+Integritas versi Panitia (roster, beda dari versi per-vendor yang sudah ada), Template Penilaian
+print, Berita Acara Pembukaan/Penawaran (2 dokumen resmi terpisah dari validasi yang sudah ada).
+**Dikeluarkan dari daftar** (terkonfirmasi kode mati): `contracting_rekapitulasi_excel` cuma
+direferensikan dari `dashboardkontrak-.php` (versi berakhiran tanda hubung, backup/tidak aktif
+persis pola yang sudah dikonfirmasi berkali-kali di project ini), TIDAK ada di `dashboardkontrak.
+php` (versi aktif).

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
-const { requireAuth } = require('../lib/authMiddleware');
+const { requireAuth, requireRole } = require('../lib/authMiddleware');
 const { terbilang, kalimatTanggalTerbilang, formatTanggalIndo } = require('../lib/tanggalTerbilang');
 const { FORMULA_CATEGORIES, computeCategoryFinalScore } = require('../lib/evalFormula');
 
@@ -322,7 +322,15 @@ async function getEvaluatedPeserta(tenderId) {
 // rekening koran, pengalaman, personil, peralatan, sertifikat, SKK) - digabung jadi SATU endpoint
 // generik yang menerima kategori apa saja (sesuai kriteria yang dibuat Pokja lewat modul Evaluasi
 // Tender), karena sistem baru sudah memakai satu model data yang sama untuk semua kategori.
-router.get('/tenders/:id/evaluasi-kualifikasi/:category', async (req, res) => {
+// Ditemukan 2026-09-09 (waktu menambahkan endpoint rekap penawaran baru di bawah): 3 endpoint
+// rekap evaluasi ini (kualifikasi per-kategori, rekap kualifikasi, rekap penawaran) sebelumnya
+// cuma dijaga requireAuth (wajib login) TANPA requireRole - siapa saja yang login (termasuk
+// vendor peserta tender itu sendiri) bisa lihat skor/status SEMUA vendor lain kalau tahu/tebak
+// URL-nya langsung, walau tombol "Cetak" di UI memang cuma tampil untuk pokja/admin/ppk. Ini
+// dokumen evaluasi internal Pokja, jadi ditambahkan requireRole supaya proteksinya bukan cuma
+// dari sisi tampilan (mengikuti pola defense-in-depth yang sudah dipakai di seluruh sistem sejak
+// pengerasan keamanan 2026-08-27).
+router.get('/tenders/:id/evaluasi-kualifikasi/:category', requireRole('pokja', 'admin', 'ppk'), async (req, res) => {
   try {
     const { id, category } = req.params;
     const tender = await getTenderBase(id);
@@ -388,7 +396,7 @@ router.get('/tenders/:id/evaluasi-kualifikasi/:category', async (req, res) => {
 // ── GET /api/print/tenders/:id/evaluasi-rekapitulasi ──
 // Padanan "evaluasi_kualifikasi_rekapitulasi_excel.php" - rekap nilai akhir SEMUA kategori
 // evaluasi kualifikasi per vendor jadi satu tabel, plus status lulus/tidak.
-router.get('/tenders/:id/evaluasi-rekapitulasi', async (req, res) => {
+router.get('/tenders/:id/evaluasi-rekapitulasi', requireRole('pokja', 'admin', 'ppk'), async (req, res) => {
   try {
     const { id } = req.params;
     const tender = await getTenderBase(id);
@@ -449,6 +457,86 @@ router.get('/tenders/:id/evaluasi-rekapitulasi', async (req, res) => {
     });
   } catch (err) {
     console.error('[GET /print/tenders/:id/evaluasi-rekapitulasi]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
+// ── GET /api/print/tenders/:id/evaluasi-penawaran-rekapitulasi ──
+// Padanan "evaluasi_penawaran_rekapitulasi_excel.php" - beda dari evaluasi-rekapitulasi di atas
+// (itu rekap nilai KUALIFIKASI teknis per kriteria), ini rekap status LULUS/GUGUR evaluasi
+// penawaran secara berjenjang: Administrasi -> Teknis -> Harga (persis urutan sistem lama -
+// begitu satu tahap GUGUR untuk satu vendor, tahap berikutnya otomatis ikut GUGUR, tidak perlu
+// dievaluasi lagi), plus perbandingan harga penawaran terhadap HPS per vendor.
+//
+// Kategori 'administrasi'/'teknis'/'harga' di sini diambil dari tender_eval_criteria/scores yang
+// sudah ada (modul Evaluasi Tender) - lulus kategori artinya SEMUA kriteria kategori itu untuk
+// vendor tsb ber-meets_requirement=true (dan minimal ada 1 kriteria yang sudah dinilai, supaya
+// kategori yang belum sempat dinilai sama sekali tidak salah dianggap "lulus").
+router.get('/tenders/:id/evaluasi-penawaran-rekapitulasi', requireRole('pokja', 'admin', 'ppk'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const pesertaResult = await pool.query(`
+      SELECT tp.vendor_id, tp.bid_price, tp.is_winner, v.company_name
+      FROM tender_participants tp
+      JOIN vendors v ON tp.vendor_id = v.user_id
+      WHERE tp.tender_id = $1 AND tp.bid_price IS NOT NULL
+      ORDER BY tp.bid_price ASC
+    `, [id]);
+    if (!pesertaResult.rows.length) {
+      return res.status(404).json({ success: false, message: 'Belum ada peserta yang mengirim penawaran untuk tender ini.' });
+    }
+
+    const scoresResult = await pool.query(`
+      SELECT s.vendor_id, s.meets_requirement, c.category
+      FROM tender_eval_scores s
+      JOIN tender_eval_criteria c ON c.id = s.criteria_id
+      WHERE c.tender_id = $1 AND c.category IN ('administrasi', 'teknis', 'harga')
+    `, [id]);
+
+    const hps = tender.hps !== null && tender.hps !== undefined ? Number(tender.hps) : null;
+
+    // null = belum dinilai sama sekali, true/false = sudah dinilai dan hasilnya
+    function categoryPass(vendorId, category) {
+      const rows = scoresResult.rows.filter(r => r.vendor_id === vendorId && r.category === category);
+      if (!rows.length) return null;
+      return rows.every(r => r.meets_requirement === true);
+    }
+
+    const rows = pesertaResult.rows.map(p => {
+      const admin = categoryPass(p.vendor_id, 'administrasi');
+      const teknis = admin === false ? false : categoryPass(p.vendor_id, 'teknis');
+      const harga = (admin === false || teknis === false) ? false : categoryPass(p.vendor_id, 'harga');
+
+      const persentaseHps = (hps && hps > 0) ? Math.round((Number(p.bid_price) / hps) * 10000) / 100 : null;
+
+      let kesimpulan;
+      if (admin === false || teknis === false || harga === false) kesimpulan = 'gugur';
+      else if (admin === null || teknis === null || harga === null) kesimpulan = 'belum_lengkap';
+      else kesimpulan = (persentaseHps === null || persentaseHps > 100) ? 'lulus_diatas_hps' : 'lulus';
+
+      return {
+        company_name: p.company_name,
+        bid_price: p.bid_price,
+        admin, teknis, harga,
+        persentase_hps: persentaseHps,
+        kesimpulan,
+        is_winner: p.is_winner,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        hps,
+        rows,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/evaluasi-penawaran-rekapitulasi]', err);
     res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
   }
 });

@@ -534,11 +534,22 @@ function PokjaEvaluationTable({ tenderId, participants, tenderStatus, refreshDat
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-dpbj-navy text-sm">Peserta & Evaluasi Penawaran</h3>
-        {participants.length > 0 && (
-          <button onClick={() => window.open(`/cetak/daftar-peserta/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
-            Cetak Daftar Peserta
-          </button>
-        )}
+        <div className="flex gap-2">
+          {participants.length > 0 && (
+            <button onClick={() => window.open(`/cetak/daftar-peserta/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
+              Cetak Daftar Peserta
+            </button>
+          )}
+          {/* Dokumen rekap evaluasi internal (harga penawaran + status lulus/gugur SEMUA
+              vendor peserta) - sengaja dibatasi role di sini juga (bukan cuma di backend),
+              karena isinya bisa membocorkan harga & status kompetitor kalau tombolnya sampai
+              kelihatan oleh vendor. */}
+          {participants.length > 0 && ['pokja', 'admin', 'ppk'].includes(user?.role) && (
+            <button onClick={() => window.open(`/cetak/rekapitulasi-penawaran/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
+              Cetak Rekapitulasi Penawaran
+            </button>
+          )}
+        </div>
       </div>
       {participants.length === 0 ? (
         <p className="text-sm text-muted">Belum ada vendor yang mendaftar pada tender ini.</p>
