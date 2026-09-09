@@ -2243,3 +2243,48 @@ tanda kuat bahwa perbaikan itu TIDAK BEKERJA SAMA SEKALI (bukan "belum cukup man
 terjadi, langkah yang benar adalah membaca source code library yang sebenarnya dipakai (bukan
 menebak-nebak opsi konfigurasi lain), untuk tahu PERSIS jalur kode mana yang dilalui, alih-alih
 mencoba tambal-sulam opsi lain tanpa tahu apakah opsi itu benar-benar relevan.
+
+## RALAT PENTING: percobaan ke-4 membuktikan bug IPv6 memang teratasi, TAPI ada batasan baru yang ditemukan - port SMTP diblokir Railway (2026-09-09)
+
+**Koreksi atas klaim "sudah tuntas" di atas** - setelah dites ulang SEKALI LAGI (percobaan
+ke-4, dengan mailer.js versi resolve-IPv4-manual di atas benar-benar aktif di production),
+ternyata **masih gagal**. TAPI pesan errornya BERUBAH secara berarti: bukan lagi `ENETUNREACH`
+(gagal total, alamat tidak terjangkau), melainkan **`Connection timeout`** (nodemailer memang
+mencoba connect ke alamat IPv4 yang benar, tapi tidak pernah dapat balasan sama sekali sampai
+batas waktu ~2 menit habis).
+
+**Artinya**: perbaikan resolve-IPv4-manual di atas TERBUKTI BERHASIL untuk masalahnya sendiri
+(tidak lagi coba alamat IPv6 sama sekali) - tapi itu cuma membuka satu lapis masalah dan
+menemukan lapis masalah BARU di baliknya: **server Railway ini kemungkinan besar memang
+memblokir/membatasi koneksi KELUAR ke port SMTP (587) di level jaringan platform**, bukan lagi
+soal kode aplikasi sama sekali. Ini pola yang UMUM di banyak platform hosting/PaaS (Railway,
+Render, Heroku tier gratis, dst) - port SMTP sengaja dibatasi platform demi mencegah
+penyalahgunaan kirim spam massal dari akun-akun gratisan, terlepas dari kredensial SMTP-nya
+benar atau salah.
+
+**Ini BUKAN sesuatu yang bisa saya perbaiki lewat kode aplikasi** - kalau memang portnya
+diblokir di level jaringan platform, tidak ada trik DNS/kode apapun yang bisa menembusnya.
+Jalan keluar yang lazim dipakai kalau memang ini masalahnya (perlu dipilih/dikonfirmasi
+pengguna, bukan keputusan sepihak saya):
+1. **Pindah ke layanan email lewat API HTTP** (bukan protokol SMTP mentah) - misalnya Resend,
+   SendGrid, Mailgun, atau Postmark. Ini yang paling umum dipakai justru karena masalah SMTP
+   diblokir platform hosting seperti ini SANGAT UMUM - API HTTP jalan lewat port 443 (sama
+   seperti buka website biasa) yang hampir tidak pernah diblokir platform manapun. Perlu akun +
+   API key dari salah satu layanan itu (kebanyakan punya jatah gratis bulanan yang cukup untuk
+   sistem sekelas ini).
+2. Hubungi dukungan Railway untuk tanya apakah port SMTP bisa dibuka/di-allowlist untuk project
+   ini (belum dicoba, tidak ada jaminan hasilnya, dan mungkin perlu paket berbayar).
+3. Coba port SMTP alternatif kalau Gmail mendukung (587/465/25 sama-sama kemungkinan diblokir
+   sekaligus kalau memang kebijakan platform yang membatasi seluruh rentang port SMTP, jadi opsi
+   ini kemungkinan kecil membantu, tapi belum dicoba).
+
+**Kode `server/lib/mailer.js` (resolve IPv4 manual) TETAP DIPERTAHANKAN** - perbaikannya sendiri
+benar dan sudah terbukti menghilangkan masalah ENETUNREACH, cuma belum cukup untuk menembus
+kemungkinan blokir platform. Kalau nanti pindah ke layanan email API HTTP, modul ini yang akan
+diganti/ditambahkan alternatifnya.
+
+Data uji (4 baris `vendor_followups` dari 4 percobaan) sudah dihapus semua dari database
+production. **Status akhir yang jujur**: email di production BELUM bisa terkirim sungguhan
+sampai sekarang, tapi penyebabnya sudah diketahui PASTI (bukan lagi tebak-tebak) - kemungkinan
+besar port SMTP diblokir platform Railway, bukan lagi masalah konfigurasi atau kode. Keputusan
+soal jalan keluarnya (pindah ke layanan email API, atau coba hal lain) diserahkan ke pengguna.
