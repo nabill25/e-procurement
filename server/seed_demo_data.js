@@ -261,16 +261,21 @@ async function seedMasterData(ctx) {
       ('Dokumentasi Survei Harga Pasar', false)`);
   }
 
-  // Template penilaian kinerja (berjenjang bab/pasal)
+  // Template penilaian kinerja (berjenjang bab/pasal). Ditemukan 2026-09-09 (waktu bikin
+  // halaman cetak Penilaian Kinerja): bobot_persen sebelumnya SALAH ditaruh di baris BAB
+  // (induk), padahal migrations/028 sudah jelas menyebut "cuma diisi di level pasal/leaf" -
+  // akibatnya rumus nilai tertimbang (yang membaca bobot dari baris PASAL) selalu dapat 0,
+  // baik di halaman Penilaian Kinerja yang sudah ada maupun di halaman cetak baru. Diperbaiki:
+  // bab TIDAK diisi bobot_persen, pasal-lah yang diisi.
   const pkExisting = await pool.query('SELECT id FROM penilaian_kinerja_templates LIMIT 1');
   if (!pkExisting.rows.length) {
-    const bab1 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama, bobot_persen) VALUES ('I', 'Kualitas Pekerjaan', 40) RETURNING id`);
-    const bab2 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama, bobot_persen) VALUES ('II', 'Ketepatan Waktu', 30) RETURNING id`);
-    const bab3 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama, bobot_persen) VALUES ('III', 'Komunikasi & Responsivitas', 30) RETURNING id`);
-    await pool.query(`INSERT INTO penilaian_kinerja_templates (parent_id, kode, nama, skor_maksimal) VALUES
-      ($1, 'I.1', 'Kesesuaian spesifikasi teknis', 100),
-      ($2, 'II.1', 'Ketepatan jadwal penyelesaian', 100),
-      ($3, 'III.1', 'Kecepatan menanggapi komunikasi', 100)`,
+    const bab1 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama) VALUES ('I', 'Kualitas Pekerjaan') RETURNING id`);
+    const bab2 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama) VALUES ('II', 'Ketepatan Waktu') RETURNING id`);
+    const bab3 = await pool.query(`INSERT INTO penilaian_kinerja_templates (kode, nama) VALUES ('III', 'Komunikasi & Responsivitas') RETURNING id`);
+    await pool.query(`INSERT INTO penilaian_kinerja_templates (parent_id, kode, nama, skor_maksimal, bobot_persen) VALUES
+      ($1, 'I.1', 'Kesesuaian spesifikasi teknis', 100, 40),
+      ($2, 'II.1', 'Ketepatan jadwal penyelesaian', 100, 30),
+      ($3, 'III.1', 'Kecepatan menanggapi komunikasi', 100, 30)`,
       [bab1.rows[0].id, bab2.rows[0].id, bab3.rows[0].id]);
   }
 

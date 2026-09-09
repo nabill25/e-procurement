@@ -853,8 +853,13 @@ export function PenilaianKinerjaSection({ tenderId, canEdit, user }) {
           ))}
           {scores.length > 0 && (
             <div className="pt-3 border-t border-border flex items-center justify-between">
-              <p className="text-xs font-bold text-dpbj-navy">Total Nilai Tertimbang</p>
-              <p className="text-lg font-bold text-dpbj-gold-dark">{totalSkor.toFixed(1)}</p>
+              <div>
+                <p className="text-xs font-bold text-dpbj-navy">Total Nilai Tertimbang</p>
+                <p className="text-lg font-bold text-dpbj-gold-dark">{totalSkor.toFixed(1)}</p>
+              </div>
+              <button onClick={() => window.open(`/cetak/penilaian-kinerja/${tenderId}`, '_blank')} className="btn-ghost text-xs py-1.5 px-3">
+                Cetak Formulir Penilaian
+              </button>
             </div>
           )}
         </div>

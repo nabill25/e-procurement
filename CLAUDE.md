@@ -2288,3 +2288,77 @@ production. **Status akhir yang jujur**: email di production BELUM bisa terkirim
 sampai sekarang, tapi penyebabnya sudah diketahui PASTI (bukan lagi tebak-tebak) - kemungkinan
 besar port SMTP diblokir platform Railway, bukan lagi masalah konfigurasi atau kode. Keputusan
 soal jalan keluarnya (pindah ke layanan email API, atau coba hal lain) diserahkan ke pengguna.
+
+**Keputusan pengguna**: pindah ke layanan email lewat API HTTP (Resend direkomendasikan,
+belum dikerjakan - menunggu pengguna daftar akun + kasih API key + konfirmasi domain
+terverifikasi yang bisa dipakai, karena Resend versi gratis butuh 1 domain terverifikasi supaya
+bisa kirim ke alamat siapa saja, bukan cuma ke email sendiri).
+
+## Lanjut cetak dokumen: 2 item ternyata sudah ada (koreksi), 1 item baru dibangun (Penilaian Kinerja) (2026-09-09)
+
+Meneruskan prioritas pengguna ("lanjut lengkapi dokumen cetak lain"). Sebelum membangun apapun
+baru, dicek ulang cermat daftar "belum dibuat" yang tercatat sebelumnya - ternyata **2 dari situ
+SALAH/sudah ketinggalan zaman**:
+
+- **"Pakta Integritas versi Panitia"** - ternyata SUDAH ada sejak awal. Endpoint
+  `GET /api/print/tenders/:id/pakta-integritas` (tanpa `:vendorId`) sudah otomatis mengambil
+  validasi `jenis='panitia'`, dan tombol "Pakta Integritas Panitia" sudah terpasang di
+  `DokumenPaketTab.jsx` (khusus role non-vendor). Catatan lama keliru karena cuma membandingkan
+  terhadap bentuk dokumen sistem lama (formulir tanda tangan basah kosong berisi roster
+  panitia) tanpa mengecek bahwa sistem baru sudah punya padanan modernnya (validasi digital per
+  panitia dengan kode unik), bukan berarti fiturnya belum ada.
+- **"Berita Acara Pembukaan/Penawaran"** - ternyata SUDAH ada juga. Endpoint yang sudah lama ada
+  `GET /api/print/tenders/:id/pembukaan-penawaran` memang persis dokumen BAPP (Berita Acara
+  Pembukaan Penawaran) ini - nomornya sendiri sudah diformat `.../BA.PEMBUKAAN/...`, isinya
+  daftar peserta+dokumen+panitia. Catatan lama salah menganggap ini beda dari validasi
+  pembukaan sampul yang sudah ada, padahal itu memang dokumen yang sama.
+
+**"Aanwijzing Kualifikasi"** (`aanwijzing_kualifikasi_cetak.php`) dicek juga - ternyata di kode
+PHP asli cuma query yang SAMA (`selectByParamsKualifikasi`, filter WHERE beda) ke tabel
+`PAKET_AANWIJZING` yang SAMA dipakai aanwijzing biasa, bukan tabel/konsep terpisah. Sistem lama
+punya alur 2 tahap terpisah (pra-kualifikasi lalu teknis) yang masing-masing punya sesi
+aanwijzing sendiri - sistem baru sengaja tidak meniru pemisahan 2 tahap ini (disederhanakan
+sejak awal jadi 1 alur), jadi endpoint aanwijzing yang sudah ada memang sudah mencakup
+kebutuhan yang sama. **Diputuskan TIDAK dibuat terpisah** - bukan kelalaian, karena
+membangunnya akan berarti mengarang pemisahan tahap yang tidak ada di data sistem baru.
+
+**Item baru yang genuinely belum ada dan dibangun sekarang: Cetak Formulir Penilaian Kinerja**
+(padanan `paket_penilaian_pdf.php`). **Perbedaan sengaja dari sistem lama**: sistem lama pakai
+skala tetap 5 pilihan bertanda centang (Sangat Buruk..Sangat Baik), sistem baru dari awal sudah
+pakai skor numerik bebas (0 sampai skor_maksimal per kriteria, lihat migrations/028) - jadi
+dokumen cetak ini ditampilkan sebagai tabel skor/bobot/kontribusi per kriteria (konsisten
+dengan cara `PenilaianKinerjaSection` yang sudah ada menyimpan dan penghitung skornya), BUKAN
+meniru 5 kolom centang yang sudah tidak sesuai. Endpoint baru
+`GET /api/print/tenders/:id/penilaian-kinerja`, halaman baru
+`src/pages/print/PrintPenilaianKinerja.jsx`, tombol "Cetak Formulir Penilaian" di sub-tab
+"Penilaian Kinerja" pada tab Kontrak & BAST.
+
+**Bug data ditemukan dan diperbaiki sekalian** (ditemukan waktu tes endpoint baru ini - total
+nilai tertimbang selalu 0 untuk tender demo, padahal skornya sudah diisi): `bobot_persen` di
+data contoh (`seed_demo_data.js`) SALAH ditaruh di baris BAB/induk (mis. "I. Kualitas Pekerjaan"
+= 40%), padahal `migrations/028` sudah jelas bilang kolom itu "cuma diisi di level pasal/leaf".
+Rumus (baik di endpoint cetak baru INI maupun di `PenilaianKinerjaSection` yang SUDAH ADA
+sebelumnya, keduanya pakai rumus identik) selalu baca bobot dari baris PASAL, yang memang
+sengaja dibiarkan kosong di kode aslinya - jadi total selalu 0 x apapun, bug ini SUDAH ADA sejak
+fitur Penilaian Kinerja pertama dibangun, cuma baru ketahuan sekarang karena baru kali ini ada
+yang benar-benar mengecek angka totalnya secara sengaja. Diperbaiki di 2 tempat: kode
+`seed_demo_data.js` (supaya seed baru ke depan benar), dan data yang SUDAH TERLANJUR ada di
+database (dipindah lewat skrip sekali-pakai, bobot dari baris bab dipindah ke baris pasal
+anaknya, TIDAK ada data yang hilang, cuma dipindah kolomnya). Setelah diperbaiki, total nilai
+tertimbang tender contoh sekarang **92.6** (diverifikasi manual: 95x0.4 + 90x0.3 + 92x0.3 =
+38+27+27.6 = 92.6, cocok persis dengan yang ditampilkan sistem, baik di halaman kerja PPK yang
+sudah ada maupun di halaman cetak baru).
+
+Sudah dites lewat curl (data benar, perhitungan tepat) dan browser sungguhan Playwright (tombol
+tampil, halaman cetak terbuka dengan tampilan rapi, nol error console, dan dikonfirmasi juga
+angka 92.6 sekarang benar tampil di UI Penilaian Kinerja yang sudah ada - bukan cuma di halaman
+cetak baru).
+
+**Total cetak dokumen sekarang 18 dari ~23 kategori sistem lama** (naik dari 17, setelah koreksi
+2 item yang ternyata sudah lama selesai plus 1 item baru). Sisa yang genuinely belum ada:
+Evaluasi Aritmatika Penawaran (butuh keputusan skema, per-vendor bukan multi-vendor sejajar),
+Rekapitulasi Pekerjaan (agregat tahunan lintas paket, beda bentuk - lebih cocok halaman Laporan
+tersendiri), 4 dokumen Katalog, 2 laporan listing VMS (daftar penyedia/terverifikasi, beda dari
+SKT per-vendor yang sudah ada), listing Permohonan Paket per unit kerja (beda dari detail satu
+pengajuan yang sudah ada), `negosiasi_item_excel`/`paket_pekerjaan_excel`/`paket_cetak*` (belum
+sempat diriset detail).

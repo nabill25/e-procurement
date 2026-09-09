@@ -981,4 +981,76 @@ router.get('/tenders/:id/daftar-peserta', async (req, res) => {
   }
 });
 
+// ── GET /api/print/tenders/:id/penilaian-kinerja ──
+// Padanan "paket_penilaian_pdf.php" (FORMULIR PENILAIAN KINERJA PENYEDIA BARANG/JASA).
+// Sistem lama pakai skala tetap 5 pilihan (Sangat Buruk..Sangat Baik, ditandai centang), sistem
+// baru pakai skor numerik bebas (0 sampai skor_maksimal per kriteria, lihat migrations/028) -
+// jadi dokumen ini ditampilkan sebagai tabel skor+bobot+kontribusi per kriteria, bukan meniru
+// kolom centang 5-pilihan yang sudah tidak sesuai dengan cara sistem baru menyimpan datanya.
+// Rumus total nilai tertimbang PERSIS SAMA dengan yang dipakai `PenilaianKinerjaSection` di
+// frontend (server/routes/tenders.js tidak menyimpan hasil hitungnya, cuma skor mentah per
+// kriteria - totalnya selalu dihitung ulang saat dibutuhkan, di sini maupun di frontend).
+router.get('/tenders/:id/penilaian-kinerja', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tender = await getTenderBase(id);
+    if (!tender) return res.status(404).json({ success: false, message: 'Tender tidak ditemukan.' });
+
+    const c = await pool.query(`
+      SELECT ct.id, ct.contract_number, ct.spk_code, v.company_name
+      FROM contracts ct JOIN vendors v ON ct.vendor_id = v.user_id
+      WHERE ct.tender_id = $1
+    `, [id]);
+    if (!c.rows.length) return res.status(404).json({ success: false, message: 'Kontrak belum dibuat untuk tender ini.' });
+    const contract = c.rows[0];
+
+    const templatesResult = await pool.query(
+      'SELECT * FROM penilaian_kinerja_templates WHERE is_active = true ORDER BY kode ASC NULLS LAST, nama ASC'
+    );
+    const scoresResult = await pool.query(
+      'SELECT template_id, skor, catatan FROM contract_penilaian_kinerja WHERE contract_id = $1',
+      [contract.id]
+    );
+    if (!scoresResult.rows.length) {
+      return res.status(404).json({ success: false, message: 'Belum ada skor penilaian kinerja untuk kontrak ini.' });
+    }
+
+    const bab = templatesResult.rows.filter(t => !t.parent_id);
+    const pasalOf = (babId) => templatesResult.rows.filter(t => t.parent_id === babId);
+    const scoreFor = (templateId) => scoresResult.rows.find(s => s.template_id === templateId);
+
+    let totalTertimbang = 0;
+    const babData = bab.map(b => ({
+      kode: b.kode,
+      nama: b.nama,
+      pasal: pasalOf(b.id).map(p => {
+        const s = scoreFor(p.id);
+        const bobot = parseFloat(p.bobot_persen) || 0;
+        const maks = p.skor_maksimal || 100;
+        const kontribusi = s ? (Number(s.skor) / maks) * bobot : 0;
+        totalTertimbang += kontribusi;
+        return {
+          kode: p.kode, nama: p.nama,
+          skor: s ? s.skor : null, skor_maksimal: maks, bobot_persen: bobot,
+          kontribusi: Math.round(kontribusi * 100) / 100,
+          catatan: s ? s.catatan : null,
+        };
+      }),
+    })).filter(b => b.pasal.length);
+
+    res.json({
+      success: true,
+      data: {
+        tender: { title: tender.title, nomor: tender.tender_number },
+        kontrak: { nomor: contract.spk_code || contract.contract_number, penyedia: contract.company_name },
+        bab: babData,
+        total_tertimbang: Math.round(totalTertimbang * 100) / 100,
+      },
+    });
+  } catch (err) {
+    console.error('[GET /print/tenders/:id/penilaian-kinerja]', err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil data cetak.' });
+  }
+});
+
 module.exports = router;

@@ -40,6 +40,7 @@ import PrintKontrak from './pages/print/PrintKontrak';
 import PrintEvaluasiKualifikasi from './pages/print/PrintEvaluasiKualifikasi';
 import PrintEvaluasiRekapitulasi from './pages/print/PrintEvaluasiRekapitulasi';
 import PrintRekapitulasiPenawaran from './pages/print/PrintRekapitulasiPenawaran';
+import PrintPenilaianKinerja from './pages/print/PrintPenilaianKinerja';
 import PrintPengajuan from './pages/print/PrintPengajuan';
 import PrintSkt from './pages/print/PrintSkt';
 import PrintJadwal from './pages/print/PrintJadwal';
@@ -174,6 +175,7 @@ function AppShell() {
       'evaluasi-kualifikasi': <PrintEvaluasiKualifikasi tenderId={printDeepLink.tenderId} category={printDeepLink.vendorId} onBack={backToTender} />,
       'evaluasi-rekapitulasi': <PrintEvaluasiRekapitulasi tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'rekapitulasi-penawaran': <PrintRekapitulasiPenawaran tenderId={printDeepLink.tenderId} onBack={backToTender} />,
+      'penilaian-kinerja': <PrintPenilaianKinerja tenderId={printDeepLink.tenderId} onBack={backToTender} />,
       'pengajuan': <PrintPengajuan pengajuanId={printDeepLink.tenderId} onBack={backToPengajuan} />,
       'skt': <PrintSkt vendorId={printDeepLink.tenderId} onBack={backToVendor} />,
       'jadwal': <PrintJadwal tenderId={printDeepLink.tenderId} onBack={backToTender} />,
