@@ -3,6 +3,19 @@
 // `npm run server` dari folder root (cara resmi yang didokumentasikan), yang kebaca malah
 // .env di ROOT (cuma berisi SUPABASE_DB_URL), bukan server/.env yang berisi JWT_SECRET/SMTP dst.
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+// Ditemukan 2026-09-09 lewat uji kirim email sungguhan di production (Railway): server itu
+// ternyata tidak punya jalur jaringan IPv6 sama sekali, tapi Node.js secara bawaan (DNS lookup
+// "verbatim"/urutan campuran) tetap mencoba alamat IPv6 Gmail (smtp.gmail.com resolve ke IPv4
+// DAN IPv6 sekaligus) LEBIH DULU sebelum coba IPv4 - hasilnya selalu gagal "ENETUNREACH" ke
+// alamat IPv6 walau IPv4-nya sebenarnya bisa dijangkau normal dari sana. Opsi `family: 4` yang
+// sudah dipasang di server/lib/mailer.js (khusus untuk koneksi SMTP) ternyata TIDAK CUKUP -
+// entah karena tidak diteruskan dengan benar oleh nodemailer ke socket-nya, atau ada jalur lain
+// yang tetap kena resolusi DNS bawaan. Diperbaiki di level PALING DASAR (bukan per-library):
+// dns.setDefaultResultOrder('ipv4first') mengubah urutan resolusi DNS bawaan Node.js untuk
+// SELURUH proses (bukan cuma email), supaya alamat IPv4 selalu dicoba lebih dulu kalau ada -
+// ini cara resmi yang direkomendasikan Node.js sendiri untuk masalah persis seperti ini,
+// dipasang paling atas sebelum modul lain (termasuk mailer.js) sempat melakukan resolusi DNS.
+require('dns').setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,6 +27,17 @@ const { requireAuth, requireRole } = require('./lib/authMiddleware');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Ditemukan 2026-09-09 lewat railway logs (waktu menyelidiki bug email): Railway menaruh
+// aplikasi ini di belakang reverse proxy-nya sendiri, yang menambahkan header X-Forwarded-For
+// ke tiap request. Tanpa "trust proxy", express-rate-limit menolak mempercayai header itu (demi
+// keamanan, supaya klien tidak bisa memalsukan IP-nya sendiri lewat header ini) dan melempar
+// ValidationError terus-menerus di log - akibatnya rate limit berisiko salah mengenali SEMUA
+// pengguna sebagai satu IP yang sama (IP milik proxy Railway), bukan IP asli tiap pengguna.
+// Diset "1" (percaya SATU lapis proxy paling depan saja) bukan "true" (percaya rantai proxy
+// tanpa batas) - sesuai jumlah lapis proxy yang sebenarnya ada di Railway, dan cuma di
+// production (IS_PROD) karena development lokal tidak lewat proxy apapun.
+if (IS_PROD) app.set('trust proxy', 1);
 
 // ── Keamanan: HTTP security headers ──
 // crossOriginResourcePolicy dilonggarkan supaya file di /uploads (gambar produk katalog,

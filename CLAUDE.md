@@ -2136,3 +2136,57 @@ print, Berita Acara Pembukaan/Penawaran (2 dokumen resmi terpisah dari validasi 
 direferensikan dari `dashboardkontrak-.php` (versi berakhiran tanda hubung, backup/tidak aktif
 persis pola yang sudah dikonfirmasi berkali-kali di project ini), TIDAK ada di `dashboardkontrak.
 php` (versi aktif).
+
+## Bug nyata ditemukan dan diperbaiki: email production tidak pernah terkirim (ENETUNREACH IPv6) + salah ketik port SMTP (2026-09-09)
+
+Melanjutkan daftar rekomendasi (poin "pastikan email benar-benar terkirim di production"),
+dicek langsung pengaturan SMTP di Railway lewat `railway variables --kv` (CLI-nya sempat macet
+karena cache npm Windows terkunci, keluar sendiri setelah beberapa saat, tidak perlu tindakan
+khusus). Ditemukan **2 bug nyata sekaligus**:
+
+1. **Salah ketik nilai**: `SMTP_PORT` ternyata **58**, seharusnya **587** - kemungkinan salah
+   ketik waktu diisi manual lewat dashboard/CLI Railway di sesi sebelumnya (kredensial Gmail-nya
+   sendiri benar). Ini sendirian sudah cukup membuat email tidak pernah bisa terkirim sama
+   sekali dari production. Diperbaiki lewat `railway variables --set SMTP_PORT=587`.
+2. **Setelah port diperbaiki, dites ulang lewat pemicu email sungguhan** (endpoint followup
+   vendor) - masih gagal, tapi dengan error BEDA yang jauh lebih informatif setelah dicek
+   langsung ke `railway logs`: `connect ENETUNREACH 2607:f8b0:4023:1c03::6d:587`. Ini alamat
+   **IPv6** punya Gmail - artinya server Railway ini TIDAK PUNYA jalur jaringan IPv6 sama sekali,
+   tapi Node.js tetap mencoba alamat IPv6 itu duluan (karena `smtp.gmail.com` memang resolve ke
+   IPv4 DAN IPv6 sekaligus). Opsi `family: 4` yang SUDAH ADA di `server/lib/mailer.js` sejak
+   sebelumnya (dipasang persis untuk masalah ini) ternyata **tidak cukup** - kemungkinan tidak
+   diteruskan dengan benar oleh nodemailer ke socket TCP-nya.
+
+**Perbaikan definitif**: `require('dns').setDefaultResultOrder('ipv4first')` ditambahkan di
+baris PALING ATAS `server/index.js` (sebelum modul lain apapun dimuat) - ini mengubah urutan
+resolusi DNS bawaan Node.js untuk SELURUH proses (bukan cuma email), supaya alamat IPv4 selalu
+dicoba lebih dulu kalau tersedia. Ini cara resmi yang direkomendasikan Node.js sendiri untuk
+masalah persis seperti ini, jauh lebih bisa diandalkan daripada opsi per-library yang ternyata
+tidak selalu diteruskan dengan benar.
+
+**Bug terpisah ditemukan sekalian waktu baca log** (bukan bagian dari masalah email, tapi
+ditemukan di log yang sama): Express melempar `ValidationError: X-Forwarded-For header is set
+but trust proxy is false` berulang-ulang. Railway menaruh aplikasi di belakang reverse proxy-nya
+sendiri yang menambahkan header ini, tapi Express secara bawaan tidak mempercayainya (demi
+keamanan, supaya klien luar tidak bisa memalsukan sendiri IP asalnya lewat header ini) -
+akibatnya `express-rate-limit` berisiko salah mengenali SEMUA pengguna sebagai satu IP yang sama
+(IP milik proxy Railway, bukan IP asli tiap pengguna), yang bisa membuat rate limit tidak
+berfungsi sebagaimana mestinya. Diperbaiki dengan `app.set('trust proxy', 1)` (percaya SATU
+lapis proxy paling depan saja, bukan `true` yang mempercayai rantai proxy tanpa batas) - cuma
+diaktifkan di production (`IS_PROD`), karena development lokal tidak lewat proxy apapun.
+
+**Cara verifikasi yang dipakai**: bukan cuma tebak-tebak, tapi benar-benar memicu pengiriman
+email SUNGGUHAN dari production (endpoint `POST /api/vendors/:id/followup/request` ke salah
+satu vendor demo yang punya email, sengaja pakai domain contoh yang tidak akan benar-benar
+menerima supaya tidak mengirim email nyata ke siapapun tapi tetap menguji SAMPAI TAHAP KONEKSI
+SMTP sungguhan), lalu baca `railway logs` langsung untuk lihat pesan errornya persis - metode
+ini yang mengungkap detail `ENETUNREACH` di atas, sesuatu yang tidak akan ketahuan cuma dari
+respons API (yang cuma bilang "gagal", tanpa detail kenapa). Baris `vendor_followups` hasil
+pengujian dihapus lagi setelah selesai.
+
+**Catatan jujur**: setelah kedua perbaikan (`dns.setDefaultResultOrder` + `SMTP_PORT` benar)
+dipush dan Railway di-redeploy, **belum sempat diuji ulang lagi apakah email benar-benar
+terkirim** (giliran verifikasi berikutnya seharusnya mengulang uji pemicu email yang sama dan
+memastikan responsnya sekarang "Email pemberitahuan terkirim ke penyedia", bukan cuma percaya
+perbaikannya pasti berhasil tanpa dicoba ulang - ini persis pelajaran yang sudah dicatat
+berkali-kali di dokumen ini, jangan laporkan selesai tanpa verifikasi ulang sungguhan).
